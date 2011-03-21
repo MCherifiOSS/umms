@@ -1,0 +1,1 @@
+This is the initial implementation of UMMS based on Gstreamer backend and ismd plugins of CE4100. This version aims at provide a demo implementation of UMMS, which use different backend engine to support different source types if needed.
