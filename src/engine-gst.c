@@ -5,13 +5,13 @@
 #include <gst/interfaces/streamvolume.h>
 #include "umms-common.h"
 #include "engine-gst.h"
-#include "meego-media-player-control-interface.h"
+#include "meego-media-player-control.h"
 
 
-static void meego_media_player_control_interface_init (MeegoMediaPlayerControlInterface* iface);
+static void meego_media_player_control_init (MeegoMediaPlayerControl* iface);
 
 G_DEFINE_TYPE_WITH_CODE (EngineGst, engine_gst, G_TYPE_OBJECT,
-                         G_IMPLEMENT_INTERFACE (MEEGO_TYPE_MEDIA_PLAYER_CONTROL_INTERFACE, meego_media_player_control_interface_init))
+                         G_IMPLEMENT_INTERFACE (MEEGO_TYPE_MEDIA_PLAYER_CONTROL, meego_media_player_control_init))
 
 #define PLAYER_PRIVATE(o) \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), ENGINE_TYPE_GST, EngineGstPrivate))
@@ -65,7 +65,7 @@ _array_has_uri_value (const gchar * values[], const gchar * value)
 }
 
 static gboolean
-engine_gst_set_uri (MeegoMediaPlayerControlInterface *self,
+engine_gst_set_uri (MeegoMediaPlayerControl *self,
                     const gchar           *uri)
 {
     EngineGstPrivate *priv = GET_PRIVATE (self);
@@ -102,7 +102,7 @@ engine_gst_set_uri (MeegoMediaPlayerControlInterface *self,
 }
 
 static gboolean
-engine_gst_play (MeegoMediaPlayerControlInterface *self)
+engine_gst_play (MeegoMediaPlayerControl *self)
 {
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
@@ -117,7 +117,7 @@ engine_gst_play (MeegoMediaPlayerControlInterface *self)
 }
 
 static gboolean
-engine_gst_pause (MeegoMediaPlayerControlInterface *self)
+engine_gst_pause (MeegoMediaPlayerControl *self)
 {
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
@@ -129,7 +129,7 @@ engine_gst_pause (MeegoMediaPlayerControlInterface *self)
 }
 
 static gboolean
-engine_gst_stop (MeegoMediaPlayerControlInterface *self)
+engine_gst_stop (MeegoMediaPlayerControl *self)
 {
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
@@ -138,7 +138,7 @@ engine_gst_stop (MeegoMediaPlayerControlInterface *self)
   } 
 
   priv->player_state = PlayerStateStopped;
-  meego_media_player_control_interface_emit_stopped (self);
+  meego_media_player_control_emit_stopped (self);
   return TRUE;
 }
 
@@ -200,7 +200,7 @@ _get_ismd_vidrend_bin (GstBin *bin)
 }
 
 static gboolean 
-engine_gst_set_video_size (MeegoMediaPlayerControlInterface *self,
+engine_gst_set_video_size (MeegoMediaPlayerControl *self,
                         guint x, guint y, guint w, guint h)
 {
     EngineGstPrivate *priv = GET_PRIVATE (self);
@@ -229,7 +229,7 @@ engine_gst_set_video_size (MeegoMediaPlayerControlInterface *self,
 }
 
 static gboolean 
-engine_gst_get_video_size (MeegoMediaPlayerControlInterface *self,
+engine_gst_get_video_size (MeegoMediaPlayerControl *self,
                         guint *w, guint *h)
 {
     EngineGstPrivate *priv = GET_PRIVATE (self);
@@ -255,7 +255,7 @@ engine_gst_get_video_size (MeegoMediaPlayerControlInterface *self,
 }
 
 static gboolean 
-engine_gst_is_seekable (MeegoMediaPlayerControlInterface *self, gboolean *seekable)
+engine_gst_is_seekable (MeegoMediaPlayerControl *self, gboolean *seekable)
 {
   EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
@@ -264,7 +264,7 @@ engine_gst_is_seekable (MeegoMediaPlayerControlInterface *self, gboolean *seekab
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (seekable != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL_INTERFACE(self), FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   priv = GET_PRIVATE (self);
   pipe = priv->pipeline;
@@ -303,13 +303,13 @@ engine_gst_is_seekable (MeegoMediaPlayerControlInterface *self, gboolean *seekab
 }
 
 static gboolean 
-engine_gst_set_position (MeegoMediaPlayerControlInterface *self, gint64 in_pos)
+engine_gst_set_position (MeegoMediaPlayerControl *self, gint64 in_pos)
 {
     GstElement *pipe;
     EngineGstPrivate *priv;
 
     g_return_val_if_fail (self != NULL, FALSE);
-    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL_INTERFACE(self), FALSE);
+    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
     priv = GET_PRIVATE (self);
     pipe = priv->pipeline;
@@ -322,12 +322,12 @@ engine_gst_set_position (MeegoMediaPlayerControlInterface *self, gint64 in_pos)
             GST_SEEK_TYPE_SET, in_pos * GST_MSECOND,
             GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
 
-    meego_media_player_control_interface_emit_seeked (self);
+    meego_media_player_control_emit_seeked (self);
     return TRUE;
 }
 
 static gboolean 
-engine_gst_get_position (MeegoMediaPlayerControlInterface *self, gint64 *cur_pos)
+engine_gst_get_position (MeegoMediaPlayerControl *self, gint64 *cur_pos)
 {
     EngineGstPrivate *priv = NULL;
     GstElement *pipe = NULL;
@@ -337,7 +337,7 @@ engine_gst_get_position (MeegoMediaPlayerControlInterface *self, gint64 *cur_pos
 
     g_return_val_if_fail (self != NULL, FALSE);
     g_return_val_if_fail (cur_pos != NULL, FALSE);
-    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL_INTERFACE(self), FALSE);
+    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
     priv = GET_PRIVATE (self);
     pipe = priv->pipeline;
@@ -354,7 +354,7 @@ engine_gst_get_position (MeegoMediaPlayerControlInterface *self, gint64 *cur_pos
 }
 
 static gboolean 
-engine_gst_set_playback_rate (MeegoMediaPlayerControlInterface *self, gdouble in_rate)
+engine_gst_set_playback_rate (MeegoMediaPlayerControl *self, gdouble in_rate)
 {
     GstElement *pipe;
     EngineGstPrivate *priv;
@@ -362,7 +362,7 @@ engine_gst_set_playback_rate (MeegoMediaPlayerControlInterface *self, gdouble in
     gint64 cur;
 
     g_return_val_if_fail (self != NULL, FALSE);
-    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL_INTERFACE(self), FALSE);
+    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
     priv = GET_PRIVATE (self);
     pipe = priv->pipeline;
@@ -386,14 +386,14 @@ engine_gst_set_playback_rate (MeegoMediaPlayerControlInterface *self, gdouble in
 }
 
 static gboolean 
-engine_gst_get_playback_rate (MeegoMediaPlayerControlInterface *self, gdouble *out_rate)
+engine_gst_get_playback_rate (MeegoMediaPlayerControl *self, gdouble *out_rate)
 {
     GstElement *pipe;
     EngineGstPrivate *priv;
     GstQuery *query;
 
     g_return_val_if_fail (self != NULL, FALSE);
-    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL_INTERFACE(self), FALSE);
+    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
     priv = GET_PRIVATE (self);
     pipe = priv->pipeline;
@@ -414,14 +414,14 @@ engine_gst_get_playback_rate (MeegoMediaPlayerControlInterface *self, gdouble *o
 }
 
 static gboolean 
-engine_gst_set_volume (MeegoMediaPlayerControlInterface *self, gint vol)
+engine_gst_set_volume (MeegoMediaPlayerControl *self, gint vol)
 {
     GstElement *pipe;
     EngineGstPrivate *priv;
     gdouble volume;
 
     g_return_val_if_fail (self != NULL, FALSE);
-    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL_INTERFACE(self), FALSE);
+    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
     priv = GET_PRIVATE (self);
     pipe = priv->pipeline;
@@ -439,14 +439,14 @@ engine_gst_set_volume (MeegoMediaPlayerControlInterface *self, gint vol)
 }
 
 static gboolean 
-engine_gst_get_volume (MeegoMediaPlayerControlInterface *self, gint *volume)
+engine_gst_get_volume (MeegoMediaPlayerControl *self, gint *volume)
 {
     GstElement *pipe;
     EngineGstPrivate *priv;
     gdouble vol;
 
     g_return_val_if_fail (self != NULL, FALSE);
-    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL_INTERFACE(self), FALSE);
+    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
     priv = GET_PRIVATE (self);
     pipe = priv->pipeline;
@@ -477,7 +477,7 @@ _query_media_size (GstElement *player, gint64 *media_size, GstFormat fmt)
 }
 
 static gboolean 
-engine_gst_get_media_size_time (MeegoMediaPlayerControlInterface *self, gint64 *media_size_time)
+engine_gst_get_media_size_time (MeegoMediaPlayerControl *self, gint64 *media_size_time)
 {
     GstElement *pipe;
     EngineGstPrivate *priv;
@@ -485,7 +485,7 @@ engine_gst_get_media_size_time (MeegoMediaPlayerControlInterface *self, gint64 *
     gboolean ret;
 
     g_return_val_if_fail (self != NULL, FALSE);
-    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL_INTERFACE(self), FALSE);
+    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
     priv = GET_PRIVATE (self);
     pipe = priv->pipeline;
@@ -505,7 +505,7 @@ engine_gst_get_media_size_time (MeegoMediaPlayerControlInterface *self, gint64 *
 
 
 static gboolean 
-engine_gst_get_media_size_bytes (MeegoMediaPlayerControlInterface *self, gint64 *media_size_bytes)
+engine_gst_get_media_size_bytes (MeegoMediaPlayerControl *self, gint64 *media_size_bytes)
 {
     GstElement *pipe;
     EngineGstPrivate *priv;
@@ -513,7 +513,7 @@ engine_gst_get_media_size_bytes (MeegoMediaPlayerControlInterface *self, gint64 
     gboolean ret;
 
     g_return_val_if_fail (self != NULL, FALSE);
-    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL_INTERFACE(self), FALSE);
+    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
     priv = GET_PRIVATE (self);
     pipe = priv->pipeline;
@@ -532,14 +532,14 @@ engine_gst_get_media_size_bytes (MeegoMediaPlayerControlInterface *self, gint64 
 }
 
 static gboolean 
-engine_gst_has_video (MeegoMediaPlayerControlInterface *self, gboolean *has_video)
+engine_gst_has_video (MeegoMediaPlayerControl *self, gboolean *has_video)
 {
     GstElement *pipe;
     EngineGstPrivate *priv;
     gint n_video;
 
     g_return_val_if_fail (self != NULL, FALSE);
-    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL_INTERFACE(self), FALSE);
+    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
     priv = GET_PRIVATE (self);
     pipe = priv->pipeline;
@@ -555,14 +555,14 @@ engine_gst_has_video (MeegoMediaPlayerControlInterface *self, gboolean *has_vide
 }
 
 static gboolean 
-engine_gst_has_audio (MeegoMediaPlayerControlInterface *self, gboolean *has_audio)
+engine_gst_has_audio (MeegoMediaPlayerControl *self, gboolean *has_audio)
 {
     GstElement *pipe;
     EngineGstPrivate *priv;
     gint n_audio;
 
     g_return_val_if_fail (self != NULL, FALSE);
-    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL_INTERFACE(self), FALSE);
+    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
     priv = GET_PRIVATE (self);
     pipe = priv->pipeline;
@@ -578,14 +578,14 @@ engine_gst_has_audio (MeegoMediaPlayerControlInterface *self, gboolean *has_audi
 }
 
 static gboolean 
-engine_gst_support_fullscreen (MeegoMediaPlayerControlInterface *self, gboolean *support_fullscreen)
+engine_gst_support_fullscreen (MeegoMediaPlayerControl *self, gboolean *support_fullscreen)
 {
     GstElement *pipe, *ismd_vbin;
     EngineGstPrivate *priv;
     gboolean ret;
 
     g_return_val_if_fail (self != NULL, FALSE);
-    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL_INTERFACE(self), FALSE);
+    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
     priv = GET_PRIVATE (self);
     pipe = priv->pipeline;
@@ -605,13 +605,13 @@ engine_gst_support_fullscreen (MeegoMediaPlayerControlInterface *self, gboolean 
 }
 
 static gboolean 
-engine_gst_is_streaming (MeegoMediaPlayerControlInterface *self, gboolean *is_streaming)
+engine_gst_is_streaming (MeegoMediaPlayerControl *self, gboolean *is_streaming)
 {
     GstElement *pipe;
     EngineGstPrivate *priv;
 
     g_return_val_if_fail (self != NULL, FALSE);
-    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL_INTERFACE(self), FALSE);
+    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
     priv = GET_PRIVATE (self);
     pipe = priv->pipeline;
@@ -626,14 +626,14 @@ engine_gst_is_streaming (MeegoMediaPlayerControlInterface *self, gboolean *is_st
 }
 
 static gboolean
-engine_gst_get_player_state (MeegoMediaPlayerControlInterface *self,
+engine_gst_get_player_state (MeegoMediaPlayerControl *self,
                              gint *state)
 {
     EngineGstPrivate *priv;
 
     g_return_val_if_fail (self != NULL, FALSE);
     g_return_val_if_fail (state != NULL, FALSE);
-    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL_INTERFACE(self), FALSE);
+    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
     priv = GET_PRIVATE (self);
 
@@ -662,7 +662,7 @@ _get_buffer_depth (GstElement *player, GstFormat format, gint64 *depth)
 
 
     static gboolean
-engine_gst_get_buffered_bytes (MeegoMediaPlayerControlInterface *self,
+engine_gst_get_buffered_bytes (MeegoMediaPlayerControl *self,
         gint64 *buffered_bytes)
 {
     g_return_val_if_fail (self != NULL, FALSE);
@@ -671,7 +671,7 @@ engine_gst_get_buffered_bytes (MeegoMediaPlayerControlInterface *self,
     return TRUE;
 }
     static gboolean
-engine_gst_get_buffered_time (MeegoMediaPlayerControlInterface *self,
+engine_gst_get_buffered_time (MeegoMediaPlayerControl *self,
         gint64 *buffered_time)
 {
     g_return_val_if_fail (self != NULL, FALSE);
@@ -681,7 +681,7 @@ engine_gst_get_buffered_time (MeegoMediaPlayerControlInterface *self,
 }
 
 static gboolean
-engine_gst_set_window_id (MeegoMediaPlayerControlInterface *self,
+engine_gst_set_window_id (MeegoMediaPlayerControl *self,
                           gdouble window_id)
 {
   EngineGstPrivate *priv = GET_PRIVATE (self);
@@ -699,55 +699,55 @@ engine_gst_set_window_id (MeegoMediaPlayerControlInterface *self,
 }
 
 static void
-meego_media_player_control_interface_init (MeegoMediaPlayerControlInterface *iface)
+meego_media_player_control_init (MeegoMediaPlayerControl *iface)
 {
-    MeegoMediaPlayerControlInterfaceClass *klass = (MeegoMediaPlayerControlInterfaceClass *)iface;
+    MeegoMediaPlayerControlClass *klass = (MeegoMediaPlayerControlClass *)iface;
 
-    meego_media_player_control_interface_implement_set_uri (klass,
+    meego_media_player_control_implement_set_uri (klass,
             engine_gst_set_uri);
-    meego_media_player_control_interface_implement_play (klass,
+    meego_media_player_control_implement_play (klass,
             engine_gst_play);
-    meego_media_player_control_interface_implement_pause (klass,
+    meego_media_player_control_implement_pause (klass,
             engine_gst_pause);
-    meego_media_player_control_interface_implement_stop (klass,
+    meego_media_player_control_implement_stop (klass,
             engine_gst_stop);
-    meego_media_player_control_interface_implement_set_video_size (klass,
+    meego_media_player_control_implement_set_video_size (klass,
             engine_gst_set_video_size);
-    meego_media_player_control_interface_implement_get_video_size (klass,
+    meego_media_player_control_implement_get_video_size (klass,
             engine_gst_get_video_size);
-    meego_media_player_control_interface_implement_is_seekable (klass,
+    meego_media_player_control_implement_is_seekable (klass,
             engine_gst_is_seekable);
-    meego_media_player_control_interface_implement_set_position (klass,
+    meego_media_player_control_implement_set_position (klass,
             engine_gst_set_position);
-    meego_media_player_control_interface_implement_get_position (klass,
+    meego_media_player_control_implement_get_position (klass,
             engine_gst_get_position);
-    meego_media_player_control_interface_implement_set_playback_rate (klass,
+    meego_media_player_control_implement_set_playback_rate (klass,
             engine_gst_set_playback_rate);
-    meego_media_player_control_interface_implement_get_playback_rate (klass,
+    meego_media_player_control_implement_get_playback_rate (klass,
             engine_gst_get_playback_rate);
-    meego_media_player_control_interface_implement_set_volume (klass,
+    meego_media_player_control_implement_set_volume (klass,
             engine_gst_set_volume);
-    meego_media_player_control_interface_implement_get_volume (klass,
+    meego_media_player_control_implement_get_volume (klass,
             engine_gst_get_volume);
-    meego_media_player_control_interface_implement_get_media_size_time (klass,
+    meego_media_player_control_implement_get_media_size_time (klass,
             engine_gst_get_media_size_time);
-    meego_media_player_control_interface_implement_get_media_size_bytes (klass,
+    meego_media_player_control_implement_get_media_size_bytes (klass,
             engine_gst_get_media_size_bytes);
-    meego_media_player_control_interface_implement_has_video (klass,
+    meego_media_player_control_implement_has_video (klass,
             engine_gst_has_video);
-    meego_media_player_control_interface_implement_has_audio (klass,
+    meego_media_player_control_implement_has_audio (klass,
             engine_gst_has_audio);
-    meego_media_player_control_interface_implement_support_fullscreen (klass,
+    meego_media_player_control_implement_support_fullscreen (klass,
             engine_gst_support_fullscreen);
-    meego_media_player_control_interface_implement_is_streaming (klass,
+    meego_media_player_control_implement_is_streaming (klass,
             engine_gst_is_streaming);
-    meego_media_player_control_interface_implement_set_window_id (klass,
+    meego_media_player_control_implement_set_window_id (klass,
             engine_gst_set_window_id);
-    meego_media_player_control_interface_implement_get_player_state (klass,
+    meego_media_player_control_implement_get_player_state (klass,
             engine_gst_get_player_state);
-    meego_media_player_control_interface_implement_get_buffered_bytes(klass,
+    meego_media_player_control_implement_get_buffered_bytes(klass,
             engine_gst_get_buffered_bytes);
-    meego_media_player_control_interface_implement_get_buffered_time(klass,
+    meego_media_player_control_implement_get_buffered_time(klass,
             engine_gst_get_buffered_time);
 
 }
@@ -841,7 +841,7 @@ bus_message_state_change_cb (GstBus     *bus,
         priv->player_state = PlayerStateStopped;
     }
 
-    meego_media_player_control_interface_emit_player_state_changed (self, priv->player_state);
+    meego_media_player_control_emit_player_state_changed (self, priv->player_state);
 }
 
 static void
@@ -851,7 +851,7 @@ bus_message_eos_cb (GstBus     *bus,
 {
   UMMS_DEBUG ("message::eos received on bus");
 
-  meego_media_player_control_interface_emit_eof (self);
+  meego_media_player_control_emit_eof (self);
 }
 
 
@@ -868,7 +868,7 @@ bus_message_error_cb (GstBus     *bus,
   gst_message_parse_error (message, &error, NULL);
   gst_element_set_state (priv->pipeline, GST_STATE_NULL);
 
-  meego_media_player_control_interface_emit_error (self, ErrorTypeEngine, error->message);
+  meego_media_player_control_emit_error (self, ErrorTypeEngine, error->message);
 
   UMMS_DEBUG ("Error emitted with message = %s", error->message);
 
@@ -899,10 +899,10 @@ bus_message_buffering_cb (GstBus *bus,
         //                      1.0);
 
         if (priv->buffer_percent == 100) {
-            meego_media_player_control_interface_emit_buffered (self);
+            meego_media_player_control_emit_buffered (self);
         } else if (!priv->buffering) {
             priv->buffering = TRUE;
-            meego_media_player_control_interface_emit_buffering (self);
+            meego_media_player_control_emit_buffering (self);
         }
     }
 }
@@ -927,7 +927,7 @@ bus_sync_handler (GstBus *bus,
     UMMS_DEBUG ("sync-handler received on bus: prepare-xwindow-id");
     priv->vsink =  GST_ELEMENT(GST_MESSAGE_SRC (message));
    
-    meego_media_player_control_interface_emit_request_window (engine);
+    meego_media_player_control_emit_request_window (engine);
    
     return( GST_BUS_DROP );   
 }

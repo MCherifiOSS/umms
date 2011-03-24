@@ -8,7 +8,7 @@
 
 #include "umms-ginterface.h"
 #include "umms-common.h"
-#include "meego-tv-player.h"
+#include "meego-media-player-gstreamer.h"
 
 
 static gboolean
@@ -173,7 +173,7 @@ main (int    argc,
   g_thread_init (NULL);
   gst_init (&argc, &argv);
 
-  player = (MeegoMediaPlayer *)meego_tv_player_new ();
+  player = (MeegoMediaPlayer *)meego_media_player_gstreamer_new ();
 
   connection = dbus_g_bus_get (DBUS_BUS_STARTER, &error);
   if (connection == NULL) {

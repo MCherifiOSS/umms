@@ -4,7 +4,7 @@
       xmlns:tp="http://telepathy.freedesktop.org/wiki/DbusSpec#extensions-v0"
       xmlns:doc="http://www.freedesktop.org/dbus/1.0/doc.dtd">
 
-	  <interface name="com.meego.mtv.umms.MediaPlayer">
+	  <interface name="com.meego.UMMS.MediaPlayer">
 
             <method name="SetUri" tp:name-for-bindings="Set_Uri">
               <arg name="uri" type="s"/>

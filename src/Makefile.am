@@ -6,8 +6,8 @@ umms_server_CFLAGS = $(UMMS_CFLAGS)
 umms_server_LDADD = libumms-ginterfaces.la $(UMMS_CFLAGS)
 umms_server_SOURCES = umms-common.h umms-server-main.c \
                       meego-media-player.c meego-media-player.h \
-					  meego-tv-player.c meego-tv-player.h \
-				      meego-media-player-control-interface.c meego-media-player-control-interface.h \
+					  meego-media-player-gstreamer.c meego-media-player-gstreamer.h \
+				      meego-media-player-control.c meego-media-player-control.h \
 					  engine-gst.c engine-gst.h
 
 %.c: %.list Makefile.am

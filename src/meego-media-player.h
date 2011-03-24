@@ -2,7 +2,7 @@
 #define _MEEGO_MEDIA_PLAYER_H
 
 #include <glib-object.h>
-#include <meego-media-player-control-interface.h>
+#include <meego-media-player-control.h>
 
 G_BEGIN_DECLS
 
@@ -35,7 +35,7 @@ typedef struct _MeegoMediaPlayerPrivate MeegoMediaPlayerPrivate;
 struct _MeegoMediaPlayer
 {
   GObject parent;
-  MeegoMediaPlayerControlInterface *player_control;
+  MeegoMediaPlayerControl *player_control;
 
   MeegoMediaPlayerPrivate *priv;
 };

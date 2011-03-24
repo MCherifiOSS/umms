@@ -4,7 +4,7 @@
 #include "umms-common.h"
 #include "meego-media-player.h"
 #include "umms-ginterface.h"
-#include "meego-media-player-control-interface.h"
+#include "meego-media-player-control.h"
 
 static void umms_media_player_iface_init (UmmsMediaPlayerIface *iface);
 
@@ -25,47 +25,47 @@ G_DEFINE_TYPE_WITH_CODE (MeegoMediaPlayer, meego_media_player, G_TYPE_OBJECT,
 };
 
     static void
-request_window_cb (MeegoMediaPlayerControlInterface *iface, MeegoMediaPlayer *player)
+request_window_cb (MeegoMediaPlayerControl *iface, MeegoMediaPlayer *player)
 {
     umms_media_player_iface_emit_request_window (player);
 }
 
     static void
-eof_cb (MeegoMediaPlayerControlInterface *iface, MeegoMediaPlayer *player)
+eof_cb (MeegoMediaPlayerControl *iface, MeegoMediaPlayer *player)
 {
     umms_media_player_iface_emit_eof (player);
 }
     static void
-error_cb (MeegoMediaPlayerControlInterface *iface, guint error_num, gchar *error_des, MeegoMediaPlayer *player)
+error_cb (MeegoMediaPlayerControl *iface, guint error_num, gchar *error_des, MeegoMediaPlayer *player)
 {
     umms_media_player_iface_emit_error (player, error_num, error_des);
 }
 
     static void
-buffering_cb (MeegoMediaPlayerControlInterface *iface, MeegoMediaPlayer *player)
+buffering_cb (MeegoMediaPlayerControl *iface, MeegoMediaPlayer *player)
 {
     umms_media_player_iface_emit_buffering (player);
 }
 
     static void
-buffered_cb (MeegoMediaPlayerControlInterface *iface, MeegoMediaPlayer *player)
+buffered_cb (MeegoMediaPlayerControl *iface, MeegoMediaPlayer *player)
 {
     umms_media_player_iface_emit_buffered (player);
 }
 
     static void
-player_state_changed_cb (MeegoMediaPlayerControlInterface *iface, gint state, MeegoMediaPlayer *player)
+player_state_changed_cb (MeegoMediaPlayerControl *iface, gint state, MeegoMediaPlayer *player)
 {
     umms_media_player_iface_emit_player_state_changed (player, state);
 }
 
     static void
-seeked_cb (MeegoMediaPlayerControlInterface *iface, MeegoMediaPlayer *player)
+seeked_cb (MeegoMediaPlayerControl *iface, MeegoMediaPlayer *player)
 {
     umms_media_player_iface_emit_seeked (player);
 }
     static void
-stopped_cb (MeegoMediaPlayerControlInterface *iface, MeegoMediaPlayer *player)
+stopped_cb (MeegoMediaPlayerControl *iface, MeegoMediaPlayer *player)
 {
     umms_media_player_iface_emit_stopped (player);
 }
@@ -131,7 +131,7 @@ meego_media_player_set_uri (UmmsMediaPlayerIface   *iface,
                 0);
     }
 
-    meego_media_player_control_interface_set_uri (player->player_control, uri);
+    meego_media_player_control_set_uri (player->player_control, uri);
     umms_media_player_iface_emit_initialized (player);
 
 exit:
@@ -142,7 +142,7 @@ exit:
 meego_media_player_play (UmmsMediaPlayerIface   *player,
                          DBusGMethodInvocation *context)
 {
-    meego_media_player_control_interface_play (GET_CONTROL_IFACE (player));
+    meego_media_player_control_play (GET_CONTROL_IFACE (player));
     umms_media_player_iface_return_from_play (context);
 }
 
@@ -150,7 +150,7 @@ meego_media_player_play (UmmsMediaPlayerIface   *player,
 meego_media_player_pause(UmmsMediaPlayerIface   *player, 
                          DBusGMethodInvocation *context)
 {
-    meego_media_player_control_interface_pause (GET_CONTROL_IFACE (player));
+    meego_media_player_control_pause (GET_CONTROL_IFACE (player));
     umms_media_player_iface_return_from_pause(context);
 }
 
@@ -158,7 +158,7 @@ meego_media_player_pause(UmmsMediaPlayerIface   *player,
 meego_media_player_stop (UmmsMediaPlayerIface   *player, 
                          DBusGMethodInvocation *context)
 {
-    meego_media_player_control_interface_stop (GET_CONTROL_IFACE (player));
+    meego_media_player_control_stop (GET_CONTROL_IFACE (player));
     umms_media_player_iface_return_from_stop (context);
 }
 
@@ -167,7 +167,7 @@ meego_media_player_set_window_id (UmmsMediaPlayerIface *player,
                                   gdouble window_id,
                                   DBusGMethodInvocation *context)
 {
-    meego_media_player_control_interface_set_window_id (GET_CONTROL_IFACE (player), window_id);
+    meego_media_player_control_set_window_id (GET_CONTROL_IFACE (player), window_id);
     umms_media_player_iface_return_from_set_window_id(context);
 }
 
@@ -180,7 +180,7 @@ meego_media_player_set_video_size(UmmsMediaPlayerIface   *player,
                                   DBusGMethodInvocation *context)
 {
     UMMS_DEBUG ("rectangle=\"%u,%u,%u,%u\"", in_x, in_y, in_w, in_h ); 
-    meego_media_player_control_interface_set_video_size (GET_CONTROL_IFACE (player), in_x, in_y, in_w, in_h);
+    meego_media_player_control_set_video_size (GET_CONTROL_IFACE (player), in_x, in_y, in_w, in_h);
     umms_media_player_iface_return_from_set_video_size(context);
 }
 
@@ -190,7 +190,7 @@ meego_media_player_get_video_size(UmmsMediaPlayerIface   *player,
                                   DBusGMethodInvocation *context)
 {
     guint w, h;
-    meego_media_player_control_interface_get_video_size (GET_CONTROL_IFACE (player), &w, &h);
+    meego_media_player_control_get_video_size (GET_CONTROL_IFACE (player), &w, &h);
     umms_media_player_iface_return_from_get_video_size(context, w, h);
 }
 
@@ -199,7 +199,7 @@ meego_media_player_get_video_size(UmmsMediaPlayerIface   *player,
 meego_media_player_is_seekable(UmmsMediaPlayerIface   *player, DBusGMethodInvocation *context)
 {
     gboolean seekable;
-    meego_media_player_control_interface_is_seekable (GET_CONTROL_IFACE (player), &seekable);
+    meego_media_player_control_is_seekable (GET_CONTROL_IFACE (player), &seekable);
     umms_media_player_iface_return_from_is_seekable(context, seekable);
 }
 
@@ -208,7 +208,7 @@ meego_media_player_set_position(UmmsMediaPlayerIface   *player,
                                 gint64                 in_pos, 
                                 DBusGMethodInvocation *context)
 {
-    meego_media_player_control_interface_set_position (GET_CONTROL_IFACE (player), in_pos);
+    meego_media_player_control_set_position (GET_CONTROL_IFACE (player), in_pos);
     umms_media_player_iface_return_from_set_position(context);
 }
 
@@ -217,7 +217,7 @@ meego_media_player_get_position(UmmsMediaPlayerIface   *player,
                                 DBusGMethodInvocation *context)
 {
     gint64 cur_pos;
-    meego_media_player_control_interface_get_position (GET_CONTROL_IFACE (player), &cur_pos);
+    meego_media_player_control_get_position (GET_CONTROL_IFACE (player), &cur_pos);
     umms_media_player_iface_return_from_get_position(context, cur_pos);
 }
 
@@ -226,7 +226,7 @@ meego_media_player_set_playback_rate (UmmsMediaPlayerIface   *player,
                                       gdouble               in_rate, 
                                       DBusGMethodInvocation *context)
 {
-    meego_media_player_control_interface_set_playback_rate (GET_CONTROL_IFACE (player), in_rate);
+    meego_media_player_control_set_playback_rate (GET_CONTROL_IFACE (player), in_rate);
     umms_media_player_iface_return_from_set_playback_rate (context);
 }
 
@@ -235,7 +235,7 @@ meego_media_player_get_playback_rate (UmmsMediaPlayerIface   *player,
                                       DBusGMethodInvocation *context)
 {
     gdouble cur_rate;
-    meego_media_player_control_interface_get_playback_rate (GET_CONTROL_IFACE (player), &cur_rate);
+    meego_media_player_control_get_playback_rate (GET_CONTROL_IFACE (player), &cur_rate);
     UMMS_DEBUG ("%s:current rate = %f", __FUNCTION__, cur_rate); 
     umms_media_player_iface_return_from_get_playback_rate (context, cur_rate);
 }
@@ -246,7 +246,7 @@ meego_media_player_set_volume (UmmsMediaPlayerIface   *player,
                                DBusGMethodInvocation *context)
 {
     UMMS_DEBUG ("%s:set volume to %d", __FUNCTION__, volume); 
-    meego_media_player_control_interface_set_volume (GET_CONTROL_IFACE (player), volume);
+    meego_media_player_control_set_volume (GET_CONTROL_IFACE (player), volume);
     umms_media_player_iface_return_from_set_volume (context);
 }
 
@@ -255,7 +255,7 @@ meego_media_player_get_volume (UmmsMediaPlayerIface   *player,
                                DBusGMethodInvocation *context)
 {
     gint cur_volume;
-    meego_media_player_control_interface_get_volume (GET_CONTROL_IFACE (player), &cur_volume);
+    meego_media_player_control_get_volume (GET_CONTROL_IFACE (player), &cur_volume);
     UMMS_DEBUG ("%s:current volume= %d", __FUNCTION__, cur_volume); 
     umms_media_player_iface_return_from_get_volume (context, cur_volume);
 }
@@ -265,7 +265,7 @@ meego_media_player_get_media_size_time (UmmsMediaPlayerIface   *player,
                                         DBusGMethodInvocation *context)
 {
     gint64 duration;
-    meego_media_player_control_interface_get_media_size_time(GET_CONTROL_IFACE (player), &duration);
+    meego_media_player_control_get_media_size_time(GET_CONTROL_IFACE (player), &duration);
     UMMS_DEBUG ("%s:duration = %lld", __FUNCTION__, duration); 
     umms_media_player_iface_return_from_get_media_size_time (context, duration);
 }
@@ -275,7 +275,7 @@ meego_media_player_get_media_size_bytes (UmmsMediaPlayerIface   *player,
                                          DBusGMethodInvocation *context)
 {
     gint64 size;
-    meego_media_player_control_interface_get_media_size_bytes (GET_CONTROL_IFACE (player), &size);
+    meego_media_player_control_get_media_size_bytes (GET_CONTROL_IFACE (player), &size);
     UMMS_DEBUG ("%s:media size = %lld", __FUNCTION__, size); 
     umms_media_player_iface_return_from_get_media_size_bytes (context, size);
 }
@@ -285,7 +285,7 @@ meego_media_player_has_video (UmmsMediaPlayerIface   *player,
                               DBusGMethodInvocation *context)
 {
     gboolean has_video;
-    meego_media_player_control_interface_has_video (GET_CONTROL_IFACE (player), &has_video);
+    meego_media_player_control_has_video (GET_CONTROL_IFACE (player), &has_video);
     UMMS_DEBUG ("%s:has_video = %d", __FUNCTION__, has_video); 
     umms_media_player_iface_return_from_has_video (context, has_video);
 }
@@ -295,7 +295,7 @@ meego_media_player_has_audio (UmmsMediaPlayerIface   *player,
                               DBusGMethodInvocation *context)
 {
     gboolean has_audio;
-    meego_media_player_control_interface_has_audio (GET_CONTROL_IFACE (player), &has_audio);
+    meego_media_player_control_has_audio (GET_CONTROL_IFACE (player), &has_audio);
     UMMS_DEBUG ("%s:has_audio= %d", __FUNCTION__, has_audio); 
     umms_media_player_iface_return_from_has_audio (context, has_audio);
 }
@@ -305,7 +305,7 @@ meego_media_player_support_fullscreen (UmmsMediaPlayerIface   *player,
                                        DBusGMethodInvocation *context)
 {
     gboolean support_fullscreen;
-    meego_media_player_control_interface_support_fullscreen (GET_CONTROL_IFACE (player), &support_fullscreen);
+    meego_media_player_control_support_fullscreen (GET_CONTROL_IFACE (player), &support_fullscreen);
     UMMS_DEBUG ("%s:support_fullscreen = %d", __FUNCTION__, support_fullscreen); 
     umms_media_player_iface_return_from_support_fullscreen (context, support_fullscreen);
 }
@@ -315,7 +315,7 @@ meego_media_player_is_streaming (UmmsMediaPlayerIface   *player,
                                  DBusGMethodInvocation *context)
 {
     gboolean is_streaming;
-    meego_media_player_control_interface_is_streaming (GET_CONTROL_IFACE (player), &is_streaming);
+    meego_media_player_control_is_streaming (GET_CONTROL_IFACE (player), &is_streaming);
     UMMS_DEBUG ("%s:is_streaming = %d", __FUNCTION__, is_streaming); 
     umms_media_player_iface_return_from_is_streaming (context, is_streaming);
 }
@@ -324,7 +324,7 @@ static void meego_media_player_get_player_state(UmmsMediaPlayerIface   *player, 
 {
     gint state;
 
-    meego_media_player_control_interface_get_player_state (GET_CONTROL_IFACE (player), &state);
+    meego_media_player_control_get_player_state (GET_CONTROL_IFACE (player), &state);
     UMMS_DEBUG ("%s:player state = %d", __FUNCTION__, state); 
     umms_media_player_iface_return_from_get_player_state(context, state);
 }
@@ -333,7 +333,7 @@ static void meego_media_player_get_buffered_bytes (UmmsMediaPlayerIface   *playe
 {
     gint64 bytes;
 
-    meego_media_player_control_interface_get_buffered_bytes (GET_CONTROL_IFACE (player), &bytes);
+    meego_media_player_control_get_buffered_bytes (GET_CONTROL_IFACE (player), &bytes);
     UMMS_DEBUG ("%s:buffered bytes = %lld", __FUNCTION__, bytes); 
     umms_media_player_iface_return_from_get_buffered_bytes (context, bytes);
 }
@@ -342,7 +342,7 @@ static void meego_media_player_get_buffered_time (UmmsMediaPlayerIface   *player
 {
     gint64 size_time;
 
-    meego_media_player_control_interface_get_buffered_time (GET_CONTROL_IFACE (player), &size_time);
+    meego_media_player_control_get_buffered_time (GET_CONTROL_IFACE (player), &size_time);
     UMMS_DEBUG ("%s:buffered time = %lld", __FUNCTION__, size_time); 
     umms_media_player_iface_return_from_get_buffered_time (context, size_time);
 }
@@ -406,7 +406,7 @@ meego_media_player_set_property (GObject      *object,
     static void
 meego_media_player_dispose (GObject *object)
 {
-    MeegoMediaPlayerControlInterface *player_control = GET_CONTROL_IFACE (object);
+    MeegoMediaPlayerControl *player_control = GET_CONTROL_IFACE (object);
     if (player_control) {
         g_object_unref (player_control);
     }
