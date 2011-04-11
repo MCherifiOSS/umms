@@ -8,7 +8,8 @@ umms_server_SOURCES = umms-common.h umms-server-main.c \
                       meego-media-player.c meego-media-player.h \
 					  meego-media-player-gstreamer.c meego-media-player-gstreamer.h \
 				      meego-media-player-control.c meego-media-player-control.h \
-					  engine-gst.c engine-gst.h
+					  engine-gst.c engine-gst.h \
+					  umms-object-manager-glue.h umms-object-manager.c umms-object-manager.h
 
 %.c: %.list Makefile.am
 	$(AM_V_GEN)glib-genmarshal --body --prefix=umms_marshal $< > $@

@@ -17,11 +17,21 @@ G_DEFINE_TYPE_WITH_CODE (MeegoMediaPlayer, meego_media_player, G_TYPE_OBJECT,
 #define GET_PRIVATE(o) ((MeegoMediaPlayer *)o)->priv
 
 #define GET_CONTROL_IFACE(meego_media_player) (((MeegoMediaPlayer *)(meego_media_player))->player_control)
+#define MEEGO_MEDIA_PLAYER_DEBUG(x...) g_debug (G_STRLOC ": "x)
+
+enum 
+{
+	PROP_0,
+	PROP_NAME,
+	PROP_UNATTENDED,
+	PROP_LAST
+};
 
 
     struct _MeegoMediaPlayerPrivate
 {
-    gint dummy;
+	gchar    *name;
+    gboolean unattended;
 };
 
     static void
@@ -383,8 +393,16 @@ meego_media_player_get_property (GObject    *object,
                                  GValue     *value,
                                  GParamSpec *pspec)
 {
+	MeegoMediaPlayerPrivate *priv = GET_PRIVATE (object);
+
     switch (property_id)
     {
+		case PROP_NAME:
+			g_value_set_string (value, priv->name);
+			break;
+		case PROP_UNATTENDED:
+			g_value_set_boolean (value, priv->unattended);
+			break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
     }
@@ -396,20 +414,36 @@ meego_media_player_set_property (GObject      *object,
                                  const GValue *value,
                                  GParamSpec   *pspec)
 {
+	MeegoMediaPlayerPrivate *priv = GET_PRIVATE (object);
+	gchar *tmp;
+
     switch (property_id)
-    {
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-    }
+	{
+		case PROP_NAME:
+			tmp = g_value_get_string (value);
+		    MEEGO_MEDIA_PLAYER_DEBUG ("name='%p : %s'", tmp, tmp);	
+			priv->name = g_value_dup_string (value);
+			break;
+		case PROP_UNATTENDED:
+			priv->unattended = g_value_get_boolean (value);
+			break;
+		default:
+			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+	}
 }
 
     static void
 meego_media_player_dispose (GObject *object)
 {
+	MeegoMediaPlayerPrivate *priv = GET_PRIVATE (object);
     MeegoMediaPlayerControl *player_control = GET_CONTROL_IFACE (object);
+
     if (player_control) {
         g_object_unref (player_control);
     }
+
+	if (priv->name)
+		g_free (priv->name);
 
     G_OBJECT_CLASS (meego_media_player_parent_class)->dispose (object);
 }
@@ -431,6 +465,15 @@ meego_media_player_class_init (MeegoMediaPlayerClass *klass)
     object_class->set_property = meego_media_player_set_property;
     object_class->dispose = meego_media_player_dispose;
     object_class->finalize = meego_media_player_finalize;
+
+	g_object_class_install_property (object_class, PROP_NAME,
+      g_param_spec_string ("name", "Name", "Name of the mediaplayer",
+          NULL, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+	g_object_class_install_property (object_class, PROP_UNATTENDED,
+      g_param_spec_boolean ("unattended", "Unattended", "Flag to indicate whether this execution is unattended",
+          FALSE, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
 }
 
     static void

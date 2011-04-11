@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<node name="/com/meego/UMMS/ObjectManager">
+	<interface name="com.meego.UMMS.ObjectManager.iface">
+		<method name="RequestMediaPlayer">
+			<arg name="object_path" type="s" direction="out"/>
+		</method>
+		<method name="RequestMediaPlayerUnattended">
+			<arg name="time_to_execution" type="d"/>
+			<arg name="token" type="s" direction="out"/>
+			<arg name="object_path" type="s" direction="out"/>
+		</method>
+		<method name="RemoveMediaPlayer">
+			<arg name="object_path" type="s"/>
+		</method>
+    </interface>
+</node>
+  

@@ -6,9 +6,9 @@
 #include <gst/gst.h>
 #include <stdlib.h>
 
-#include "umms-ginterface.h"
 #include "umms-common.h"
-#include "meego-media-player-gstreamer.h"
+#include "umms-object-manager.h"
+#include "umms-object-manager-glue.h"
 
 
 static gboolean
@@ -19,7 +19,7 @@ request_name (void)
   guint32 request_status;
   GError *error = NULL;
 
-  connection = dbus_g_bus_get (DBUS_BUS_STARTER, &error);
+  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
   if (connection == NULL) {
     g_printerr ("Failed to open connection to DBus: %s\n", error->message);
     g_error_free (error);
@@ -32,7 +32,7 @@ request_name (void)
                                      DBUS_INTERFACE_DBUS);
 
   if (!org_freedesktop_DBus_request_name (proxy,
-                                          MTV_PLAYER_SERVICE_NAME,
+                                          UMMS_SERVICE_NAME,
                                           DBUS_NAME_FLAG_DO_NOT_QUEUE, &request_status,
                                           &error)) {
     g_printerr ("Failed to request name: %s\n", error->message);
@@ -43,7 +43,7 @@ request_name (void)
   return request_status == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER;
 }
 
-#define FAKE_UMMS_SIGNAL
+//#define FAKE_UMMS_SIGNAL
 #ifdef FAKE_UMMS_SIGNAL
 #include <glib/giochannel.h>
 enum {
@@ -162,7 +162,6 @@ int
 main (int    argc,
       char **argv)
 {
-  MeegoMediaPlayer *player;
   GMainLoop *loop;
   DBusGConnection *connection;
   GError *error = NULL;
@@ -173,25 +172,29 @@ main (int    argc,
   g_thread_init (NULL);
   gst_init (&argc, &argv);
 
-  player = (MeegoMediaPlayer *)meego_media_player_gstreamer_new ();
-
-  connection = dbus_g_bus_get (DBUS_BUS_STARTER, &error);
-  if (connection == NULL) {
-    g_printerr ("Failed to open connection to DBus: %s\n", error->message);
-    g_error_free (error);
-
-    exit (1);
-  }
-
-  dbus_g_connection_register_g_object (connection,
-                                       MTV_PLAYER_OBJECT_PATH,
-                                       G_OBJECT (player));
 
   if (!request_name ())
   {
     g_warning (G_STRLOC ": Player instance already running");
     exit (1);
   }
+
+  UmmsObjectManager *umms_object_manager = NULL;
+
+  dbus_g_object_type_install_info (UMMS_TYPE_OBJECT_MANAGER, &dbus_glib_umms_object_manager_object_info);
+  umms_object_manager = umms_object_manager_new ();
+
+  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+  if (connection == NULL) {
+      g_printerr ("Failed to open connection to DBus: %s\n", error->message);
+      g_error_free (error);
+
+      exit (1);
+  }
+
+  dbus_g_connection_register_g_object (connection, UMMS_OBJECT_MANAGER_OBJECT_PATH, G_OBJECT (umms_object_manager));
+
+
 
   loop = g_main_loop_new (NULL, TRUE);
 #ifdef FAKE_UMMS_SIGNAL

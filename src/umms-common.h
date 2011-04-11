@@ -1,9 +1,10 @@
-#ifndef _MTV_PLAYER_COMMON_H
-#define _MTV_PLAYER_COMMON_H
+#ifndef _UMMS_COMMON_H
+#define _UMMS_COMMON_H
 
-#define MTV_PLAYER_OBJECT_PATH "/com/meego/UMMS"
-#define MTV_PLAYER_SERVICE_NAME "com.meego.UMMS"
-#define MTV_PLAYER_INTERFACE_NAME "com.meego.UMMS.MediaPlayer"
+#define UMMS_SERVICE_NAME "com.meego.UMMS"
+#define UMMS_OBJECT_MANAGER_OBJECT_PATH "/com/meego/UMMS/ObjectManager"
+#define UMMS_OBJECT_MANAGER_INTERFACE_NAME "com.meego.UMMS.ObjectManager.iface"
+#define MEDIA_PLAYER_INTERFACE_NAME "com.meego.UMMS.MediaPlayer"
 
 #define UMMS_DEBUG(x...) g_debug (G_STRLOC ": "x)
 
@@ -22,5 +23,5 @@ typedef enum {
 
 
 
-#endif /* _MTV_PLAYER_COMMON_H */
+#endif /* _UMMS_COMMON_H */
 
