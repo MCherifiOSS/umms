@@ -18,15 +18,13 @@ G_DEFINE_TYPE_WITH_CODE (EngineGst, engine_gst, G_TYPE_OBJECT,
 
 #define GET_PRIVATE(o) ((EngineGst *)o)->priv
 
-/* list of URIs that we consider to be streams and that need buffering.
- * We have no mechanism yet to figure this out with a query. 
- */
-static const gchar *stream_uris[] = { "http://", "mms://", "mmsh://",
-    "mmsu://", "mmst://", "fd://", "myth://", "ssh://", "ftp://", "sftp://",
-    NULL
+static const gchar *gst_state[] = {
+    "GST_STATE_VOID_PENDING",
+    "GST_STATE_NULL",             
+    "GST_STATE_READY",             
+    "GST_STATE_PAUSED",             
+    "GST_STATE_PLAYING"             
 };
-
-#define IS_STREAM_URI(uri)          (_array_has_uri_value (stream_uris, uri))
 
 struct _EngineGstPrivate
 {
@@ -48,9 +46,14 @@ struct _EngineGstPrivate
   gint buffer_percent;
 
   //UMMS defined player state
-  PlayerState player_state;
+  PlayerState player_state;//current state
+  PlayerState target;//target state, for async state change(*==>PlayerStatePaused, PlayerStateNull/Stopped==>PlayerStatePlaying)
+
+  gboolean is_live;
 };
 
+static gboolean
+_stop_pipe (MeegoMediaPlayerControl *control);
 
 static gboolean
 _array_has_uri_value (const gchar * values[], const gchar * value)
@@ -70,6 +73,7 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
 {
     EngineGstPrivate *priv = GET_PRIVATE (self);
     GstState state, pending;
+    GstStateChangeReturn ret;
 
     g_return_val_if_fail (uri, FALSE);
 
@@ -78,26 +82,30 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
             uri);
 
     if (priv->uri) {
+        _stop_pipe(self);
         g_free (priv->uri);
         priv->uri = NULL;
     }
 
     priv->uri = g_strdup (uri);
 
-    gst_element_get_state (priv->pipeline, &state, &pending, 0);
-
-    if (pending)
-        state = pending;
-
-    gst_element_set_state (priv->pipeline, GST_STATE_NULL);
-
     g_object_set (priv->pipeline, "uri", uri, NULL);
     priv->seekable = -1;
 
-    /*
-     * Restore state.
-     */
-    gst_element_set_state (priv->pipeline, state);
+    //preroll the pipe
+    if(gst_element_set_state (priv->pipeline, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
+        UMMS_DEBUG ("%s:set pipeline to paused failed", __FUNCTION__);
+        return FALSE;
+    }
+
+    ret = gst_element_get_state (priv->pipeline, &state, &pending, -1);
+    if (ret == GST_STATE_CHANGE_NO_PREROLL && state ==  GST_STATE_PAUSED) {
+        priv->is_live = TRUE;
+    } else {
+        priv->is_live = FALSE;
+    }
+    UMMS_DEBUG ("media :'%s is %slive source'", __FUNCTION__, priv->is_live?"":"non-");
+
     return TRUE;
 }
 
@@ -107,10 +115,11 @@ engine_gst_play (MeegoMediaPlayerControl *self)
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
   if (!priv->uri) {
-    g_warning (G_STRLOC ": Unable to set playing state - no URI set");
+    UMMS_DEBUG(" Unable to set playing state - no URI set");
     return FALSE;
   }
 
+  priv->target = PlayerStatePlaying;
   gst_element_set_state (priv->pipeline, GST_STATE_PLAYING);
 
   return TRUE;
@@ -119,27 +128,45 @@ engine_gst_play (MeegoMediaPlayerControl *self)
 static gboolean
 engine_gst_pause (MeegoMediaPlayerControl *self)
 {
+  GstStateChangeReturn ret;
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
   if (gst_element_set_state(priv->pipeline, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
-      g_warning (G_STRLOC ": Unable to set pause state");
+      UMMS_DEBUG ("set pipeline to paused failed");
       return FALSE;
-  }
+  } 
+
+  priv->target = PlayerStatePaused;
+  UMMS_DEBUG ("%s: called", __FUNCTION__);
   return TRUE;
+}
+
+static gboolean
+_stop_pipe (MeegoMediaPlayerControl *control)
+{
+    EngineGstPrivate *priv = GET_PRIVATE (control);
+
+    if (gst_element_set_state(priv->pipeline, GST_STATE_NULL) == GST_STATE_CHANGE_FAILURE) {
+        UMMS_DEBUG (" Unable to set NULL state");
+        return FALSE;
+    } 
+
+    UMMS_DEBUG ("gstreamer engine stopped");
+    return TRUE;
 }
 
 static gboolean
 engine_gst_stop (MeegoMediaPlayerControl *self)
 {
-  EngineGstPrivate *priv = GET_PRIVATE (self);
+    EngineGstPrivate *priv = GET_PRIVATE (self);
 
-  if (gst_element_set_state(priv->pipeline, GST_STATE_NULL) == GST_STATE_CHANGE_FAILURE) {
-      g_warning (G_STRLOC ": Unable to set NULL state");
-  } 
+    if (!_stop_pipe (self))
+        return FALSE;
 
-  priv->player_state = PlayerStateStopped;
-  meego_media_player_control_emit_stopped (self);
-  return TRUE;
+    priv->player_state = PlayerStateStopped;
+    meego_media_player_control_emit_stopped (self);
+
+    return TRUE;
 }
 
 static gint
@@ -285,10 +312,12 @@ engine_gst_is_seekable (MeegoMediaPlayerControl *self, gboolean *seekable)
       GST_DEBUG ("seeking query says the stream is%s seekable", (res) ? "" : " not");
       priv->seekable = (res) ? 1 : 0;
     } else {
-      GST_DEBUG ("seeking query failed");
+      GST_DEBUG ("seeking query failed, set seekable according to is_live flag");
+      priv->seekable = priv->is_live?FALSE:TRUE;
     }
     gst_query_unref (query);
   }
+
 
   if (priv->seekable != -1) {
     res = (priv->seekable != 0);
@@ -521,8 +550,8 @@ engine_gst_get_media_size_bytes (MeegoMediaPlayerControl *self, gint64 *media_si
 
     UMMS_DEBUG ("%s:invoked", __FUNCTION__);
     if ((ret = _query_media_size (pipe, &duration, GST_FORMAT_BYTES))) {
-        UMMS_DEBUG ("%s:media size = %lld (bytes)", __FUNCTION__, *media_size_bytes);
         *media_size_bytes = duration;
+        UMMS_DEBUG ("%s:media size = %lld (bytes)", __FUNCTION__, *media_size_bytes);
     } else {
         UMMS_DEBUG ("%s: query media_size_bytes failed", __FUNCTION__);
         *media_size_bytes = -1;
@@ -620,7 +649,8 @@ engine_gst_is_streaming (MeegoMediaPlayerControl *self, gboolean *is_streaming)
     UMMS_DEBUG ("%s:invoked", __FUNCTION__);
 
     g_return_val_if_fail (priv->uri, FALSE);
-    *is_streaming = IS_STREAM_URI (priv->uri);
+    /*For now, we consider live source to be streaming source , hence unseekable.*/
+    *is_streaming = priv->is_live;
     UMMS_DEBUG ("%s:uri:'%s' is %s streaming source", __FUNCTION__, priv->uri, (*is_streaming)?"":"not");
     return TRUE;
 }
@@ -687,7 +717,7 @@ engine_gst_set_window_id (MeegoMediaPlayerControl *self,
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
   if (!priv->uri || !priv->vsink || !GST_IS_X_OVERLAY(priv->vsink)) {
-    g_warning (G_STRLOC ": Unable to set window id");
+    UMMS_DEBUG(" Unable to set window id");
     return FALSE;
   }
 
@@ -829,10 +859,10 @@ bus_message_state_change_cb (GstBus     *bus,
     if (src != priv->pipeline)
         return;
 
-    UMMS_DEBUG ("message::state-changed received on bus");
 
     gst_message_parse_state_changed (message, &old_state, &new_state, NULL);
 
+    UMMS_DEBUG ("state-changed: old='%s', new='%s'", gst_state[old_state], gst_state[new_state]);
     if (new_state == GST_STATE_PAUSED){
         priv->player_state = PlayerStatePaused;
     }else if(new_state == GST_STATE_PLAYING){
@@ -883,25 +913,33 @@ bus_message_buffering_cb (GstBus *bus,
     const GstStructure *str;
     gboolean res;
     gint buffer_percent;
+    GstState state, pending_state;
     EngineGstPrivate *priv = GET_PRIVATE (self);
 
-    UMMS_DEBUG ("message::buffer progress received on bus");
     str = gst_message_get_structure (message);
     if (!str)
         return;
 
     res = gst_structure_get_int (str, "buffer-percent", &buffer_percent);
+    if (!(buffer_percent%25))
+        UMMS_DEBUG ("buffering...%d%% ",buffer_percent);
+
     if (res)
     {
         priv->buffer_percent = buffer_percent;
-        //priv->buffer_percent = CLAMP ((gdouble) buffer_percent / 100.0,
-        //                      0.0,
-        //                      1.0);
-
+        
         if (priv->buffer_percent == 100) {
+
+            UMMS_DEBUG ("Done buffering");
+            priv->buffering = FALSE;
+            if (priv->target == PlayerStatePlaying)
+                gst_element_set_state (priv->pipeline, GST_STATE_PLAYING);
             meego_media_player_control_emit_buffered (self);
-        } else if (!priv->buffering) {
+
+        } else if (!priv->buffering && priv->target == PlayerStatePlaying) {
             priv->buffering = TRUE;
+            UMMS_DEBUG ("Set pipeline to paused for buffering data");
+            gst_element_set_state (priv->pipeline, GST_STATE_PAUSED);
             meego_media_player_control_emit_buffering (self);
         }
     }
@@ -932,13 +970,28 @@ bus_sync_handler (GstBus *bus,
     return( GST_BUS_DROP );   
 }
                    
-static void
+/* GstPlayFlags flags from playbin2 */
+    typedef enum {
+        GST_PLAY_FLAG_VIDEO         = (1 << 0),
+        GST_PLAY_FLAG_AUDIO         = (1 << 1),
+        GST_PLAY_FLAG_TEXT          = (1 << 2),
+        GST_PLAY_FLAG_VIS           = (1 << 3),
+        GST_PLAY_FLAG_SOFT_VOLUME   = (1 << 4),
+        GST_PLAY_FLAG_NATIVE_AUDIO  = (1 << 5),
+        GST_PLAY_FLAG_NATIVE_VIDEO  = (1 << 6),
+        GST_PLAY_FLAG_DOWNLOAD      = (1 << 7),
+        GST_PLAY_FLAG_BUFFERING     = (1 << 8),
+        GST_PLAY_FLAG_DEINTERLACE   = (1 << 9)
+    } GstPlayFlags;
+
+    static void
 engine_gst_init (EngineGst *self)
 {
-  EngineGstPrivate *priv;
-  GstBus *bus;
+    EngineGstPrivate *priv;
+    GstBus *bus;
+    GstPlayFlags flags;
 
-  self->priv = PLAYER_PRIVATE (self);
+    self->priv = PLAYER_PRIVATE (self);
   priv = self->priv;
 
   
@@ -974,6 +1027,18 @@ engine_gst_init (EngineGst *self)
 			  self);
 
   gst_object_unref (GST_OBJECT (bus));
+
+  /*
+   *FIXME:Use GST_PLAY_FLAG_DOWNLOAD flag to enable Gstreamer Download buffer mode.
+   *      For now, if playback http source with GST_PLAY_FLAG_DOWNLOAD, gst_element_set (pipe, GST_STATE_NULL) 
+   *      will block.
+   */
+
+  /*
+  g_object_get (priv->pipeline, "flags", &flags, NULL);
+  flags |= GST_PLAY_FLAG_DOWNLOAD;
+  g_object_set (priv->pipeline, "flags", flags, NULL);
+  */
 
   priv->player_state = PlayerStateNull;
 

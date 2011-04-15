@@ -10,6 +10,9 @@
 #include "umms-object-manager.h"
 #include "umms-object-manager-glue.h"
 
+static GMainLoop *loop = NULL;
+
+static void remove_mngr (UmmsObjectManager *mngr);
 
 static gboolean
 request_name (void)
@@ -21,7 +24,7 @@ request_name (void)
 
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
   if (connection == NULL) {
-    g_printerr ("Failed to open connection to DBus: %s\n", error->message);
+    g_printerr ("xx Failed to open connection to DBus: %s\n", error->message);
     g_error_free (error);
     return FALSE;
   }
@@ -43,7 +46,7 @@ request_name (void)
   return request_status == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER;
 }
 
-//#define FAKE_UMMS_SIGNAL
+#define FAKE_UMMS_SIGNAL
 #ifdef FAKE_UMMS_SIGNAL
 #include <glib/giochannel.h>
 enum {
@@ -86,6 +89,7 @@ static void shell_help ()
     printf ("'q': to quit\n");
 }
 
+#if 0
 static void emit_signal (MeegoMediaPlayer *obj, int sig_id)
 {
     switch (sig_id) {
@@ -123,12 +127,12 @@ static void emit_signal (MeegoMediaPlayer *obj, int sig_id)
     }
 
 }
-
+#endif
 static gboolean channel_cb(GIOChannel *source, GIOCondition condition, gpointer data)
 {
     int rc;
     char buf[64];
-    MeegoMediaPlayer *obj = (MeegoMediaPlayer *)data;
+    UmmsObjectManager *mngr = (UmmsObjectManager *)data;
 
     if (condition != G_IO_IN) {
         return TRUE;
@@ -147,9 +151,10 @@ static gboolean channel_cb(GIOChannel *source, GIOCondition condition, gpointer 
         shell_help();
     } else if (!strcmp(buf, "q")) {
         printf("quit umms service\n");
-        exit(0);
+        remove_mngr (mngr);
+        g_main_loop_quit(loop);
     } else if ('0' <= buf[0] && buf[0] <= (N_MEDIA_PLAYER_IFACE_SIGNALS + 48)){
-        emit_signal(obj, buf[0] - 48);
+        //emit_signal(obj, buf[0] - 48);
     } else {
         printf("Unknown command `%s'\n", buf);
     }
@@ -162,7 +167,6 @@ int
 main (int    argc,
       char **argv)
 {
-  GMainLoop *loop;
   DBusGConnection *connection;
   GError *error = NULL;
 #ifdef FAKE_UMMS_SIGNAL
@@ -186,7 +190,7 @@ main (int    argc,
 
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
   if (connection == NULL) {
-      g_printerr ("Failed to open connection to DBus: %s\n", error->message);
+      g_printerr ("yyFailed to open connection to DBus: %s\n", error->message);
       g_error_free (error);
 
       exit (1);
@@ -199,10 +203,38 @@ main (int    argc,
   loop = g_main_loop_new (NULL, TRUE);
 #ifdef FAKE_UMMS_SIGNAL
   chan = g_io_channel_unix_new(0);
-  g_io_add_watch(chan, G_IO_IN, channel_cb, player);
+  g_io_add_watch(chan, G_IO_IN, channel_cb, umms_object_manager);
 #endif
   g_main_loop_run (loop);
   g_main_loop_unref (loop);
 
+  printf("exit successful\n");
   return EXIT_SUCCESS;
+}
+
+static gboolean 
+unregister_object (gpointer obj)
+{
+    DBusGConnection *connection;
+    GError *err = NULL;
+
+    connection = dbus_g_bus_get (DBUS_BUS_SESSION, &err);
+    if (connection == NULL) {
+        g_printerr ("Failed to open connection to DBus: %s\n", err->message);
+        g_error_free (err);
+        return FALSE;
+    }
+    dbus_g_connection_unregister_g_object (connection,
+            G_OBJECT (obj));
+    return TRUE;
+}
+
+static void 
+remove_mngr (UmmsObjectManager *mngr)
+{
+    printf("remove object manager\n");
+    unregister_object (mngr);
+    g_object_unref (mngr);
+
+    return;
 }

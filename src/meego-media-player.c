@@ -32,6 +32,9 @@ enum
 {
 	gchar    *name;
     gboolean unattended;
+
+    gboolean volume_cached;
+    gint     volume;
 };
 
     static void
@@ -152,7 +155,16 @@ exit:
 meego_media_player_play (UmmsMediaPlayerIface   *player,
                          DBusGMethodInvocation *context)
 {
-    meego_media_player_control_play (GET_CONTROL_IFACE (player));
+    MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
+    MeegoMediaPlayerControl *control = GET_CONTROL_IFACE (player);
+
+    if (priv->volume_cached) {
+        UMMS_DEBUG ("%s:set the cached volume(%d) to pipe engine", __FUNCTION__, priv->volume); 
+        meego_media_player_control_set_volume (control, priv->volume);
+        priv->volume_cached = FALSE;
+        priv->volume = -1;
+    }
+    meego_media_player_control_play (control);
     umms_media_player_iface_return_from_play (context);
 }
 
@@ -255,8 +267,19 @@ meego_media_player_set_volume (UmmsMediaPlayerIface   *player,
                                gint                  volume, 
                                DBusGMethodInvocation *context)
 {
+    MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
+    MeegoMediaPlayerControl *control = GET_CONTROL_IFACE (player);
+
     UMMS_DEBUG ("%s:set volume to %d", __FUNCTION__, volume); 
-    meego_media_player_control_set_volume (GET_CONTROL_IFACE (player), volume);
+
+    if (control) {
+        meego_media_player_control_set_volume (control, volume);
+    } else {
+        UMMS_DEBUG ("%s:cache the volume since pipe engine has not been loaded", __FUNCTION__); 
+        priv->volume_cached = TRUE;
+        priv->volume = volume;
+    }
+
     umms_media_player_iface_return_from_set_volume (context);
 }
 
@@ -439,6 +462,7 @@ meego_media_player_dispose (GObject *object)
     MeegoMediaPlayerControl *player_control = GET_CONTROL_IFACE (object);
 
     if (player_control) {
+        meego_media_player_control_stop (player_control);
         g_object_unref (player_control);
     }
 
@@ -480,6 +504,7 @@ meego_media_player_class_init (MeegoMediaPlayerClass *klass)
 meego_media_player_init (MeegoMediaPlayer *self)
 {
     self->priv = PLAYER_PRIVATE (self);
+    self->priv->volume = -1;
 }
 
     MeegoMediaPlayer *
