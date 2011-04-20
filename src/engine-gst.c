@@ -32,14 +32,9 @@ struct _EngineGstPrivate
 
   gchar *uri;
   gint  seekable;
-  gdouble stacked_progress;
 
-  gboolean video_available;
-
-  gint tick_timeout_id;
-
+  GstElement *source;
   GstElement *vsink;
-  GstState stacked_state;
 
   //buffering stuff
   gboolean buffering;
@@ -50,22 +45,14 @@ struct _EngineGstPrivate
   PlayerState target;//target state, for async state change(*==>PlayerStatePaused, PlayerStateNull/Stopped==>PlayerStatePlaying)
 
   gboolean is_live;
+  gint64 duration;//ms
+  gint64 total_bytes;
 };
 
-static gboolean
-_stop_pipe (MeegoMediaPlayerControl *control);
-
-static gboolean
-_array_has_uri_value (const gchar * values[], const gchar * value)
-{
-    gint i;
-
-    for (i = 0; values[i]; i++) {
-        if (!g_ascii_strncasecmp (value, values[i], strlen (values[i])))
-            return TRUE;
-    }
-    return FALSE;
-}
+static void _reset_engine (MeegoMediaPlayerControl *self);
+static gboolean _query_buffering_percent (GstElement *pipe, gdouble *percent);
+static void _source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data);
+static gboolean _stop_pipe (MeegoMediaPlayerControl *control);
 
 static gboolean
 engine_gst_set_uri (MeegoMediaPlayerControl *self,
@@ -81,16 +68,11 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
             priv->uri,
             uri);
 
-    if (priv->uri) {
-        _stop_pipe(self);
-        g_free (priv->uri);
-        priv->uri = NULL;
-    }
+    _reset_engine (self);
 
     priv->uri = g_strdup (uri);
 
     g_object_set (priv->pipeline, "uri", uri, NULL);
-    priv->seekable = -1;
 
     //preroll the pipe
     if(gst_element_set_state (priv->pipeline, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
@@ -140,6 +122,33 @@ engine_gst_pause (MeegoMediaPlayerControl *self)
   UMMS_DEBUG ("%s: called", __FUNCTION__);
   return TRUE;
 }
+
+static void 
+_reset_engine (MeegoMediaPlayerControl *self)
+{
+    EngineGstPrivate *priv = GET_PRIVATE (self);
+
+    if (priv->uri) {
+        _stop_pipe(self);
+        g_free (priv->uri);
+        priv->uri = NULL;
+    }
+
+    if (priv->source) {
+        g_object_unref (priv->source);
+        priv->source = NULL;
+    }
+
+    priv->total_bytes = -1;
+    priv->duration = -1;
+    priv->seekable = -1;
+    priv->buffering = FALSE;
+    priv->buffer_percent = -1;
+    priv->player_state = PlayerStateStopped;
+
+    return;
+}
+
 
 static gboolean
 _stop_pipe (MeegoMediaPlayerControl *control)
@@ -344,7 +353,7 @@ engine_gst_set_position (MeegoMediaPlayerControl *self, gint64 in_pos)
     pipe = priv->pipeline;
     g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
-    GST_LOG ("Seeking to %" GST_TIME_FORMAT, GST_TIME_ARGS (in_pos* GST_MSECOND));
+    UMMS_DEBUG ("Seeking to %" GST_TIME_FORMAT, GST_TIME_ARGS (in_pos* GST_MSECOND));
 
     gst_element_seek (pipe, 1.0,
             GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH,
@@ -492,19 +501,6 @@ engine_gst_get_volume (MeegoMediaPlayerControl *self, gint *volume)
     return TRUE;
 }
 
-static gboolean
-_query_media_size (GstElement *player, gint64 *media_size, GstFormat fmt)
-{
-    gboolean ret; 
-
-    if (gst_element_query_duration (player, &fmt, media_size)) {
-        ret = TRUE;
-    } else {
-        ret = FALSE;
-    }
-    return ret;
-}
-
 static gboolean 
 engine_gst_get_media_size_time (MeegoMediaPlayerControl *self, gint64 *media_size_time)
 {
@@ -512,6 +508,7 @@ engine_gst_get_media_size_time (MeegoMediaPlayerControl *self, gint64 *media_siz
     EngineGstPrivate *priv;
     gint64 duration;
     gboolean ret;
+    GstFormat fmt = GST_FORMAT_TIME;
 
     g_return_val_if_fail (self != NULL, FALSE);
     g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
@@ -521,7 +518,8 @@ engine_gst_get_media_size_time (MeegoMediaPlayerControl *self, gint64 *media_siz
     g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
     UMMS_DEBUG ("%s:invoked", __FUNCTION__);
-    if ((ret = _query_media_size (pipe, &duration, GST_FORMAT_TIME))) {
+
+    if (gst_element_query_duration (pipe, &fmt, &duration)) {
         *media_size_time = duration/GST_MSECOND;
         UMMS_DEBUG ("%s:media size = %lld (ms)", __FUNCTION__, *media_size_time);
     } else {
@@ -536,28 +534,58 @@ engine_gst_get_media_size_time (MeegoMediaPlayerControl *self, gint64 *media_siz
 static gboolean 
 engine_gst_get_media_size_bytes (MeegoMediaPlayerControl *self, gint64 *media_size_bytes)
 {
-    GstElement *pipe;
+    GstElement *source;
     EngineGstPrivate *priv;
-    gint64 duration;
+    gint64 length = 0;
     gboolean ret;
+    GstFormat fmt = GST_FORMAT_BYTES;
 
     g_return_val_if_fail (self != NULL, FALSE);
     g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
     priv = GET_PRIVATE (self);
-    pipe = priv->pipeline;
-    g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+    source = priv->source;
+    g_return_val_if_fail (GST_IS_ELEMENT (source), FALSE);
 
     UMMS_DEBUG ("%s:invoked", __FUNCTION__);
-    if ((ret = _query_media_size (pipe, &duration, GST_FORMAT_BYTES))) {
-        *media_size_bytes = duration;
-        UMMS_DEBUG ("%s:media size = %lld (bytes)", __FUNCTION__, *media_size_bytes);
-    } else {
-        UMMS_DEBUG ("%s: query media_size_bytes failed", __FUNCTION__);
-        *media_size_bytes = -1;
+
+    if (!gst_element_query_duration (source, &fmt, &length)) {
+
+        // Fall back to querying the source pads manually.
+        // See also https://bugzilla.gnome.org/show_bug.cgi?id=638749
+        GstIterator* iter = gst_element_iterate_src_pads(source);
+        gboolean done = FALSE;
+        length = 0;
+        while (!done) {
+            gpointer data;
+
+            switch (gst_iterator_next(iter, &data)) {
+                case GST_ITERATOR_OK: {
+                                          GstPad* pad = GST_PAD_CAST(data);
+                                          gint64 padLength = 0;
+                                          if (gst_pad_query_duration(pad, &fmt, &padLength)
+                                                  && padLength > length)
+                                              length = padLength;
+                                          gst_object_unref(pad);
+                                          break;
+                                      }
+                case GST_ITERATOR_RESYNC:
+                                      gst_iterator_resync(iter);
+                                      break;
+                case GST_ITERATOR_ERROR:
+                                      // Fall through.
+                case GST_ITERATOR_DONE:
+                                      done = TRUE;
+                                      break;
+            }
+        }
+        gst_iterator_free(iter);
     }
 
-    return ret;
+    *media_size_bytes = length;
+    UMMS_DEBUG ("Total bytes = %lld", length);
+
+    return TRUE;
 }
 
 static gboolean 
@@ -671,42 +699,81 @@ engine_gst_get_player_state (MeegoMediaPlayerControl *self,
     return TRUE;
 }
 
-
-static gboolean 
-_get_buffer_depth (GstElement *player, GstFormat format, gint64 *depth)
-{
-    g_return_val_if_fail (player!= NULL, FALSE);
-    g_return_val_if_fail (depth!= NULL, FALSE);
-
-    UMMS_DEBUG ("%s:invoked", __FUNCTION__);
-
-    if (format == GST_FORMAT_TIME){
-        g_object_get (player, "buffer-time", depth, NULL);
-    } else {
-        gint bytes;
-        g_object_get (player, "buffer-size", &bytes, NULL);
-        *depth = (gint64)bytes;
-    }
-    return TRUE;
-}
-
-
     static gboolean
 engine_gst_get_buffered_bytes (MeegoMediaPlayerControl *self,
         gint64 *buffered_bytes)
 {
+    gint64 total_bytes;
+    gdouble percent;
+
     g_return_val_if_fail (self != NULL, FALSE);
     EngineGstPrivate *priv = GET_PRIVATE (self);
-    _get_buffer_depth (priv->pipeline, GST_FORMAT_BYTES, buffered_bytes);
+
+    if (!_query_buffering_percent(priv->pipeline, &percent)) {
+        return FALSE;
+    }
+
+    if (priv->total_bytes == -1) {
+        engine_gst_get_media_size_bytes (self, &total_bytes);
+        priv->total_bytes = total_bytes;
+    } 
+
+    *buffered_bytes = (priv->total_bytes* percent)/100;
+
+    UMMS_DEBUG ("Buffered bytes = %lld", *buffered_bytes);
+
     return TRUE;
 }
+
+static gboolean 
+_query_buffering_percent (GstElement *pipe, gdouble *percent)
+{
+    GstQuery* query = gst_query_new_buffering(GST_FORMAT_PERCENT);
+
+    if (!gst_element_query(pipe, query)) {
+        gst_query_unref(query);
+        UMMS_DEBUG ("%s: failed", __FUNCTION__);
+        return FALSE;
+    }
+
+    gint64 start, stop;
+    gdouble fillStatus = 100.0;
+
+    gst_query_parse_buffering_range(query, 0, &start, &stop, 0);
+    gst_query_unref(query);
+
+    if (stop != -1) {
+        fillStatus = 100.0 * stop / GST_FORMAT_PERCENT_MAX;
+    }
+
+    UMMS_DEBUG ("[Buffering] Download buffer filled up to %f%%", fillStatus);
+    *percent = fillStatus;
+
+    return TRUE;
+}
+
     static gboolean
 engine_gst_get_buffered_time (MeegoMediaPlayerControl *self,
         gint64 *buffered_time)
 {
-    g_return_val_if_fail (self != NULL, FALSE);
+    gint64 duration;
+    gdouble percent;
     EngineGstPrivate *priv = GET_PRIVATE (self);
-    _get_buffer_depth (priv->pipeline, GST_FORMAT_TIME, buffered_time);
+
+    g_return_val_if_fail (self != NULL, FALSE);
+
+    if (!_query_buffering_percent(priv->pipeline, &percent)) {
+        return FALSE;
+    }
+
+    if (priv->duration == -1) {
+        engine_gst_get_media_size_time (self, &duration);
+        priv->duration = duration;
+    } 
+
+    *buffered_time = (priv->duration * percent)/100;
+    UMMS_DEBUG ("duration=%lld, buffered_time=%lld", priv->duration, *buffered_time);
+
     return TRUE;
 }
 
@@ -812,6 +879,11 @@ static void
 engine_gst_dispose (GObject *object)
 {
     EngineGstPrivate *priv = GET_PRIVATE (object);
+
+    if (priv->source) {
+        g_object_unref (priv->source);
+        priv->source = NULL;
+    }
 
     if (priv->pipeline)
     {
@@ -997,6 +1069,8 @@ engine_gst_init (EngineGst *self)
   
   priv->pipeline = gst_element_factory_make ("playbin2", "pipeline");
 
+  g_signal_connect(priv->pipeline, "notify::source", G_CALLBACK(_source_changed_cb), self);
+
   bus = gst_pipeline_get_bus (GST_PIPELINE (priv->pipeline));
 
   gst_bus_add_signal_watch (bus);
@@ -1029,16 +1103,13 @@ engine_gst_init (EngineGst *self)
   gst_object_unref (GST_OBJECT (bus));
 
   /*
-   *FIXME:Use GST_PLAY_FLAG_DOWNLOAD flag to enable Gstreamer Download buffer mode.
-   *      For now, if playback http source with GST_PLAY_FLAG_DOWNLOAD, gst_element_set (pipe, GST_STATE_NULL) 
-   *      will block.
+   *Use GST_PLAY_FLAG_DOWNLOAD flag to enable Gstreamer Download buffer mode,
+   *so that we can query the buffered time/bytes, and further the time rangs.
    */
 
-  /*
   g_object_get (priv->pipeline, "flags", &flags, NULL);
   flags |= GST_PLAY_FLAG_DOWNLOAD;
   g_object_set (priv->pipeline, "flags", flags, NULL);
-  */
 
   priv->player_state = PlayerStateNull;
 
@@ -1048,4 +1119,18 @@ EngineGst *
 engine_gst_new (void)
 {
   return g_object_new (ENGINE_TYPE_GST, NULL);
+}
+
+
+static void 
+_source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data)
+{
+    GstElement *source;
+    EngineGstPrivate *priv = GET_PRIVATE (data);
+
+    g_object_get(priv->pipeline, "source", &source, NULL);
+    gst_object_replace((GstObject**) &priv->source, (GstObject*) source);
+    UMMS_DEBUG ("source changed");
+
+    return;
 }
