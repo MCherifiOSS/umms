@@ -5,6 +5,7 @@
 #include <dbus/dbus-glib-bindings.h>
 #include <gst/gst.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "umms-common.h"
 #include "umms-object-manager.h"
