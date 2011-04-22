@@ -4,9 +4,9 @@
 #include <dbus/dbus-glib-lowlevel.h>
 #include <dbus/dbus-glib.h>
 
-#include "umms-ginterface.h"
-#include "meego-media-player-gstreamer.h"
 #include "umms-object-manager.h"
+#include "meego-media-player-gstreamer.h"
+#include "./glue/umms-media-player-glue.h"
 
 
 G_DEFINE_TYPE (UmmsObjectManager, umms_object_manager, G_TYPE_OBJECT)
@@ -260,6 +260,8 @@ _gen_media_player (UmmsObjectManager *mngr, gboolean unattended)
     object_path = g_strdup_printf (OBJ_NAME_PREFIX"%d", id);
 
     UMMS_OBJECT_MANAGER_DEBUG("%s: object_path='%s' ", __FUNCTION__, object_path, object_path);
+
+    dbus_g_object_type_install_info (MEEGO_TYPE_MEDIA_PLAYER, &dbus_glib_meego_media_player_object_info);
 
     player = (MeegoMediaPlayer *)g_object_new (MEEGO_TYPE_MEDIA_PLAYER_GSTREAMER, 
 											   "name", object_path, 

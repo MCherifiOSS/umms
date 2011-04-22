@@ -1,15 +1,18 @@
-noinst_LTLIBRARIES = libumms-ginterfaces.la
 libexec_PROGRAMS = umms-server
 
 umms_server_CFLAGS = $(UMMS_CFLAGS)
 
-umms_server_LDADD = libumms-ginterfaces.la $(UMMS_CFLAGS)
+umms_server_LDADD = $(UMMS_LIBS)
 umms_server_SOURCES = umms-common.h umms-server-main.c \
                       meego-media-player.c meego-media-player.h \
 					  meego-media-player-gstreamer.c meego-media-player-gstreamer.h \
 				      meego-media-player-control.c meego-media-player-control.h \
 					  engine-gst.c engine-gst.h \
-					  umms-object-manager-glue.h umms-object-manager.c umms-object-manager.h
+					  umms-object-manager.c umms-object-manager.h \
+					  umms-marshals.c umms-marshals.h \
+					  ./glue/umms-object-manager-glue.h \
+					  ./glue/umms-media-player-glue.h
+
 
 %.c: %.list Makefile.am
 	$(AM_V_GEN)glib-genmarshal --body --prefix=umms_marshal $< > $@
@@ -17,25 +20,21 @@ umms_server_SOURCES = umms-common.h umms-server-main.c \
 %.h: %.list Makefile.am
 	$(AM_V_GEN)glib-genmarshal --header --prefix=umms_marshal $< > $@
 
-MARSHALS_SOURCES = \
+./glue/%-glue.h: ../spec/%.xml Makefile.am
+	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=umms_object_manager --mode=glib-server ../spec/umms-object-manager.xml >  ./glue/umms-object-manager-glue.h
+	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=meego_media_player --mode=glib-server ../spec/umms-media-player.xml > ./glue/umms-media-player-glue.h
+
+MARSHALS = \
 	umms-marshals.c umms-marshals.h
 
 MARSHALS_LISTS = umms-marshals.list
 
-DBUS_SPECS = umms.xml
 
-%-ginterface.h %-ginterface.c: %.xml Makefile.am
-	$(AM_V_GEN)python ./tools/glib-ginterface-gen.py --include='"umms-marshals.h"' --filename=$(basename $@) $< Umms_
+GLUE = \
+			  ./glue/umms-object-manager-glue.h \
+			  ./glue/umms-media-player-glue.h 
 
-GINTERFACE_SOURCES = \
-	$(DBUS_SPECS:.xml=-ginterface.h) \
-	$(DBUS_SPECS:.xml=-ginterface.c)
-
-libumms_ginterfaces_la_SOURCES = $(GINTERFACE_SOURCES) $(MARSHALS_SOURCES)
-libumms_ginterfaces_la_LIBADD = $(UMMS_LIBS)
-libumms_ginterfaces_la_CFLAGS = $(UMMS_CFLAGS)
-
-BUILT_SOURCES = $(GINTERFACE_SOURCES) $(MARSHALS_SOURCES)
+BUILT_SOURCES = $(GLUE) $(MARSHALS)
 
 %.service: %.service.in ../config.log
 	$(AM_V_GEN)sed -e "s|\@dir\@|$(libexecdir)|" $< > $@
@@ -45,4 +44,4 @@ service_in_files = umms-server.service.in
 service_DATA = umms-server.service
 
 CLEANFILES = $(BUILT_SOURCES) $(service_DATA)
-EXTRA_DIST = $(DBUS_SPECS) $(MARSHALS_LISTS) $(service_in_files)
+EXTRA_DIST = $(MARSHALS_LISTS) $(service_in_files)

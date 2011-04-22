@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<node name="/Media_Player_Iface">
+
+	  <interface name="com.meego.UMMS.MediaPlayer">
+
+            <method name="SetUri">
+              <arg name="uri" type="s"/>
+            </method>
+
+            <method name="Play">
+ 			</method>
+
+            <method name="Pause">
+			</method>
+
+            <method name="Stop">
+			</method>
+
+		    <method name="SetPosition">
+              <arg name="pos" type="x"/>
+		    </method>
+
+		    <method name="GetPosition">
+              <arg name="pos" type="x" direction="out"/>
+		    </method>
+
+            <method name="SetPlaybackRate">
+              <arg name="rate" type="d"/>
+		    </method>
+
+            <method name="GetPlaybackRate">
+              <arg name="rate" type="d" direction="out"/>
+		    </method>
+
+		    <method name="SetVolume">
+              <arg name="volume" type="i"/>
+		    </method>
+
+            <method name="GetVolume">
+              <arg name="volume" type="i" direction="out"/>
+		    </method>
+
+		    <method name="SetWindowId">
+              <arg name="win_id" type="d"/>
+            </method>
+
+		    <method name="SetVideoSize">
+              <arg name="x" type="u"/>
+              <arg name="y" type="u"/>
+              <arg name="w" type="u"/>
+              <arg name="h" type="u"/>
+		    </method>
+
+            <method name="GetVideoSize">
+              <arg name="w" type="u" direction="out"/>
+              <arg name="h" type="u" direction="out"/>
+            </method>
+
+            <method name="GetBufferedTime">
+              <arg type="x" direction="out"/>
+		    </method>
+
+            <method name="GetBufferedBytes">
+              <arg type="x" direction="out"/>
+		    </method>
+
+            <method name="GetMediaSizeTime">
+              <arg type="x" direction="out"/>
+		    </method>
+
+		    <method name="GetMediaSizeBytes">
+              <arg type="x" direction="out"/>
+		    </method>
+
+		    <method name="HasVideo">
+              <arg type="b" direction="out"/>
+		    </method>
+
+		    <method name="HasAudio">
+              <arg type="b" direction="out"/>
+		    </method>
+
+		    <method name="IsStreaming">
+              <arg type="b" direction="out"/>
+            </method>
+		    
+			<method name="IsSeekable">
+              <arg type="b" direction="out"/>
+		    </method>
+
+            <method name="SupportFullscreen">
+              <arg type="b" direction="out"/>
+		    </method>
+
+		    <method name="GetPlayerState">
+              <arg type="i" direction="out"/>
+            </method>
+
+            <signal name="Initialized">
+			</signal>
+
+            <signal name="Eof">
+			</signal>
+
+            <signal name="Error">
+              <arg  type="u"/>
+              <arg  type="s"/>
+		    </signal>
+
+			<signal name="Buffering">
+			</signal>
+
+			<signal name="Buffered">
+			</signal>
+
+			<signal name="RequestWindow">
+			</signal>
+
+			<signal name="Seeked">
+			</signal>
+
+			<signal name="Stopped">
+			</signal>
+
+			<signal name="PlayerStateChanged">
+				<arg type="i"/>
+			</signal>
+
+          </interface>
+
+</node>

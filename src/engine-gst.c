@@ -145,6 +145,7 @@ _reset_engine (MeegoMediaPlayerControl *self)
     priv->buffering = FALSE;
     priv->buffer_percent = -1;
     priv->player_state = PlayerStateStopped;
+    priv->target = PlayerStateNull;
 
     return;
 }

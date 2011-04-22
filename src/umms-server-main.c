@@ -9,7 +9,7 @@
 
 #include "umms-common.h"
 #include "umms-object-manager.h"
-#include "umms-object-manager-glue.h"
+#include "./glue/umms-object-manager-glue.h"
 
 static GMainLoop *loop = NULL;
 

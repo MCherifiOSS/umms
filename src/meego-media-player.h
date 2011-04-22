@@ -67,6 +67,31 @@ GType meego_media_player_get_type (void) G_GNUC_CONST;
 
 MeegoMediaPlayer *meego_media_player_new (void);
 
+gboolean meego_media_player_set_uri (MeegoMediaPlayer *self, const gchar *uri, GError **error);
+gboolean meego_media_player_play(MeegoMediaPlayer *self, GError **error);
+gboolean meego_media_player_pause(MeegoMediaPlayer *self, GError **error);
+gboolean meego_media_player_stop(MeegoMediaPlayer *self, GError **error);
+gboolean meego_media_player_set_position(MeegoMediaPlayer *self, gint64 pos, GError **error);
+gboolean meego_media_player_get_position(MeegoMediaPlayer *self, gint64 *pos, GError **error);
+gboolean meego_media_player_set_playback_rate(MeegoMediaPlayer *self, gdouble rate, GError **error);
+gboolean meego_media_player_get_playback_rate(MeegoMediaPlayer *self, gdouble *rate, GError **error);
+gboolean meego_media_player_set_volume(MeegoMediaPlayer *self, gint vol, GError **error);
+gboolean meego_media_player_get_volume(MeegoMediaPlayer *self, gint *vol, GError **error);
+gboolean meego_media_player_set_window_id(MeegoMediaPlayer *self, gdouble id, GError **error);
+gboolean meego_media_player_set_video_size(MeegoMediaPlayer *self, guint x, guint y, guint w, guint h, GError **error);
+gboolean meego_media_player_get_video_size(MeegoMediaPlayer *self, guint *w, guint *h, GError **error);
+gboolean meego_media_player_get_buffered_time(MeegoMediaPlayer *self, gint64 *buffered_time, GError **error);
+gboolean meego_media_player_get_buffered_bytes(MeegoMediaPlayer *self, gint64 *buffered_bytes, GError **error);
+gboolean meego_media_player_get_media_size_time(MeegoMediaPlayer *self, gint64 *size_time, GError **error);
+gboolean meego_media_player_get_media_size_bytes(MeegoMediaPlayer *self, gint64 *size_bytes, GError **error);
+gboolean meego_media_player_has_video(MeegoMediaPlayer *self, gboolean *has_video, GError **error);
+gboolean meego_media_player_has_audio(MeegoMediaPlayer *self, gboolean *has_audio, GError **error);
+gboolean meego_media_player_is_streaming(MeegoMediaPlayer *self, gboolean *is_streaming, GError **error);
+gboolean meego_media_player_is_seekable(MeegoMediaPlayer *self, gboolean *is_seekable, GError **error);
+gboolean meego_media_player_support_fullscreen(MeegoMediaPlayer *self, gboolean *support_fullscreen, GError **error);
+gboolean meego_media_player_get_player_state(MeegoMediaPlayer *self, gint *state, GError **error);
+
+
 G_END_DECLS
 
 #endif /* _MEEGO_MEDIA_PLAYER_H */
