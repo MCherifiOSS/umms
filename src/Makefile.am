@@ -21,6 +21,7 @@ umms_server_SOURCES = umms-common.h umms-server-main.c \
 	$(AM_V_GEN)glib-genmarshal --header --prefix=umms_marshal $< > $@
 
 ./glue/%-glue.h: ../spec/%.xml Makefile.am
+	$(AM_V_GEN)mkdir -p glue
 	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=umms_object_manager --mode=glib-server ../spec/umms-object-manager.xml >  ./glue/umms-object-manager-glue.h
 	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=meego_media_player --mode=glib-server ../spec/umms-media-player.xml > ./glue/umms-media-player-glue.h
 
