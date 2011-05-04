@@ -190,7 +190,7 @@ _is_ismd_vidrend_bin (GstElement * element, gpointer user_data)
   }
 
   ele_name = gst_element_get_name (element);
-  g_debug ("%s:element name='%s'\n",__FUNCTION__, ele_name);
+  UMMS_DEBUG ("%s:element name='%s'\n",__FUNCTION__, ele_name);
   
   //ugly solution, check by element metadata will be better 
   ele_name = gst_element_get_name (element);
@@ -212,6 +212,7 @@ unref_ele:
 /*
  * This function is used to judge whether we are using ismd_vidrend_bin 
  * which allow video rectangle and plane settings through properties.
+ * Deprecated.
  */
 static GstElement *
 _get_ismd_vidrend_bin (GstBin *bin)
@@ -243,22 +244,24 @@ engine_gst_set_video_size (MeegoMediaPlayerControl *self,
     EngineGstPrivate *priv = GET_PRIVATE (self);
     GstElement *pipe = priv->pipeline;
     gboolean ret;
+    GstElement *vsink_bin;
 
     g_return_val_if_fail (pipe, FALSE);
-    g_debug ("%s: invoked", __FUNCTION__);
+    UMMS_DEBUG ("%s: invoked", __FUNCTION__);
 
-    GstElement *vsink_bin = _get_ismd_vidrend_bin(GST_BIN(pipe));
+    //We use ismd_vidrend_bin as video-sink, so we can set rectangle property.
+    g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
     if (vsink_bin) {
         gchar *rectangle_des = NULL;
 
         rectangle_des = g_strdup_printf ("%u,%u,%u,%u", x, y, w, h);
-        g_debug ("set rectangle damension :'%s'\n", rectangle_des);
+        UMMS_DEBUG ("set rectangle damension :'%s'\n", rectangle_des);
         g_object_set (G_OBJECT(vsink_bin), "rectangle", rectangle_des, NULL);
         g_free (rectangle_des);
         gst_object_unref (vsink_bin);
         ret = TRUE;
     } else {
-        //TODO:implement set_video_size for other video render types.
+        UMMS_DEBUG ("Get video-sink failed");
         ret = FALSE;
     }
 
@@ -273,19 +276,20 @@ engine_gst_get_video_size (MeegoMediaPlayerControl *self,
     GstElement *pipe = priv->pipeline;
     guint x[1], y[1];
     gboolean ret;
+    GstElement *vsink_bin;
 
     g_return_val_if_fail (pipe, FALSE);
-    g_debug ("%s: invoked", __FUNCTION__);
-    GstElement *vsink_bin = _get_ismd_vidrend_bin(GST_BIN(pipe));
+    UMMS_DEBUG ("%s: invoked", __FUNCTION__);
+    g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
     if (vsink_bin) {
         gchar *rectangle_des = NULL;
         g_object_get (G_OBJECT(vsink_bin), "rectangle", &rectangle_des, NULL);
         sscanf (rectangle_des, "%u,%u,%u,%u", x, y, w, h);
-        g_debug ("got rectangle damension :'%u,%u,%u,%u'\n", *x,*y,*w,*h);
+        UMMS_DEBUG ("got rectangle damension :'%u,%u,%u,%u'\n", *x,*y,*w,*h);
         gst_object_unref (vsink_bin);
         ret = TRUE;
     } else {
-        //TODO:implement get_video_size for other video render types.
+        UMMS_DEBUG ("Get video-sink failed");
         ret = FALSE;
     }
     return ret;
@@ -638,27 +642,8 @@ engine_gst_has_audio (MeegoMediaPlayerControl *self, gboolean *has_audio)
 static gboolean 
 engine_gst_support_fullscreen (MeegoMediaPlayerControl *self, gboolean *support_fullscreen)
 {
-    GstElement *pipe, *ismd_vbin;
-    EngineGstPrivate *priv;
-    gboolean ret;
-
-    g_return_val_if_fail (self != NULL, FALSE);
-    g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
-
-    priv = GET_PRIVATE (self);
-    pipe = priv->pipeline;
-    g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
-
-    UMMS_DEBUG ("%s:invoked", __FUNCTION__);
-    if ((ismd_vbin = _get_ismd_vidrend_bin (GST_BIN(pipe)))) {
-        UMMS_DEBUG ("%s: support fullscreen", __FUNCTION__);
-        *support_fullscreen = TRUE;
-        ret = TRUE;
-    } else {
-        //TODO: verify fullscreen capability by other ways.
-        ret = FALSE;
-    } 
-
+    //We are using ismd_vidrend_bin, so this function always return TRUE.
+    *support_fullscreen = TRUE;
     return TRUE;
 }
 
@@ -1065,54 +1050,54 @@ engine_gst_init (EngineGst *self)
     GstPlayFlags flags;
 
     self->priv = PLAYER_PRIVATE (self);
-  priv = self->priv;
-
-  
-  priv->pipeline = gst_element_factory_make ("playbin2", "pipeline");
-
-  g_signal_connect(priv->pipeline, "notify::source", G_CALLBACK(_source_changed_cb), self);
-
-  bus = gst_pipeline_get_bus (GST_PIPELINE (priv->pipeline));
-
-  gst_bus_add_signal_watch (bus);
-
-  g_signal_connect_object (bus, "message::error",
-                           G_CALLBACK (bus_message_error_cb),
-                           self,
-                           0);
-
-  g_signal_connect_object (bus, "message::buffering",
-                           G_CALLBACK (bus_message_buffering_cb),
-                           self,
-                           0);
-
-  g_signal_connect_object (bus, "message::eos",
-                           G_CALLBACK (bus_message_eos_cb),
-                           self,
-                           0);
-
-  g_signal_connect_object (bus,
-                           "message::state-changed",
-                           G_CALLBACK (bus_message_state_change_cb),
-                           self,
-                           0);
+    priv = self->priv;
 
 
-  gst_bus_set_sync_handler(bus, (GstBusSyncHandler) bus_sync_handler,
-			  self);
+    priv->pipeline = gst_element_factory_make ("playbin2", "pipeline");
 
-  gst_object_unref (GST_OBJECT (bus));
+    g_signal_connect(priv->pipeline, "notify::source", G_CALLBACK(_source_changed_cb), self);
 
-  /*
-   *Use GST_PLAY_FLAG_DOWNLOAD flag to enable Gstreamer Download buffer mode,
-   *so that we can query the buffered time/bytes, and further the time rangs.
-   */
+    bus = gst_pipeline_get_bus (GST_PIPELINE (priv->pipeline));
 
-  g_object_get (priv->pipeline, "flags", &flags, NULL);
-  flags |= GST_PLAY_FLAG_DOWNLOAD;
-  g_object_set (priv->pipeline, "flags", flags, NULL);
+    gst_bus_add_signal_watch (bus);
 
-  priv->player_state = PlayerStateNull;
+    g_signal_connect_object (bus, "message::error",
+            G_CALLBACK (bus_message_error_cb),
+            self,
+            0);
+
+    g_signal_connect_object (bus, "message::buffering",
+            G_CALLBACK (bus_message_buffering_cb),
+            self,
+            0);
+
+    g_signal_connect_object (bus, "message::eos",
+            G_CALLBACK (bus_message_eos_cb),
+            self,
+            0);
+
+    g_signal_connect_object (bus,
+            "message::state-changed",
+            G_CALLBACK (bus_message_state_change_cb),
+            self,
+            0);
+
+
+    gst_bus_set_sync_handler(bus, (GstBusSyncHandler) bus_sync_handler,
+            self);
+
+    gst_object_unref (GST_OBJECT (bus));
+
+    /*
+     *Use GST_PLAY_FLAG_DOWNLOAD flag to enable Gstreamer Download buffer mode,
+     *so that we can query the buffered time/bytes, and further the time rangs.
+     */
+
+    g_object_get (priv->pipeline, "flags", &flags, NULL);
+    flags |= GST_PLAY_FLAG_DOWNLOAD;
+    g_object_set (priv->pipeline, "flags", flags, NULL);
+
+    priv->player_state = PlayerStateNull;
 
 }
 
