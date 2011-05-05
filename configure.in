@@ -31,6 +31,7 @@ AC_C_INLINE
 # Checks for library functions.
 
 AC_CONFIG_FILES([Makefile
+				 examples/Makefile
 				 spec/Makefile
                  src/Makefile])
 AC_OUTPUT
