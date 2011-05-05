@@ -145,12 +145,16 @@ umms_object_manager_request_media_player_unattended(UmmsObjectManager *self,
     MeegoMediaPlayer *player;
     GError *err = NULL;
 
-    UMMS_OBJECT_MANAGER_DEBUG("request unattened media player");
+    UMMS_OBJECT_MANAGER_DEBUG("request unattened media player, time_to_execution = '%lf' seconds", time_to_execution);
 
     player = _gen_media_player (self, TRUE);
 	g_object_get(G_OBJECT(player), "name", object_path, NULL);
+    
+    //FIXME: return a unique ID token for this execution
+    //Ref: Unified Multi Media Service, Section 7, Transparency, Attended and Non Attended execution
+    *token = g_strdup ("Dummy ID token");
 
-	UMMS_OBJECT_MANAGER_DEBUG("object_path returned to client = '%s'", *object_path);
+	UMMS_OBJECT_MANAGER_DEBUG("object_path returned to client = '%s', token = '%s'", *object_path, *token);
 
     g_timeout_add ((time_to_execution*1000), _stop_execution, player);
 
