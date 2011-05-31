@@ -4,6 +4,7 @@
 #include <dbus/dbus-glib-lowlevel.h>
 #include <dbus/dbus-glib.h>
 
+#include "umms-debug.h"
 #include "umms-object-manager.h"
 #include "meego-media-player-gstreamer.h"
 #include "./glue/umms-media-player-glue.h"
@@ -15,8 +16,6 @@ G_DEFINE_TYPE (UmmsObjectManager, umms_object_manager, G_TYPE_OBJECT)
 
 #define GET_PRIVATE(o) ((UmmsObjectManager *)o)->priv
 
-#define UMMS_OBJECT_MANAGER_DEBUG(x...) g_debug (G_STRLOC ": "x)
-
 
 #define OBJ_NAME_PREFIX "/com/meego/UMMS/MediaPlayer"
 
@@ -25,39 +24,36 @@ static gint _find_player_by_name (gconstpointer player_in, gconstpointer  name);
 static gboolean _stop_execution(gpointer data);
 static void _dump_player (gpointer a, gpointer b);
 static void _dump_player_list (GList *players);
-static MeegoMediaPlayer *_gen_media_player (UmmsObjectManager *mngr, gboolean unattended);
+static MeegoMediaPlayer *_gen_media_player (UmmsObjectManager *mngr, gboolean attended);
 static gboolean _remove_media_player (MeegoMediaPlayer *player);
 
-struct _UmmsObjectManagerPrivate
-{
+struct _UmmsObjectManagerPrivate {
   GList *player_list;
   gint  cur_player_id;
 };
 
 static void
 umms_object_manager_get_property (GObject    *object,
-                         guint       property_id,
-                         GValue     *value,
-                         GParamSpec *pspec)
+    guint       property_id,
+    GValue     *value,
+    GParamSpec *pspec)
 {
-  switch (property_id)
-    {
+  switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-    }
+  }
 }
 
 static void
 umms_object_manager_set_property (GObject      *object,
-                         guint         property_id,
-                         const GValue *value,
-                         GParamSpec   *pspec)
+    guint         property_id,
+    const GValue *value,
+    GParamSpec   *pspec)
 {
-  switch (property_id)
-    {
+  switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-    }
+  }
 }
 
 
@@ -109,222 +105,232 @@ UmmsObjectManager *
 umms_object_manager_new (void)
 {
   if (!mngr_global) {
-	  mngr_global = g_object_new (UMMS_TYPE_OBJECT_MANAGER, NULL);
+    mngr_global = g_object_new (UMMS_TYPE_OBJECT_MANAGER, NULL);
   }
   return mngr_global;
 }
 
-gboolean 
+static void client_no_reply_cb (MeegoMediaPlayer *player, gpointer user_data)
+{
+  UMMS_DEBUG ("called");
+  _remove_media_player (player);
+}
+
+
+gboolean
 umms_object_manager_request_media_player(UmmsObjectManager *self, gchar **object_path, GError **error)
 {
-    MeegoMediaPlayer *player;
+  MeegoMediaPlayer *player;
 
-    UMMS_OBJECT_MANAGER_DEBUG("request attended media player");
+  UMMS_DEBUG("request attended media player");
 
-    player = _gen_media_player (self, FALSE);
-    g_object_get(G_OBJECT(player), "name", object_path, NULL);
+  player = _gen_media_player (self, TRUE);
 
-    UMMS_OBJECT_MANAGER_DEBUG("object_path returned to client = '%s'", *object_path);
+  g_signal_connect_object (player, "client-no-reply", G_CALLBACK(client_no_reply_cb), NULL, 0);
 
-    _dump_player_list (self->priv->player_list);
-    
-    //FIXME:do something to munipulate MeegoMediaPlayer
+  g_object_get(G_OBJECT(player), "name", object_path, NULL, 0);
 
-    return TRUE;
+  UMMS_DEBUG("object_path returned to client = '%s'", *object_path);
+
+  _dump_player_list (self->priv->player_list);
+
+  //FIXME:do something to munipulate MeegoMediaPlayer
+
+  return TRUE;
 }
 
 
 
-gboolean 
-umms_object_manager_request_media_player_unattended(UmmsObjectManager *self, 
-                                                    gdouble time_to_execution, 
-													gchar **token, 
-													gchar **object_path, 
-													GError **error)
+gboolean
+umms_object_manager_request_media_player_unattended(UmmsObjectManager *self,
+    gdouble time_to_execution,
+    gchar **token,
+    gchar **object_path,
+    GError **error)
 {
-    MeegoMediaPlayer *player;
-    GError *err = NULL;
+  MeegoMediaPlayer *player;
+  GError *err = NULL;
 
-    UMMS_OBJECT_MANAGER_DEBUG("request unattened media player, time_to_execution = '%lf' seconds", time_to_execution);
+  UMMS_DEBUG("request unattened media player, time_to_execution = '%lf' seconds", time_to_execution);
 
-    player = _gen_media_player (self, TRUE);
-	g_object_get(G_OBJECT(player), "name", object_path, NULL);
-    
-    //FIXME: return a unique ID token for this execution
-    //Ref: Unified Multi Media Service, Section 7, Transparency, Attended and Non Attended execution
-    *token = g_strdup ("Dummy ID token");
+  player = _gen_media_player (self, FALSE);
+  g_object_get(G_OBJECT(player), "name", object_path, NULL);
 
-	UMMS_OBJECT_MANAGER_DEBUG("object_path returned to client = '%s', token = '%s'", *object_path, *token);
+  //FIXME: return a unique ID token for this execution
+  //Ref: Unified Multi Media Service, Section 7, Transparency, Attended and Non Attended execution
+  *token = g_strdup ("Dummy ID token");
 
-    g_timeout_add ((time_to_execution*1000), _stop_execution, player);
+  UMMS_DEBUG("object_path returned to client = '%s', token = '%s'", *object_path, *token);
 
-	return TRUE;
+  g_timeout_add ((time_to_execution * 1000), _stop_execution, player);
+
+  return TRUE;
 }
 
 
 
-gboolean 
+gboolean
 umms_object_manager_remove_media_player(UmmsObjectManager *self, gchar *object_path, GError **error)
 {
-    UmmsObjectManagerPrivate *priv;
-    MeegoMediaPlayer *player;
-    GList *ele;
-    GError *err = NULL;
+  UmmsObjectManagerPrivate *priv;
+  MeegoMediaPlayer *player;
+  GList *ele;
+  GError *err = NULL;
 
-    UMMS_OBJECT_MANAGER_DEBUG("removing '%s'", object_path);
+  UMMS_DEBUG("removing '%s'", object_path);
 
-    priv = self->priv;
-    ele = g_list_find_custom (priv->player_list, object_path, _find_player_by_name);
-    g_return_val_if_fail (ele, FALSE);
-    _remove_media_player ((MeegoMediaPlayer *)(ele->data));
+  priv = self->priv;
+  ele = g_list_find_custom (priv->player_list, object_path, _find_player_by_name);
+  g_return_val_if_fail (ele, FALSE);
+  _remove_media_player ((MeegoMediaPlayer *)(ele->data));
 
-    return TRUE;
+  return TRUE;
 }
 
 static void _player_list_free (GList *player_list)
 {
-    GList *g;
+  GList *g;
 
-    for (g = player_list; g; g = g->next) {
-        MeegoMediaPlayer *player = (MeegoMediaPlayer *) (g->data);
-		g_object_unref (player);
-    }
-    g_list_free (player_list);
-	
-	return;
+  for (g = player_list; g; g = g->next) {
+    MeegoMediaPlayer *player = (MeegoMediaPlayer *) (g->data);
+    g_object_unref (player);
+  }
+  g_list_free (player_list);
+
+  return;
 }
 
-static gint 
+static gint
 _find_player_by_name (gconstpointer player_in, gconstpointer  name)
 {
-	gchar *src, *dest;
-	gint  res;
-    MeegoMediaPlayer *player;
+  gchar *src, *dest;
+  gint  res;
+  MeegoMediaPlayer *player;
 
-    g_return_val_if_fail (player_in, 1);
-    g_return_val_if_fail (name, 1);
+  g_return_val_if_fail (player_in, 1);
+  g_return_val_if_fail (name, 1);
 
-	dest = (gchar *)name;
-	player = (MeegoMediaPlayer *)player_in;
+  dest = (gchar *)name;
+  player = (MeegoMediaPlayer *)player_in;
 
-	g_object_get (G_OBJECT(player), "name", &src, NULL);
-    res = g_strcmp0 (src, dest);
-	g_free (src);
+  g_object_get (G_OBJECT(player), "name", &src, NULL);
+  res = g_strcmp0 (src, dest);
+  g_free (src);
 
-	return res;
+  return res;
 }
 
 static gboolean _stop_execution(gpointer data)
 {
-    MeegoMediaPlayer *player = (MeegoMediaPlayer *)data;
+  MeegoMediaPlayer *player = (MeegoMediaPlayer *)data;
 
-    UMMS_OBJECT_MANAGER_DEBUG ("Stop unattended execution!");
+  UMMS_DEBUG ("Stop unattended execution!");
 
-    _remove_media_player (player);
+  _remove_media_player (player);
 
-	return FALSE;
+  return FALSE;
 }
 
 static void _dump_player (gpointer a, gpointer b)
 {
-    MeegoMediaPlayer *player = (MeegoMediaPlayer *)a;
-	gchar *name;
-	gboolean unattended;
+  MeegoMediaPlayer *player = (MeegoMediaPlayer *)a;
+  gchar *name;
+  gboolean attended;
 
-	g_object_get (G_OBJECT (player), "name", &name, "unattended", &unattended, NULL);
+  g_object_get (G_OBJECT (player), "name", &name, "attended", &attended, NULL);
 
-    UMMS_OBJECT_MANAGER_DEBUG ("player=%p, name=%s, unattended=%d", player, name, unattended);
-	g_free (name);
-	return;
+  UMMS_DEBUG ("player=%p, name=%s, attended=%d", player, name, attended);
+  g_free (name);
+  return;
 }
 
 static void
 _dump_player_list (GList *players)
 {
-	
-    g_return_if_fail(players);
 
-    g_list_foreach (players, _dump_player, NULL);
+  g_return_if_fail(players);
+
+  g_list_foreach (players, _dump_player, NULL);
 }
 
 static MeegoMediaPlayer *
-_gen_media_player (UmmsObjectManager *mngr, gboolean unattended)
+_gen_media_player (UmmsObjectManager *mngr, gboolean attended)
 {
 
-    DBusGConnection    *connection;
-    MeegoMediaPlayer   *player;
-    gchar              *object_path;
-    gint                id;
-    UmmsObjectManagerPrivate *priv;
-    GError *err = NULL;
+  DBusGConnection    *connection;
+  MeegoMediaPlayer   *player;
+  gchar              *object_path;
+  gint                id;
+  UmmsObjectManagerPrivate *priv;
+  GError *err = NULL;
 
-    priv = mngr->priv;
+  priv = mngr->priv;
 
-    id = priv->cur_player_id++;
-    object_path = g_strdup_printf (OBJ_NAME_PREFIX"%d", id);
+  id = priv->cur_player_id++;
+  object_path = g_strdup_printf (OBJ_NAME_PREFIX"%d", id);
 
-    UMMS_OBJECT_MANAGER_DEBUG("%s: object_path='%s' ", __FUNCTION__, object_path, object_path);
+  UMMS_DEBUG("object_path='%s' ", object_path, object_path);
 
-    dbus_g_object_type_install_info (MEEGO_TYPE_MEDIA_PLAYER, &dbus_glib_meego_media_player_object_info);
+  dbus_g_object_type_install_info (MEEGO_TYPE_MEDIA_PLAYER, &dbus_glib_meego_media_player_object_info);
 
-    player = (MeegoMediaPlayer *)g_object_new (MEEGO_TYPE_MEDIA_PLAYER_GSTREAMER, 
-											   "name", object_path, 
-											   "unattended", unattended, 
-											   NULL);
-    priv->player_list = g_list_append (priv->player_list, player);
-    
-	//register object with connection
-    connection = dbus_g_bus_get (DBUS_BUS_SESSION, &err);
-    if (connection == NULL) {
-        g_printerr ("Failed to open connection to DBus: %s\n", err->message);
-        g_error_free (err);
-		goto get_connection_failed;
-    }
-    dbus_g_connection_register_g_object (connection,
-            object_path,
-            G_OBJECT (player));
+  player = (MeegoMediaPlayer *)g_object_new (MEEGO_TYPE_MEDIA_PLAYER_GSTREAMER,
+           "name", object_path,
+           "attended", attended,
+           NULL);
+  priv->player_list = g_list_append (priv->player_list, player);
 
-	g_free (object_path);
+  //register object with connection
+  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &err);
+  if (connection == NULL) {
+    g_printerr ("Failed to open connection to DBus: %s\n", err->message);
+    g_error_free (err);
+    goto get_connection_failed;
+  }
+  dbus_g_connection_register_g_object (connection,
+      object_path,
+      G_OBJECT (player));
 
-    return player;
+  g_free (object_path);
 
-get_connection_failed:
-    {
-		g_free (object_path);	
-		g_object_unref (player);
-		return NULL;
-	}
+  return player;
+
+get_connection_failed: {
+    g_free (object_path);
+    g_object_unref (player);
+    return NULL;
+  }
 }
 
-static gboolean 
+static gboolean
 _remove_media_player (MeegoMediaPlayer *player)
 {
-    DBusGConnection *connection;
-    UmmsObjectManager *mngr;
-    UmmsObjectManagerPrivate *priv;
-    GError *err = NULL;
+  DBusGConnection *connection;
+  UmmsObjectManager *mngr;
+  UmmsObjectManagerPrivate *priv;
+  GError *err = NULL;
 
-    g_return_if_fail (mngr_global);
+  UMMS_DEBUG ("Removing player(%p)", player);
+  g_return_if_fail (mngr_global);
 
-    priv = mngr_global->priv;
+  priv = mngr_global->priv;
 
-    //unregister object with connection
-    connection = dbus_g_bus_get (DBUS_BUS_SESSION, &err);
-    if (connection == NULL) {
-        g_printerr ("Failed to open connection to DBus: %s\n", err->message);
-        g_error_free (err);
-		return FALSE;
-    }
-    dbus_g_connection_unregister_g_object (connection,
-            G_OBJECT (player));
+  //unregister object with connection
+  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &err);
+  if (connection == NULL) {
+    g_printerr ("Failed to open connection to DBus: %s\n", err->message);
+    g_error_free (err);
+    return FALSE;
+  }
+  dbus_g_connection_unregister_g_object (connection,
+      G_OBJECT (player));
 
-    //remove from player list
-    priv->player_list = g_list_remove (priv->player_list, player);
+  //remove from player list
+  priv->player_list = g_list_remove (priv->player_list, player);
 
-	//distory player
-    g_object_unref (player);
+  //distory player
+  g_object_unref (player);
 
-    return TRUE; 
+  return TRUE;
 }
 
 

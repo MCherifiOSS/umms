@@ -16,7 +16,7 @@
 
             <method name="Stop">
 			</method>
-
+			
 		    <method name="SetPosition">
               <arg name="pos" type="x"/>
 		    </method>
@@ -97,6 +97,9 @@
               <arg type="i" direction="out"/>
             </method>
 
+		    <method name="Reply">
+            </method>
+
             <signal name="Initialized">
 			</signal>
 
@@ -127,6 +130,8 @@
 				<arg type="i"/>
 			</signal>
 
+			<signal name="NeedReply">
+			</signal>
           </interface>
 
 </node>

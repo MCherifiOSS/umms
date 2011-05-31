@@ -9,7 +9,7 @@ umms_server_SOURCES = umms-common.h umms-server-main.c \
 				      meego-media-player-control.c meego-media-player-control.h \
 					  engine-gst.c engine-gst.h \
 					  umms-object-manager.c umms-object-manager.h \
-					  umms-marshals.c umms-marshals.h \
+					  umms-marshals.c umms-marshals.h umms-debug.h \
 					  ./glue/umms-object-manager-glue.h \
 					  ./glue/umms-media-player-glue.h
 

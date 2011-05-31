@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "umms-common.h"
+#include "umms-debug.h"
 #include "umms-object-manager.h"
 #include "./glue/umms-object-manager-glue.h"
 
@@ -25,25 +26,26 @@ request_name (void)
 
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
   if (connection == NULL) {
-    g_printerr ("xx Failed to open connection to DBus: %s\n", error->message);
+    g_printerr ("Failed to open connection to DBus: %s\n", error->message);
     g_error_free (error);
     return FALSE;
   }
 
   proxy = dbus_g_proxy_new_for_name (connection,
-                                     DBUS_SERVICE_DBUS,
-                                     DBUS_PATH_DBUS,
-                                     DBUS_INTERFACE_DBUS);
+          DBUS_SERVICE_DBUS,
+          DBUS_PATH_DBUS,
+          DBUS_INTERFACE_DBUS);
 
   if (!org_freedesktop_DBus_request_name (proxy,
-                                          UMMS_SERVICE_NAME,
-                                          DBUS_NAME_FLAG_DO_NOT_QUEUE, &request_status,
-                                          &error)) {
+       UMMS_SERVICE_NAME,
+       DBUS_NAME_FLAG_DO_NOT_QUEUE, &request_status,
+       &error)) {
     g_printerr ("Failed to request name: %s\n", error->message);
     g_error_free (error);
     return FALSE;
   }
 
+  UMMS_DEBUG ("request_status = %d",  request_status);
   return request_status == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER;
 }
 
@@ -51,29 +53,29 @@ request_name (void)
 #ifdef FAKE_UMMS_SIGNAL
 #include <glib/giochannel.h>
 enum {
-    SIGNAL_MEDIA_PLAYER_IFACE_Initialized,
-    SIGNAL_MEDIA_PLAYER_IFACE_EOF,
-    SIGNAL_MEDIA_PLAYER_IFACE_Error,
-    SIGNAL_MEDIA_PLAYER_IFACE_Seeked,
-    SIGNAL_MEDIA_PLAYER_IFACE_Stopped,
-    SIGNAL_MEDIA_PLAYER_IFACE_RequestWindow,
-    SIGNAL_MEDIA_PLAYER_IFACE_Buffering,
-    SIGNAL_MEDIA_PLAYER_IFACE_Buffered,
-    SIGNAL_MEDIA_PLAYER_IFACE_PlayerStateChanged,
-    N_MEDIA_PLAYER_IFACE_SIGNALS
+  SIGNAL_MEDIA_PLAYER_IFACE_Initialized,
+  SIGNAL_MEDIA_PLAYER_IFACE_EOF,
+  SIGNAL_MEDIA_PLAYER_IFACE_Error,
+  SIGNAL_MEDIA_PLAYER_IFACE_Seeked,
+  SIGNAL_MEDIA_PLAYER_IFACE_Stopped,
+  SIGNAL_MEDIA_PLAYER_IFACE_RequestWindow,
+  SIGNAL_MEDIA_PLAYER_IFACE_Buffering,
+  SIGNAL_MEDIA_PLAYER_IFACE_Buffered,
+  SIGNAL_MEDIA_PLAYER_IFACE_PlayerStateChanged,
+  N_MEDIA_PLAYER_IFACE_SIGNALS
 };
 
 
 char *sig_name[N_MEDIA_PLAYER_IFACE_SIGNALS] = {
-    "SIGNAL_MEDIA_PLAYER_IFACE_Initialized",
-    "SIGNAL_MEDIA_PLAYER_IFACE_EOF",
-    "SIGNAL_MEDIA_PLAYER_IFACE_Error",
-    "SIGNAL_MEDIA_PLAYER_IFACE_Seeked",
-    "SIGNAL_MEDIA_PLAYER_IFACE_Stopped",
-    "SIGNAL_MEDIA_PLAYER_IFACE_RequestWindow",
-    "SIGNAL_MEDIA_PLAYER_IFACE_Buffering",
-    "SIGNAL_MEDIA_PLAYER_IFACE_Buffered",
-    "SIGNAL_MEDIA_PLAYER_IFACE_PlayerStateChanged"
+  "SIGNAL_MEDIA_PLAYER_IFACE_Initialized",
+  "SIGNAL_MEDIA_PLAYER_IFACE_EOF",
+  "SIGNAL_MEDIA_PLAYER_IFACE_Error",
+  "SIGNAL_MEDIA_PLAYER_IFACE_Seeked",
+  "SIGNAL_MEDIA_PLAYER_IFACE_Stopped",
+  "SIGNAL_MEDIA_PLAYER_IFACE_RequestWindow",
+  "SIGNAL_MEDIA_PLAYER_IFACE_Buffering",
+  "SIGNAL_MEDIA_PLAYER_IFACE_Buffered",
+  "SIGNAL_MEDIA_PLAYER_IFACE_PlayerStateChanged"
 };
 
 
@@ -81,85 +83,85 @@ char *sig_name[N_MEDIA_PLAYER_IFACE_SIGNALS] = {
 
 static void shell_help ()
 {
-    int i;
-    for (i=0; i<N_MEDIA_PLAYER_IFACE_SIGNALS; i++) {
-        printf ("'%d': to trige '%s'\n", i, sig_name[i]);
-    }
-    printf ("'?': to display this help info\n");
-    printf ("'h': to display this help info\n");
-    printf ("'q': to quit\n");
+  int i;
+  for (i = 0; i < N_MEDIA_PLAYER_IFACE_SIGNALS; i++) {
+    printf ("'%d': to trige '%s'\n", i, sig_name[i]);
+  }
+  printf ("'?': to display this help info\n");
+  printf ("'h': to display this help info\n");
+  printf ("'q': to quit\n");
 }
 
 #if 0
 static void emit_signal (MeegoMediaPlayer *obj, int sig_id)
 {
-    switch (sig_id) {
-        case SIGNAL_MEDIA_PLAYER_IFACE_Initialized:
-            umms_media_player_iface_emit_initialized (obj);
-            break;
-        case SIGNAL_MEDIA_PLAYER_IFACE_EOF:
-            umms_media_player_iface_emit_eof (obj);
-            break;
-        case SIGNAL_MEDIA_PLAYER_IFACE_Error:
-            umms_media_player_iface_emit_error (obj, 1, "Hello Error");
-            break;
-        case SIGNAL_MEDIA_PLAYER_IFACE_Seeked:
-            umms_media_player_iface_emit_seeked (obj);
-            break;
-        case SIGNAL_MEDIA_PLAYER_IFACE_Stopped:
-            umms_media_player_iface_emit_stopped (obj);
-            break;
-        case SIGNAL_MEDIA_PLAYER_IFACE_RequestWindow:
-            umms_media_player_iface_emit_request_window (obj);
-            break;
-        case SIGNAL_MEDIA_PLAYER_IFACE_Buffering:
-            umms_media_player_iface_emit_buffering(obj);
-            break;
-        case SIGNAL_MEDIA_PLAYER_IFACE_Buffered:
-            umms_media_player_iface_emit_buffered(obj);
-            break;
-        case SIGNAL_MEDIA_PLAYER_IFACE_PlayerStateChanged:
-            umms_media_player_iface_emit_player_state_changed(obj, PlayerStateNull);
-            break;
+  switch (sig_id) {
+    case SIGNAL_MEDIA_PLAYER_IFACE_Initialized:
+      umms_media_player_iface_emit_initialized (obj);
+      break;
+    case SIGNAL_MEDIA_PLAYER_IFACE_EOF:
+      umms_media_player_iface_emit_eof (obj);
+      break;
+    case SIGNAL_MEDIA_PLAYER_IFACE_Error:
+      umms_media_player_iface_emit_error (obj, 1, "Hello Error");
+      break;
+    case SIGNAL_MEDIA_PLAYER_IFACE_Seeked:
+      umms_media_player_iface_emit_seeked (obj);
+      break;
+    case SIGNAL_MEDIA_PLAYER_IFACE_Stopped:
+      umms_media_player_iface_emit_stopped (obj);
+      break;
+    case SIGNAL_MEDIA_PLAYER_IFACE_RequestWindow:
+      umms_media_player_iface_emit_request_window (obj);
+      break;
+    case SIGNAL_MEDIA_PLAYER_IFACE_Buffering:
+      umms_media_player_iface_emit_buffering(obj);
+      break;
+    case SIGNAL_MEDIA_PLAYER_IFACE_Buffered:
+      umms_media_player_iface_emit_buffered(obj);
+      break;
+    case SIGNAL_MEDIA_PLAYER_IFACE_PlayerStateChanged:
+      umms_media_player_iface_emit_player_state_changed(obj, PlayerStateNull);
+      break;
 
-        default:
-            printf ("Unknown sig_id:%d\n", sig_id);
-            break;
-    }
+    default:
+      printf ("Unknown sig_id:%d\n", sig_id);
+      break;
+  }
 
 }
 #endif
 static gboolean channel_cb(GIOChannel *source, GIOCondition condition, gpointer data)
 {
-    int rc;
-    char buf[64];
-    UmmsObjectManager *mngr = (UmmsObjectManager *)data;
+  int rc;
+  char buf[64];
+  UmmsObjectManager *mngr = (UmmsObjectManager *)data;
 
-    if (condition != G_IO_IN) {
-        return TRUE;
-    }
-
-    /* we've received something on stdin.    */
-    rc = fscanf(stdin, "%s", buf);
-    if (rc <= 0) {
-        printf("NULL\n");
-        return TRUE;
-    }
-
-    if (!strcmp(buf, "h")) {
-        shell_help();
-    } else if (!strcmp(buf, "?")) {
-        shell_help();
-    } else if (!strcmp(buf, "q")) {
-        printf("quit umms service\n");
-        remove_mngr (mngr);
-        g_main_loop_quit(loop);
-    } else if ('0' <= buf[0] && buf[0] <= (N_MEDIA_PLAYER_IFACE_SIGNALS + 48)){
-        //emit_signal(obj, buf[0] - 48);
-    } else {
-        printf("Unknown command `%s'\n", buf);
-    }
+  if (condition != G_IO_IN) {
     return TRUE;
+  }
+
+  /* we've received something on stdin.    */
+  rc = fscanf(stdin, "%s", buf);
+  if (rc <= 0) {
+    printf("NULL\n");
+    return TRUE;
+  }
+
+  if (!strcmp(buf, "h")) {
+    shell_help();
+  } else if (!strcmp(buf, "?")) {
+    shell_help();
+  } else if (!strcmp(buf, "q")) {
+    printf("quit umms service\n");
+    remove_mngr (mngr);
+    g_main_loop_quit(loop);
+  } else if ('0' <= buf[0] && buf[0] <= (N_MEDIA_PLAYER_IFACE_SIGNALS + 48)) {
+    //emit_signal(obj, buf[0] - 48);
+  } else {
+    printf("Unknown command `%s'\n", buf);
+  }
+  return TRUE;
 }
 #endif
 
@@ -178,9 +180,8 @@ main (int    argc,
   gst_init (&argc, &argv);
 
 
-  if (!request_name ())
-  {
-    g_warning (G_STRLOC ": Player instance already running");
+  if (!request_name ()) {
+    UMMS_DEBUG("UMMS service already running");
     exit (1);
   }
 
@@ -191,10 +192,10 @@ main (int    argc,
 
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
   if (connection == NULL) {
-      g_printerr ("yyFailed to open connection to DBus: %s\n", error->message);
-      g_error_free (error);
+    g_printerr ("yyFailed to open connection to DBus: %s\n", error->message);
+    g_error_free (error);
 
-      exit (1);
+    exit (1);
   }
 
   dbus_g_connection_register_g_object (connection, UMMS_OBJECT_MANAGER_OBJECT_PATH, G_OBJECT (umms_object_manager));
@@ -213,29 +214,29 @@ main (int    argc,
   return EXIT_SUCCESS;
 }
 
-static gboolean 
+static gboolean
 unregister_object (gpointer obj)
 {
-    DBusGConnection *connection;
-    GError *err = NULL;
+  DBusGConnection *connection;
+  GError *err = NULL;
 
-    connection = dbus_g_bus_get (DBUS_BUS_SESSION, &err);
-    if (connection == NULL) {
-        g_printerr ("Failed to open connection to DBus: %s\n", err->message);
-        g_error_free (err);
-        return FALSE;
-    }
-    dbus_g_connection_unregister_g_object (connection,
-            G_OBJECT (obj));
-    return TRUE;
+  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &err);
+  if (connection == NULL) {
+    g_printerr ("Failed to open connection to DBus: %s\n", err->message);
+    g_error_free (err);
+    return FALSE;
+  }
+  dbus_g_connection_unregister_g_object (connection,
+      G_OBJECT (obj));
+  return TRUE;
 }
 
-static void 
+static void
 remove_mngr (UmmsObjectManager *mngr)
 {
-    printf("remove object manager\n");
-    unregister_object (mngr);
-    g_object_unref (mngr);
+  printf("remove object manager\n");
+  unregister_object (mngr);
+  g_object_unref (mngr);
 
-    return;
+  return;
 }

@@ -1,1 +1,1 @@
-SUBDIRS=src spec examples
+SUBDIRS=src spec libummsclient examples test

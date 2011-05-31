@@ -1,4 +1,4 @@
-
+#include "umms-debug.h"
 #include "meego-media-player-gstreamer.h"
 #include "meego-media-player-control.h"
 #include "engine-gst.h"
@@ -10,18 +10,14 @@ G_DEFINE_TYPE (MeegoMediaPlayerGstreamer, meego_media_player_gstreamer, MEEGO_TY
 
 #define GET_PRIVATE(o) ((MeegoMediaPlayerGstreamer *)o)->priv
 
-#define MEEGO_MEDIA_PLAYER_GSTREAMER_DEBUG(x...) g_debug (G_STRLOC ": "x)
-#define TICK_TIMEOUT 500
-
-enum EngineType{
-      MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_INVALID,
-      MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_GST,
-      MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_TV,
-      N_MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE
+enum EngineType {
+  MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_INVALID,
+  MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_GST,
+  MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_TV,
+  N_MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE
 };
 
-struct _MeegoMediaPlayerGstreamerPrivate
-{
+struct _MeegoMediaPlayerGstreamerPrivate {
   enum EngineType engine_type;
 };
 
@@ -30,66 +26,64 @@ struct _MeegoMediaPlayerGstreamerPrivate
 
 static gboolean meego_media_player_gstreamer_load_engine (MeegoMediaPlayer *player, const char *uri, gboolean *new_engine)
 {
-    MeegoMediaPlayerGstreamerPrivate *priv = ((MeegoMediaPlayerGstreamer *)player)->priv;
-    gboolean ret = TRUE;
+  MeegoMediaPlayerGstreamerPrivate *priv = ((MeegoMediaPlayerGstreamer *)player)->priv;
+  gboolean ret = TRUE;
 
-    g_return_val_if_fail (uri, FALSE);
+  g_return_val_if_fail (uri, FALSE);
 
-    MEEGO_MEDIA_PLAYER_GSTREAMER_DEBUG ("uri = %s", uri);
+  UMMS_DEBUG ("uri = %s", uri);
 
-    if (g_str_has_prefix (uri, TV_PREFIX)) {
-        ret = FALSE; //TODO:implement TV Engine other place and create TV engine here. 
-        MEEGO_MEDIA_PLAYER_GSTREAMER_DEBUG ("not support dvb:// source type, tv engine not implemented");
+  if (g_str_has_prefix (uri, TV_PREFIX)) {
+    ret = FALSE; //TODO:implement TV Engine other place and create TV engine here.
+    UMMS_DEBUG ("not support dvb:// source type, tv engine not implemented");
+  } else {
+    if (priv->engine_type == MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_GST) {
+      //we already loaded gstreamer engine.
+      UMMS_DEBUG ("gstreamer engine alrady loaded");
+      *new_engine = FALSE;
+      ret = TRUE;
+    } else if (priv->engine_type == MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_INVALID) {
+      UMMS_DEBUG ("load gstreamer engine");
+      player->player_control = (MeegoMediaPlayerControl*)engine_gst_new();
+      if (player->player_control) {
+        priv->engine_type = MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_GST;
+        *new_engine = TRUE;
+        ret = TRUE;
+      } else {
+        ret = FALSE;
+      }
     } else {
-        if (priv->engine_type == MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_GST) {
-            //we already loaded gstreamer engine.
-            MEEGO_MEDIA_PLAYER_GSTREAMER_DEBUG ("gstreamer engine alrady loaded");
-            *new_engine = FALSE;
-            ret = TRUE;
-        } else if (priv->engine_type == MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_INVALID){
-            MEEGO_MEDIA_PLAYER_GSTREAMER_DEBUG ("load gstreamer engine");
-            player->player_control = (MeegoMediaPlayerControl*)engine_gst_new();
-            if (player->player_control) {
-                priv->engine_type = MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_GST;
-                *new_engine = TRUE;
-                ret = TRUE;
-            } else {
-                ret = FALSE;
-            }
-        } else {
-            //TODO:
-            //tv engine had been loaded, destroy it and load gstreamer engine.
-        }
+      //TODO:
+      //tv engine had been loaded, destroy it and load gstreamer engine.
     }
+  }
 
-    return ret;
+  return ret;
 }
 
 
 static void
 meego_media_player_gstreamer_get_property (GObject    *object,
-                         guint       property_id,
-                         GValue     *value,
-                         GParamSpec *pspec)
+    guint       property_id,
+    GValue     *value,
+    GParamSpec *pspec)
 {
-  switch (property_id)
-    {
+  switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-    }
+  }
 }
 
 static void
 meego_media_player_gstreamer_set_property (GObject      *object,
-                         guint         property_id,
-                         const GValue *value,
-                         GParamSpec   *pspec)
+    guint         property_id,
+    const GValue *value,
+    GParamSpec   *pspec)
 {
-  switch (property_id)
-    {
+  switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-    }
+  }
 }
 
 static void

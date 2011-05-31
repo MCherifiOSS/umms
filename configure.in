@@ -22,6 +22,10 @@ PKG_CHECK_MODULES(UMMS, 			\
           gstreamer-interfaces-0.10 \
 		  dbus-glib-1)
 
+PKG_CHECK_MODULES(UMMSCLIENT, 			\
+		  dbus-glib-1)
+
+
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h string.h])
 
@@ -32,6 +36,8 @@ AC_C_INLINE
 
 AC_CONFIG_FILES([Makefile
 				 examples/Makefile
+				 test/Makefile
+				 libummsclient/Makefile
 				 spec/Makefile
                  src/Makefile])
 AC_OUTPUT

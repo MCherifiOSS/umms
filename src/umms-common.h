@@ -6,7 +6,9 @@
 #define UMMS_OBJECT_MANAGER_INTERFACE_NAME "com.meego.UMMS.ObjectManager.iface"
 #define MEDIA_PLAYER_INTERFACE_NAME "com.meego.UMMS.MediaPlayer"
 
-#define UMMS_DEBUG(x...) g_debug (G_STRLOC ": "x)
+//#define UMMS_DEBUG(format, ...) \
+    g_debug (G_STRLOC " :%s(): " format, G_STRFUNC, ##__VA_ARGS__)
+
 
 typedef enum {
     ErrorTypeEngine,
