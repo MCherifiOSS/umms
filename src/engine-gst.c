@@ -860,6 +860,7 @@ engine_gst_dispose (GObject *object)
 {
   EngineGstPrivate *priv = GET_PRIVATE (object);
 
+  _stop_pipe ((MeegoMediaPlayerControl *)object);
   if (priv->source) {
     g_object_unref (priv->source);
     priv->source = NULL;

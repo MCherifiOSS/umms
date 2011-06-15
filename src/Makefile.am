@@ -13,6 +13,15 @@ umms_server_SOURCES = umms-common.h umms-server-main.c \
 					  ./glue/umms-object-manager-glue.h \
 					  ./glue/umms-media-player-glue.h
 
+libexec_PROGRAMS = engine-test
+
+engine_test_CFLAGS = $(UMMS_CFLAGS)
+
+engine_test_LDADD = $(UMMS_LIBS)
+engine_test_SOURCES = meego-media-player-control.c meego-media-player-control.h \
+					  engine-gst.c engine-gst.h \
+					  umms-marshals.c umms-marshals.h \
+					  engine-test.c
 
 %.c: %.list Makefile.am
 	$(AM_V_GEN)glib-genmarshal --body --prefix=umms_marshal $< > $@
