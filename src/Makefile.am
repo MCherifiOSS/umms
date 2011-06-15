@@ -13,7 +13,7 @@ umms_server_SOURCES = umms-common.h umms-server-main.c \
 					  ./glue/umms-object-manager-glue.h \
 					  ./glue/umms-media-player-glue.h
 
-libexec_PROGRAMS = engine-test
+libexec_PROGRAMS += engine-test
 
 engine_test_CFLAGS = $(UMMS_CFLAGS)
 
