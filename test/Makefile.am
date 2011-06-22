@@ -1,4 +1,4 @@
-bin_PROGRAMS = test-client-gobject
+noinst_PROGRAMS = test-client-gobject
 test_client_gobject_CFLAGS = $(UMMSCLIENT_CFLAGS)
 test_client_gobject_LDFLAGS = $(UMMSCLIENT_LIBS)
 test_client_gobject_LDADD = ../libummsclient/libummsclient.a

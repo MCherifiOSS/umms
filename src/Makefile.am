@@ -1,4 +1,4 @@
-libexec_PROGRAMS = umms-server
+bin_PROGRAMS = umms-server
 
 umms_server_CFLAGS = $(UMMS_CFLAGS)
 
@@ -13,7 +13,7 @@ umms_server_SOURCES = umms-common.h umms-server-main.c \
 					  ./glue/umms-object-manager-glue.h \
 					  ./glue/umms-media-player-glue.h
 
-libexec_PROGRAMS += engine-test
+noinst_PROGRAMS = engine-test
 
 engine_test_CFLAGS = $(UMMS_CFLAGS)
 
@@ -52,6 +52,7 @@ BUILT_SOURCES = $(GLUE) $(MARSHALS)
 servicedir = $(datadir)/dbus-1/services/
 service_in_files = umms-server.service.in
 service_DATA = umms-server.service
+dist_service_DATA = umms-server.service
 
 CLEANFILES = $(BUILT_SOURCES) $(service_DATA)
 EXTRA_DIST = $(MARSHALS_LISTS) $(service_in_files)
