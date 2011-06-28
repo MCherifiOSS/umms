@@ -89,7 +89,7 @@ umms_client_object_init (UmmsClientObject *self)
   self->priv = PRIVATE (self);
   priv = self->priv;
 
-  bus = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+  bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
   if (!bus)
     UMMS_GERROR ("Couldn't connect to session bus", error);
 
@@ -156,7 +156,7 @@ static DBusGProxy *get_iface(const gchar *obj_path, const gchar *iface_name)
   DBusGProxy *proxy = NULL;
   GError *error = NULL;
 
-  bus = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+  bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
   if (!bus) {
     UMMS_GERROR ("Couldn't connect to session bus", error);
   }

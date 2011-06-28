@@ -1,4 +1,4 @@
-bin_PROGRAMS = umms-server
+libexec_PROGRAMS = umms-server
 
 umms_server_CFLAGS = $(UMMS_CFLAGS)
 
@@ -49,10 +49,13 @@ BUILT_SOURCES = $(GLUE) $(MARSHALS)
 %.service: %.service.in ../config.log
 	$(AM_V_GEN)sed -e "s|\@dir\@|$(libexecdir)|" $< > $@
 
-servicedir = $(datadir)/dbus-1/services/
-service_in_files = umms-server.service.in
-service_DATA = umms-server.service
-dist_service_DATA = umms-server.service
+servicedir = $(datadir)/dbus-1/system-services/
 
-CLEANFILES = $(BUILT_SOURCES) $(service_DATA)
+service_in_files = com.meego.UMMS.service.in
+service_DATA = com.meego.UMMS.service
+
+confdir = /etc/dbus-1/system.d/
+dist_conf_DATA = com.meego.UMMS.conf
+
+CLEANFILES = $(BUILT_SOURCES) $(service_DATA) 
 EXTRA_DIST = $(MARSHALS_LISTS) $(service_in_files)

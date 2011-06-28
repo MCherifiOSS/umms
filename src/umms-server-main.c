@@ -24,7 +24,7 @@ request_name (void)
   guint32 request_status;
   GError *error = NULL;
 
-  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+  connection = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
   if (connection == NULL) {
     g_printerr ("Failed to open connection to DBus: %s\n", error->message);
     g_error_free (error);
@@ -190,7 +190,7 @@ main (int    argc,
   dbus_g_object_type_install_info (UMMS_TYPE_OBJECT_MANAGER, &dbus_glib_umms_object_manager_object_info);
   umms_object_manager = umms_object_manager_new ();
 
-  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+  connection = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
   if (connection == NULL) {
     g_printerr ("yyFailed to open connection to DBus: %s\n", error->message);
     g_error_free (error);
@@ -220,7 +220,7 @@ unregister_object (gpointer obj)
   DBusGConnection *connection;
   GError *err = NULL;
 
-  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &err);
+  connection = dbus_g_bus_get (DBUS_BUS_SYSTEM, &err);
   if (connection == NULL) {
     g_printerr ("Failed to open connection to DBus: %s\n", err->message);
     g_error_free (err);

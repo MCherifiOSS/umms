@@ -280,7 +280,7 @@ _gen_media_player (UmmsObjectManager *mngr, gboolean attended)
   priv->player_list = g_list_append (priv->player_list, player);
 
   //register object with connection
-  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &err);
+  connection = dbus_g_bus_get (DBUS_BUS_SYSTEM, &err);
   if (connection == NULL) {
     g_printerr ("Failed to open connection to DBus: %s\n", err->message);
     g_error_free (err);
@@ -315,7 +315,7 @@ _remove_media_player (MeegoMediaPlayer *player)
   priv = mngr_global->priv;
 
   //unregister object with connection
-  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &err);
+  connection = dbus_g_bus_get (DBUS_BUS_SYSTEM, &err);
   if (connection == NULL) {
     g_printerr ("Failed to open connection to DBus: %s\n", err->message);
     g_error_free (err);
