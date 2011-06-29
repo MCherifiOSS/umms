@@ -3,105 +3,14 @@
 #include <stdlib.h>
 #include <glib-object.h>
 
-#include "../src/umms-common.h"
-#include "../src/umms-debug.h"
+#include "test-common.h"
 #include "../src/umms-marshals.h"
 #include "../libummsclient/umms-client-object.h"
 
-const gchar *error_type[] = {
-  "ErrorTypeEngine",
-  "NumOfErrorType"
-};
-
-const gchar *state_name[] = {
-  "PlayerStateNull",
-  "PlayerStatePaused",
-  "PlayerStatePlaying",
-  "PlayerStateStopped"
-};
-
-#define N_UMMS_METHOD 23
-
+extern gboolean to_continue;
 static UmmsClientObject *umms_client_obj = NULL;
 static DBusGProxy *player = NULL;
-static gchar args[2][256];
-
-char *method_name[N_UMMS_METHOD] = {
-  "SetUri",
-  "Play",
-  "Pause",
-  "Stop",
-  "SetPosition",
-  "GetPosition",//5
-  "SetPlaybackRate",
-  "GetPlaybackRate",
-  "SetVolume",
-  "GetVolume",
-  "SetWindowId",//10
-  "SetVideoSize",
-  "GetVideoSize",
-  "GetBufferedTime",
-  "GetBufferedBytes",
-  "GetMediaSizeTime",//15
-  "GetMediaSizeBytes",
-  "HasVideo",
-  "HasAudio",
-  "IsStreaming",
-  "IsSeekable",//20
-  "SupportFullscreen",
-  "GetPlayerState"
-};
-
-static void shell_help ()
-{
-  int i;
-  for (i = 0; i < N_UMMS_METHOD; i++) {
-    printf ("'%d':  '%s'\n", i, method_name[i]);
-  }
-  printf ("'?': to display this help info\n");
-  printf ("'h': to display this help info\n");
-  printf ("'r': request media player\n");
-  printf ("'u': request unattended media player\n");
-  printf ("'d': delete media player\n");
-  printf ("'q': to quit\n");
-}
-
-#define DEFAULT_URI "file:///root/720p.m4v"
-
-void get_param (gchar *method_str, gchar *param)
-{
-  gboolean need_input = TRUE;
-  gint method_id;
-
-  UMMS_DEBUG ("called");
-
-  method_id = atoi(method_str);
-  switch (method_id) {
-    case 0:
-      g_print("Input uri:\n");
-      break;
-    case 4:
-      g_print("Input pos to seek: (seconds)\n");
-      break;
-    case 6:
-      g_print("Input playback rate: \n");
-      break;
-    case 8:
-      g_print("Input volume to set: [0,100]\n");
-      break;
-    case 11:
-      g_print("Input dest reactangle, Example: 0,0,352,288\n");
-      break;
-    default:
-      need_input = FALSE;
-      break;
-  }
-  if (need_input) {
-    fscanf (stdin, "%s", param);
-    g_print("param is '%s'\n", param);
-  }
-  return;
-}
+GMainLoop *loop;
 
 gboolean method_call (gpointer data)
 {
@@ -117,89 +26,97 @@ gboolean method_call (gpointer data)
   gboolean has_video, has_audio, support_fullscreen, is_seekable, is_streaming;
   gint method_id;
 
-  UMMS_DEBUG ("called");
+  TESTER_DEBUG ("called");
+
+  if (!strcmp(args[0], "q")) {
+    TESTER_DEBUG ("Quit testing");
+    to_continue = FALSE;//stop cmd thead
+    g_main_loop_quit (loop);
+    return FALSE;
+  }
+
   method_id = atoi(args[0]);
   switch (method_id) {
-    case 0:
-      if (args[1][0] == '\0')
+    case SetUri:
+      if (args[1][0] == 'd')
         uri = DEFAULT_URI;
       else
         uri = args[1];
-      UMMS_DEBUG ("uri = '%s'", uri);
+      TESTER_DEBUG ("uri = '%s'", uri);
       if (!dbus_g_proxy_call (player, "SetUri", &error,
            G_TYPE_STRING, uri, G_TYPE_INVALID,
            G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to SetUri", error);
+        TESTER_ERROR ("Failed to SetUri", error);
       break;
-    case 1:
+    case Play:
       if (!dbus_g_proxy_call (player, "Play", &error,
            G_TYPE_INVALID,
            G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to Play", error);
+        TESTER_ERROR ("Failed to Play", error);
       break;
-    case 2:
+    case Pause:
       if (!dbus_g_proxy_call (player, "Pause", &error,
            G_TYPE_INVALID,
            G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to Pause", error);
+        TESTER_ERROR ("Failed to Pause", error);
       break;
-    case 3:
+    case Stop:
       if (!dbus_g_proxy_call (player, "Stop", &error,
            G_TYPE_INVALID,
            G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to Stop", error);
+        TESTER_ERROR ("Failed to Stop", error);
       break;
-    case 4:
+    case SetPosition:
       sscanf (args[1], "%lld", &pos);
       pos = 1000 * pos;
       g_print ("SetPosition to '%lld' ms\n", pos);
       if (!dbus_g_proxy_call (player, "SetPosition", &error,
            G_TYPE_INT64, pos, G_TYPE_INVALID,
            G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to SetPosition", error);
+        TESTER_ERROR ("Failed to SetPosition", error);
       break;
-    case 5:
+    case GetPosition:
       if (!dbus_g_proxy_call (player, "GetPosition", &error,
            G_TYPE_INVALID,
            G_TYPE_INT64, &pos, G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to GetPosition", error);
-      UMMS_DEBUG ("Position = %lld ms", pos);
+        TESTER_ERROR ("Failed to GetPosition", error);
+      TESTER_DEBUG ("Position = %lld ms", pos);
       break;
-    case 6:
+    case SetPlaybackRate:
       sscanf (args[1], "%lf", &rate);
       g_print ("Set rate to '%f'\n", rate);
       if (!dbus_g_proxy_call (player, "SetPlaybackRate", &error,
            G_TYPE_DOUBLE, rate, G_TYPE_INVALID,
            G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to SetPlaybackRate", error);
+        TESTER_ERROR ("Failed to SetPlaybackRate", error);
       break;
-    case 7:
+    case GetPlaybackRate:
       if (!dbus_g_proxy_call (player, "GetPlaybackRate", &error,
            G_TYPE_INVALID,
            G_TYPE_DOUBLE, &rate, G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to GetPlaybackRate", error);
-      UMMS_DEBUG ("rate = %f", rate);
+        TESTER_ERROR ("Failed to GetPlaybackRate", error);
+      TESTER_DEBUG ("rate = %f", rate);
       break;
-    case 8:
+    case SetVolume:
       sscanf (args[1], "%d", &volume);
       g_print ("SetVolume to '%d'\n", volume);
       if (!dbus_g_proxy_call (player, "SetVolume", &error,
            G_TYPE_INT, volume, G_TYPE_INVALID,
            G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to SetVolume", error);
+        TESTER_ERROR ("Failed to SetVolume", error);
       break;
-    case 9:
+    case GetVolume:
       if (!dbus_g_proxy_call (player, "GetVolume", &error,
            G_TYPE_INVALID,
            G_TYPE_INT, &volume, G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to GetVolume", error);
-      UMMS_DEBUG ("volume = %d", volume);
+        TESTER_ERROR ("Failed to GetVolume", error);
+      TESTER_DEBUG ("volume = %d", volume);
       break;
-    case 10:
+    case SetWindowId:
       //TODO:This API is for rendering video data to a X window. For this test progrom, do nothing.
-      UMMS_DEBUG ("SetWindowId, do nothing in this test");
+      TESTER_DEBUG ("SetWindowId, do nothing in this test");
       break;
-    case 11:
+    case SetVideoSize:
       sscanf (args[1], "%u,%u,%u,%u", &x, &y, &w, &h);
       g_print ("SetVideoSize (%u,%u,%u,%u)\n", x, y, w, h);
       if (!dbus_g_proxy_call (player, "SetVideoSize", &error,
@@ -209,93 +126,96 @@ gboolean method_call (gpointer data)
            G_TYPE_UINT, h,
            G_TYPE_INVALID,
            G_TYPE_INVALID))
-        UMMS_GERROR ("SetVideoSize failed", error);
+        TESTER_ERROR ("SetVideoSize failed", error);
       break;
-    case 12:
+    case GetVideoSize:
       if (!dbus_g_proxy_call (player, "GetVideoSize", &error,
            G_TYPE_INVALID,
            G_TYPE_UINT, &w, G_TYPE_UINT, &h, G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to GetVideoSize", error);
-      UMMS_DEBUG ("width=%u, height=%u", w, h);
+        TESTER_ERROR ("Failed to GetVideoSize", error);
+      TESTER_DEBUG ("width=%u, height=%u", w, h);
       break;
-    case 13:
+    case GetBufferedTime:
       if (!dbus_g_proxy_call (player, "GetBufferedTime", &error,
            G_TYPE_INVALID,
            G_TYPE_INT64, &size, G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to GetBufferedTime", error);
-      UMMS_DEBUG ("buffered time = %lld", size);
+        TESTER_ERROR ("Failed to GetBufferedTime", error);
+      TESTER_DEBUG ("buffered time = %lld", size);
       break;
-    case 14:
+    case GetBufferedBytes:
       if (!dbus_g_proxy_call (player, "GetBufferedBytes", &error,
            G_TYPE_INVALID,
            G_TYPE_INT64, &size,
            G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to GetBufferedBytes", error);
-      UMMS_DEBUG ("buffered bytes = %lld", size);
+        TESTER_ERROR ("Failed to GetBufferedBytes", error);
+      TESTER_DEBUG ("buffered bytes = %lld", size);
       break;
-    case 15:
+    case GetMediaSizeTime:
       if (!dbus_g_proxy_call (player, "GetMediaSizeTime", &error,
            G_TYPE_INVALID,
            G_TYPE_INT64, &size,
            G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to GetMediaSizeTime", error);
-      UMMS_DEBUG ("size time = %lld", size);
+        TESTER_ERROR ("Failed to GetMediaSizeTime", error);
+      TESTER_DEBUG ("size time = %lld", size);
       break;
-    case 16:
+    case GetMediaSizeBytes:
       if (!dbus_g_proxy_call (player, "GetMediaSizeBytes", &error,
            G_TYPE_INVALID,
            G_TYPE_INT64, &size,
            G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to GetMediaSizeBytes", error);
-      UMMS_DEBUG ("size bytes = %lld", size);
+        TESTER_ERROR ("Failed to GetMediaSizeBytes", error);
+      TESTER_DEBUG ("size bytes = %lld", size);
       break;
-    case 17:
+    case HasVideo:
       if (!dbus_g_proxy_call (player, "HasVideo", &error,
            G_TYPE_INVALID,
            G_TYPE_BOOLEAN, &has_video, G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to HasVideo", error);
-      UMMS_DEBUG ("has_video = %d", has_video);
+        TESTER_ERROR ("Failed to HasVideo", error);
+      TESTER_DEBUG ("has_video = %d", has_video);
       break;
-    case 18:
+    case HasAudio:
       if (!dbus_g_proxy_call (player, "HasAudio", &error,
            G_TYPE_INVALID,
            G_TYPE_BOOLEAN, &has_audio, G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to HasAudio", error);
-      UMMS_DEBUG ("has_audio = %d", has_audio);
+        TESTER_ERROR ("Failed to HasAudio", error);
+      TESTER_DEBUG ("has_audio = %d", has_audio);
       break;
-    case 19:
+    case IsStreaming:
       if (!dbus_g_proxy_call (player, "IsStreaming", &error,
            G_TYPE_INVALID,
            G_TYPE_BOOLEAN, &is_streaming, G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to IsStreaming", error);
-      UMMS_DEBUG ("is_streaming = %d", is_streaming);
+        TESTER_ERROR ("Failed to IsStreaming", error);
+      TESTER_DEBUG ("is_streaming = %d", is_streaming);
       break;
-    case 20:
+    case IsSeekable:
       if (!dbus_g_proxy_call (player, "IsSeekable", &error,
            G_TYPE_INVALID,
            G_TYPE_BOOLEAN, &is_seekable,
            G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to IsSeekable", error);
-      UMMS_DEBUG ("is_seekable = %d", is_seekable);
+        TESTER_ERROR ("Failed to IsSeekable", error);
+      TESTER_DEBUG ("is_seekable = %d", is_seekable);
       break;
-    case 21:
+    case SupportFullscreen:
       if (!dbus_g_proxy_call (player, "SupportFullscreen", &error,
            G_TYPE_INVALID,
            G_TYPE_BOOLEAN, &support_fullscreen,
            G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to SupportFullscreen", error);
-      UMMS_DEBUG ("support functions = %d", support_fullscreen);
+        TESTER_ERROR ("Failed to SupportFullscreen", error);
+      TESTER_DEBUG ("SupportFullscreen = %d", support_fullscreen);
       break;
-    case 22:
+    case GetPlayerState:
       if (!dbus_g_proxy_call (player, "GetPlayerState", &error,
            G_TYPE_INVALID,
            G_TYPE_INT, &state,
            G_TYPE_INVALID))
-        UMMS_GERROR ("Failed to GetPlayerState", error);
-      UMMS_DEBUG ("state = '%s'", state_name[state]);
+        TESTER_ERROR ("Failed to GetPlayerState", error);
+      TESTER_DEBUG ("state = '%s'", state_name[state]);
+      break;
+    case SetTarget:
+      TESTER_DEBUG ("SetTarget succeed");
       break;
     default:
-      UMMS_DEBUG ("Unknown method id: %d\n", method_id);
+      TESTER_DEBUG ("Unknown method id: %d\n", method_id);
       break;
   }
   return FALSE;
@@ -303,48 +223,48 @@ gboolean method_call (gpointer data)
 
 void initialized_cb(DBusGProxy *player, gpointer user_data)
 {
-  UMMS_DEBUG ("MeidaPlayer initialized");
+  TESTER_DEBUG ("MeidaPlayer initialized");
 }
 
 
 void player_state_changed_cb(DBusGProxy *player, gint state, gpointer user_data)
 {
-  UMMS_DEBUG("State changed to '%s'", state_name[state]);
+  TESTER_DEBUG("State changed to '%s'", state_name[state]);
 }
 
 void eof_cb(DBusGProxy *player, gpointer user_data)
 {
-  UMMS_DEBUG( "EOF....");
+  TESTER_DEBUG( "EOF....");
 }
 
 void begin_buffering_cb(DBusGProxy *player, gpointer user_data)
 {
-  UMMS_DEBUG( "Begin buffering");
+  TESTER_DEBUG( "Begin buffering");
 }
 
 void buffered_cb(DBusGProxy *player, gpointer user_data)
 {
-  UMMS_DEBUG( "Buffering completed");
+  TESTER_DEBUG( "Buffering completed");
 }
 
 void seeked_cb(DBusGProxy *player, gpointer user_data)
 {
-  UMMS_DEBUG( "Seeking completed");
+  TESTER_DEBUG( "Seeking completed");
 }
 
 void stopped_cb(DBusGProxy *player, gpointer user_data)
 {
-  UMMS_DEBUG( "Player stopped");
+  TESTER_DEBUG( "Player stopped");
 }
 
 void error_cb(DBusGProxy *player, guint err_id, gchar *msg, gpointer user_data)
 {
-  UMMS_DEBUG( "Error Domain:'%s', msg='%s'", error_type[err_id], msg);
+  TESTER_DEBUG( "Error Domain:'%s', msg='%s'", error_type[err_id], msg);
 }
 
 void request_window_cb(DBusGProxy *player, gpointer user_data)
 {
-  UMMS_DEBUG( "Player engine request a X window");
+  TESTER_DEBUG( "Player engine request a X window");
 }
 
 static void
@@ -366,7 +286,7 @@ add_sigs(DBusGProxy *player)
 static void
 connect_sigs(DBusGProxy *player)
 {
-  UMMS_DEBUG ("called");
+  TESTER_DEBUG ("called");
   dbus_g_proxy_connect_signal (player,
       "Initialized",
       G_CALLBACK(initialized_cb),
@@ -415,55 +335,8 @@ connect_sigs(DBusGProxy *player)
 
 
 
-static gpointer cmd_thread_func (gpointer data)
-{
-  gchar buf[32];
-  gchar param[256];
-  gint  rc;
-  static gint mid;
-  static to_continue = TRUE;
-  gchar *path;
-
-
-  while (to_continue) {
-    g_print ("Input cmd:\n");
-    rc = fscanf(stdin, "%s", args[0]);
-    if (rc <= 0) {
-      g_print("NULL\n");
-    }
-
-    if (!strcmp(args[0], "h")) {
-      shell_help();
-    } else if (!strcmp(args[0], "?")) {
-      shell_help();
-    } else if (!strcmp(args[0], "q")) {
-      printf("quit client program\n");
-      exit(0);
-    } else if (!strcmp(args[0], "u")) {
-      UMMS_DEBUG ("request unattended media player");
-      player = umms_client_object_request_player (umms_client_obj, FALSE, 5, &path);
-      UMMS_DEBUG ("path = '%s'", path);
-      g_free(path);
-    } else if (!strcmp(args[0], "r")) {
-      UMMS_DEBUG ("request media player");
-      player = umms_client_object_request_player (umms_client_obj, TRUE, 0, &path);
-      UMMS_DEBUG ("path = '%s'", path);
-      g_free(path);
-    } else if (!strcmp(args[0], "d")) {
-      UMMS_DEBUG ("remove media player");
-      umms_client_object_remove_player (umms_client_obj, player);
-    } else {
-      get_param(args[0], args[1]);
-      g_print ("args[0]=%s, args[1]=%s\n", args[0], args[1]);
-      g_idle_add (method_call, NULL);
-    }
-  }
-  return NULL;
-}
-
 main (int argc, char **argv)
 {
-  GMainLoop *loop;
   GError *error = NULL;
   guint i;
   gchar *obj_path;
