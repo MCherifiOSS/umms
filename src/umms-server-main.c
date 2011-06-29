@@ -49,7 +49,7 @@ request_name (void)
   return request_status == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER;
 }
 
-#define FAKE_UMMS_SIGNAL
+//#define FAKE_UMMS_SIGNAL
 #ifdef FAKE_UMMS_SIGNAL
 #include <glib/giochannel.h>
 enum {
