@@ -15,7 +15,7 @@ def init():
         return
 
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-    bus=dbus.SessionBus()
+    bus=dbus.SystemBus()
     bus_obj=bus.get_object('com.meego.UMMS', '/com/meego/UMMS/ObjectManager')
     obj_mngr=dbus.Interface(bus_obj, 'com.meego.UMMS.ObjectManager.iface')
     print "New obj_mngr"
@@ -29,7 +29,7 @@ def need_reply_cb (obj_path):
 def get_iface(obj_path, iface_name):
     #print "Getting interface '%s' from '%s'" % (iface_name, obj_path)
     proxy = None
-    bus=dbus.SessionBus()
+    bus=dbus.SystemBus()
     bus_obj=bus.get_object("com.meego.UMMS", obj_path)
     if iface_name == 'com.meego.UMMS.MediaPlayer':
         proxy=dbus.Interface(bus_obj, 'com.meego.UMMS.MediaPlayer')
