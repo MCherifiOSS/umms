@@ -3,6 +3,7 @@
 
 #include "umms-debug.h"
 #include "umms-common.h"
+#include "umms-error.h"
 #include "umms-marshals.h"
 #include "meego-media-player.h"
 #include "meego-media-player-control.h"
@@ -15,6 +16,19 @@ G_DEFINE_TYPE (MeegoMediaPlayer, meego_media_player, G_TYPE_OBJECT)
 #define GET_PRIVATE(o) ((MeegoMediaPlayer *)o)->priv
 
 #define GET_CONTROL_IFACE(meego_media_player) (((MeegoMediaPlayer *)(meego_media_player))->player_control)
+
+#define CHECK_ENGINE(engine, ret_val, e) \
+  do {\
+    if (engine == NULL) {\
+      g_return_val_if_fail (e == NULL || *e == NULL, ret_val);\
+      if (e != NULL) {\
+        g_set_error (e, UMMS_ENGINE_ERROR, UMMS_ENGINE_ERROR_NOT_LOADED, \
+                     "Pipeline engine not loaded, possible reason is SetUri failed or not be invoked.");\
+      } \
+      return ret_val;\
+    }\
+  }while(0)
+
 
 #define   DEFAULT_VOLUME 50
 #define   DEFAULT_X      0
@@ -245,7 +259,7 @@ meego_media_player_set_window_id (MeegoMediaPlayer *player,
     gdouble window_id,
     GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_set_window_id (GET_CONTROL_IFACE (player), window_id);
   return TRUE;
 }
@@ -280,7 +294,7 @@ gboolean
 meego_media_player_get_video_size(MeegoMediaPlayer *player, guint *w, guint *h,
     GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_video_size (GET_CONTROL_IFACE (player), w, h);
   return TRUE;
 }
@@ -289,7 +303,7 @@ meego_media_player_get_video_size(MeegoMediaPlayer *player, guint *w, guint *h,
 gboolean
 meego_media_player_is_seekable(MeegoMediaPlayer *player, gboolean *is_seekable, GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_is_seekable (GET_CONTROL_IFACE (player), is_seekable);
   return TRUE;
 }
@@ -299,7 +313,7 @@ meego_media_player_set_position(MeegoMediaPlayer *player,
     gint64                 in_pos,
     GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_set_position (GET_CONTROL_IFACE (player), in_pos);
   return TRUE;
 }
@@ -308,7 +322,7 @@ gboolean
 meego_media_player_get_position(MeegoMediaPlayer *player, gint64 *pos,
     GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_position (GET_CONTROL_IFACE (player), pos);
   return TRUE;
 }
@@ -318,7 +332,7 @@ meego_media_player_set_playback_rate (MeegoMediaPlayer *player,
     gdouble          in_rate,
     GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_set_playback_rate (GET_CONTROL_IFACE (player), in_rate);
   return TRUE;
 }
@@ -328,7 +342,7 @@ meego_media_player_get_playback_rate (MeegoMediaPlayer *player,
     gdouble *rate,
     GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_playback_rate (GET_CONTROL_IFACE (player), rate);
   UMMS_DEBUG ("current rate = %f",  *rate);
   return TRUE;
@@ -359,7 +373,7 @@ meego_media_player_get_volume (MeegoMediaPlayer *player,
     gint *vol,
     GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_volume (GET_CONTROL_IFACE (player), vol);
   UMMS_DEBUG ("current volume= %d",  *vol);
   return TRUE;
@@ -370,7 +384,7 @@ meego_media_player_get_media_size_time (MeegoMediaPlayer *player,
     gint64 *duration,
     GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_media_size_time(GET_CONTROL_IFACE (player), duration);
   UMMS_DEBUG ("duration = %lld",  *duration);
   return TRUE;
@@ -381,7 +395,7 @@ meego_media_player_get_media_size_bytes (MeegoMediaPlayer *player,
     gint64 *size_bytes,
     GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_media_size_bytes (GET_CONTROL_IFACE (player), size_bytes);
   UMMS_DEBUG ("media size = %lld",  *size_bytes);
   return TRUE;
@@ -392,7 +406,7 @@ meego_media_player_has_video (MeegoMediaPlayer *player,
     gboolean *has_video,
     GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_has_video (GET_CONTROL_IFACE (player), has_video);
   UMMS_DEBUG ("has_video = %d",  *has_video);
   return TRUE;
@@ -403,7 +417,7 @@ meego_media_player_has_audio (MeegoMediaPlayer *player,
     gboolean *has_audio,
     GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_has_audio (GET_CONTROL_IFACE (player), has_audio);
   UMMS_DEBUG ("has_audio= %d",  *has_audio);
   return TRUE;
@@ -414,7 +428,7 @@ meego_media_player_support_fullscreen (MeegoMediaPlayer *player,
     gboolean *support_fullscreen,
     GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_support_fullscreen (GET_CONTROL_IFACE (player), support_fullscreen);
   UMMS_DEBUG ("support_fullscreen = %d",  *support_fullscreen);
   return TRUE;
@@ -425,7 +439,7 @@ meego_media_player_is_streaming (MeegoMediaPlayer *player,
     gboolean *is_streaming,
     GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_is_streaming (GET_CONTROL_IFACE (player), is_streaming);
   UMMS_DEBUG ("is_streaming = %d",  *is_streaming);
   return TRUE;
@@ -433,7 +447,7 @@ meego_media_player_is_streaming (MeegoMediaPlayer *player,
 
 gboolean meego_media_player_get_player_state(MeegoMediaPlayer *player, gint *state, GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_player_state (GET_CONTROL_IFACE (player), state);
   UMMS_DEBUG ("player state = %d",  *state);
   return TRUE;
@@ -441,7 +455,7 @@ gboolean meego_media_player_get_player_state(MeegoMediaPlayer *player, gint *sta
 
 gboolean meego_media_player_get_buffered_bytes (MeegoMediaPlayer *player, gint64 *bytes, GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_buffered_bytes (GET_CONTROL_IFACE (player), bytes);
   UMMS_DEBUG ("buffered bytes = %lld",  *bytes);
   return TRUE;
@@ -449,7 +463,7 @@ gboolean meego_media_player_get_buffered_bytes (MeegoMediaPlayer *player, gint64
 
 gboolean meego_media_player_get_buffered_time (MeegoMediaPlayer *player, gint64 *size_time, GError **err)
 {
-  return_val_and_log_if_fail (GET_CONTROL_IFACE (player), TRUE, "Engined unloaded");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_buffered_time (GET_CONTROL_IFACE (player), size_time);
   UMMS_DEBUG ("buffered time = %lld",  *size_time);
   return TRUE;

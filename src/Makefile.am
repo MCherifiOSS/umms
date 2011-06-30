@@ -4,6 +4,7 @@ umms_server_CFLAGS = $(UMMS_CFLAGS)
 
 umms_server_LDADD = $(UMMS_LIBS)
 umms_server_SOURCES = umms-common.h umms-server-main.c \
+		      umms-error.h umms-error.c \
                       meego-media-player.c meego-media-player.h \
 					  meego-media-player-gstreamer.c meego-media-player-gstreamer.h \
 				      meego-media-player-control.c meego-media-player-control.h \

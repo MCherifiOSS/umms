@@ -5,6 +5,7 @@
 #include <gst/interfaces/streamvolume.h>
 #include "umms-common.h"
 #include "umms-debug.h"
+#include "umms-error.h"
 #include "engine-gst.h"
 #include "meego-media-player-control.h"
 
@@ -950,7 +951,7 @@ bus_message_error_cb (GstBus     *bus,
   gst_message_parse_error (message, &error, NULL);
   gst_element_set_state (priv->pipeline, GST_STATE_NULL);
 
-  meego_media_player_control_emit_error (self, ErrorTypeEngine, error->message);
+  meego_media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, error->message);
 
   UMMS_DEBUG ("Error emitted with message = %s", error->message);
 

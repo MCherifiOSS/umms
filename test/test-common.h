@@ -9,11 +9,14 @@
 
 #define TESTER_ERROR(prefix, gerror) \
           do {\
-                g_print (prefix ":%s", error->message); \
+                g_print (prefix ": %s\n", error->message); \
                 g_error_free(gerror); \
-                exit(1);\
           }while(0)
 
+typedef enum {
+    UMMS_ENGINE_ERROR_NOT_LOADED,
+    UMMS_ENGINE_ERROR_FAILED
+}UmmsEngineError;
 
 typedef enum {
   SetUri,
@@ -57,7 +60,7 @@ typedef enum {
 }PlayerState;
 
 
-extern const gchar *error_type[];
+extern const gchar *engine_error_str[];
 extern const gchar *state_name[];
 extern gchar args[2][256];
 extern gchar *DEFAULT_URI;

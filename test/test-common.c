@@ -4,9 +4,9 @@
 
 gchar args[2][256];
 
-const gchar *error_type[] = {
-  "ErrorTypeEngine",
-  "NumOfErrorType"
+const gchar *engine_error_str[] = {
+  "NOT_LOADED",
+  "FAILED"
 };
 
 const gchar *state_name[] = {

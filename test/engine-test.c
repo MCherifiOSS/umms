@@ -157,7 +157,7 @@ void stopped_cb(MeegoMediaPlayerControl *player, gpointer user_data)
 
 void error_cb(MeegoMediaPlayerControl *player, guint err_id, gchar *msg, gpointer user_data)
 {
-  TESTER_DEBUG( "Error Domain:'%s', msg='%s'", error_type[err_id], msg);
+  TESTER_DEBUG( "Error: Domain='Engine', Type='%s', msg='%s'", engine_error_str[err_id], msg);
 }
 
 void request_window_cb(MeegoMediaPlayerControl *player, gpointer user_data)
