@@ -170,12 +170,14 @@ meego_media_player_set_uri (MeegoMediaPlayer *player,
 
   if (!kclass->load_engine) {
     UMMS_DEBUG ("virtual method \"load_engine\" not implemented");
-    goto exit;
+    g_set_error (err, UMMS_ENGINE_ERROR, UMMS_ENGINE_ERROR_FAILED, "'load_engine()' not implemented");
+    return FALSE;
   }
 
   if (!kclass->load_engine (player, uri, &new_engine)) {
-    UMMS_DEBUG ("backend engine load failed");
-    goto exit;
+    UMMS_DEBUG ("Pipeline engine load failed");
+    g_set_error (err, UMMS_ENGINE_ERROR, UMMS_ENGINE_ERROR_FAILED, "Pipeline engine load failed");
+    return FALSE;
   }
 
   if(new_engine) {
