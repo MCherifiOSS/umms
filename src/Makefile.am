@@ -11,8 +11,10 @@ umms_server_SOURCES = umms-common.h umms-server-main.c \
 					  engine-gst.c engine-gst.h \
 					  umms-object-manager.c umms-object-manager.h \
 					  umms-marshals.c umms-marshals.h umms-debug.h \
+						param-table.c param-table.h \
 					  ./glue/umms-object-manager-glue.h \
 					  ./glue/umms-media-player-glue.h
+
 
 %.c: %.list Makefile.am
 	$(AM_V_GEN)glib-genmarshal --body --prefix=umms_marshal $< > $@

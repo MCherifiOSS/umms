@@ -8,6 +8,11 @@
               <arg name="uri" type="s"/>
             </method>
 
+            <method name="SetTarget">
+              <arg name="type" type="i"/>
+							<arg name="param" type="a{sv}"/>
+            </method>
+
             <method name="Play">
  			</method>
 
@@ -132,6 +137,10 @@
 
 			<signal name="NeedReply">
 			</signal>
+			<signal name="TargetReady">
+				<arg name="info" type="a{sv}"/>
+			</signal>
+
           </interface>
 
 </node>

@@ -56,6 +56,7 @@ enum {
   SIGNAL_MEDIA_PLAYER_PlayerStateChanged,
   SIGNAL_MEDIA_PLAYER_NeedReply,
   SIGNAL_MEDIA_PLAYER_ClientNoReply,
+  SIGNAL_MEDIA_PLAYER_TargetReady,
   N_MEDIA_PLAYER_SIGNALS
 };
 
@@ -75,6 +76,7 @@ struct _MeegoMediaPlayerPrivate {
   //For client existence checking
   guint    no_reply_time;
   guint    timeout_id;
+
 };
 
 static void
@@ -111,6 +113,12 @@ static void
 player_state_changed_cb (MeegoMediaPlayerControl *iface, gint state, MeegoMediaPlayer *player)
 {
   g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_PlayerStateChanged], 0, state);
+}
+
+static void
+target_ready_cb (MeegoMediaPlayerControl *iface, GHashTable *infos, MeegoMediaPlayer *player)
+{
+  g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_TargetReady], 0, infos);
 }
 
 static void
@@ -217,15 +225,28 @@ meego_media_player_set_uri (MeegoMediaPlayer *player,
         G_CALLBACK (player_state_changed_cb),
         player,
         0);
+    g_signal_connect_object (player->player_control, "target-ready",
+        G_CALLBACK (target_ready_cb),
+        player,
+        0);
   }
 
   meego_media_player_control_set_uri (player->player_control, uri);
-  meego_media_player_control_set_video_size (player->player_control, priv->x, priv->y, priv->w, priv->h);
   meego_media_player_control_set_volume (player->player_control, priv->volume);
 
   g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_Initialized], 0);
 
 exit:
+  return TRUE;
+}
+
+//For convenience's sake, we don't cache the target info if player backend is not ready.
+gboolean
+meego_media_player_set_target (MeegoMediaPlayer *player, gint type, GHashTable *params,
+    GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_set_target (GET_CONTROL_IFACE (player), type, params);
   return TRUE;
 }
 
@@ -694,6 +715,17 @@ meego_media_player_class_init (MeegoMediaPlayerClass *klass)
                   g_cclosure_marshal_VOID__VOID,
                   G_TYPE_NONE,
                   0);
+
+  media_player_signals[SIGNAL_MEDIA_PLAYER_TargetReady] =
+    g_signal_new ("target-ready",
+                  G_OBJECT_CLASS_TYPE (klass),
+                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+                  0,
+                  NULL, NULL,
+                  g_cclosure_marshal_VOID__BOXED,
+                  G_TYPE_NONE,
+                  1, dbus_g_type_get_map("GHashTable", G_TYPE_STRING, G_TYPE_VALUE));
+
 }
 
 static void 
@@ -713,6 +745,8 @@ meego_media_player_init (MeegoMediaPlayer *player)
   player->priv = PLAYER_PRIVATE (player);
   player->priv->uri = NULL;
   player->player_control = NULL;
+  
+  meego_media_player_set_default_params (player);
 }
 
 

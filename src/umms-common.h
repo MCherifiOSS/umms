@@ -14,5 +14,25 @@ typedef enum {
     NumOfPlayerState
 }PlayerState;
 
+typedef enum {
+    XWINDOW,
+    DataCopy,
+    Socket,
+    ReservedType0,//On CE4100 platform, indicate using gdl plane directly to render video data 
+    ReservedType1,
+    ReservedType2,
+    ReservedType3
+}TargetType;
+
+//CE4100 specific
+typedef enum {
+  UPP_A = 4,
+  UPP_B = 5,
+  UPP_C = 6
+}GdlPlaneId;
+
+#define TARGET_PARAM_KEY_RECTANGLE "rectangle"
+#define TARGET_PARAM_KEY_PlANE_ID "plane-id"
+
 #endif /* _UMMS_COMMON_H */
 
