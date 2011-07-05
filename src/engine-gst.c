@@ -8,6 +8,7 @@
 #include "umms-error.h"
 #include "engine-gst.h"
 #include "meego-media-player-control.h"
+#include "param-table.h"
 
 
 static void meego_media_player_control_init (MeegoMediaPlayerControl* iface);
@@ -88,6 +89,57 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
     priv->is_live = FALSE;
   }
   UMMS_DEBUG ("media :'%s is %slive source'", __FUNCTION__, priv->is_live ? "" : "non-");
+
+  return TRUE;
+}
+
+static gboolean
+engine_gst_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params)
+{
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+  GstElement *vsink;
+  GstState state, pending;
+  GstStateChangeReturn ret;
+  GValue *val = NULL;
+
+  switch (type) {
+    case XWINDOW:
+      break;
+    case DataCopy:
+      break;
+    case Socket:
+      UMMS_DEBUG ("unsupported target type: Socket");
+      ret = FALSE;
+      break;
+    case ReservedType0:
+      /*
+       * Use ReservedType0 to represent the gdl-plane video output.
+       * Choose ismd_vidrend_bin as video render.
+       */
+      vsink = gst_element_factory_make ("ismd_vidrend_bin", NULL);
+      if (!vsink) {
+        UMMS_DEBUG ("Failed to make ismd_vidrend_bin");
+        return FALSE;
+      }
+
+      val = g_hash_table_lookup (params, TARGET_PARAM_KEY_RECTANGLE);
+      if (val) {
+        g_object_set (vsink, "rectangle", g_value_get_string (val), NULL);
+        UMMS_DEBUG ("rectangle = '%s'",  g_value_get_string (val));
+      }
+
+      val = g_hash_table_lookup (params, TARGET_PARAM_KEY_PlANE_ID);
+      if (val) {
+        g_object_set (vsink, "gdl-plane", g_value_get_int (val), NULL);
+        UMMS_DEBUG ("gdl plane = '%d'",  g_value_get_int (val));
+      }
+
+      UMMS_DEBUG ("set ismd_vidrend_bin to playbin2");
+      g_object_set (priv->pipeline, "video-sink", vsink, NULL);
+      break;
+    default:
+      break;
+  }
 
   return TRUE;
 }
@@ -785,6 +837,8 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
 
   meego_media_player_control_implement_set_uri (klass,
       engine_gst_set_uri);
+  meego_media_player_control_implement_set_target (klass,
+      engine_gst_set_target);
   meego_media_player_control_implement_play (klass,
       engine_gst_play);
   meego_media_player_control_implement_pause (klass,
@@ -911,7 +965,6 @@ bus_message_state_change_cb (GstBus     *bus,
   src = GST_MESSAGE_SRC (message);
   if (src != priv->pipeline)
     return;
-
 
   gst_message_parse_state_changed (message, &old_state, &new_state, NULL);
 
@@ -1100,7 +1153,6 @@ engine_gst_new (void)
 {
   return g_object_new (ENGINE_TYPE_GST, NULL);
 }
-
 
 static void
 _source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data)

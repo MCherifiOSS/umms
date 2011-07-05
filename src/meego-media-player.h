@@ -68,6 +68,7 @@ GType meego_media_player_get_type (void) G_GNUC_CONST;
 MeegoMediaPlayer *meego_media_player_new (void);
 
 gboolean meego_media_player_set_uri (MeegoMediaPlayer *self, const gchar *uri, GError **error);
+gboolean meego_media_player_set_target (MeegoMediaPlayer *self, gint type, GHashTable *params, GError **error);
 gboolean meego_media_player_play(MeegoMediaPlayer *self, GError **error);
 gboolean meego_media_player_pause(MeegoMediaPlayer *self, GError **error);
 gboolean meego_media_player_stop(MeegoMediaPlayer *self, GError **error);

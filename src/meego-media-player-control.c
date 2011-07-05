@@ -4,6 +4,7 @@
 struct _MeegoMediaPlayerControlClass {
   GTypeInterface parent_class;
   meego_media_player_control_set_uri_impl set_uri;
+  meego_media_player_control_set_target_impl set_target;
   meego_media_player_control_play_impl play;
   meego_media_player_control_pause_impl pause;
   meego_media_player_control_stop_impl stop;
@@ -29,15 +30,16 @@ struct _MeegoMediaPlayerControlClass {
 };
 
 enum {
-  SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Initialized,
-  SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_EOF,
-  SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Error,
-  SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Seeked,
-  SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Stopped,
-  SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_RequestWindow,
-  SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Buffering,
-  SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Buffered,
-  SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_PlayerStateChanged,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Initialized,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_EOF,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Error,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Seeked,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Stopped,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_RequestWindow,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Buffering,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Buffered,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_PlayerStateChanged,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_TargetReady,
   N_MEEGO_MEDIA_PLAYER_CONTROL_SIGNALS
 };
 static guint meego_media_player_control_signals[N_MEEGO_MEDIA_PLAYER_CONTROL_SIGNALS] = {0};
@@ -88,6 +90,27 @@ void meego_media_player_control_implement_set_uri (MeegoMediaPlayerControlClass 
 {
   klass->set_uri = impl;
 }
+
+gboolean
+meego_media_player_control_set_target (MeegoMediaPlayerControl *self,
+   gint type, GHashTable *params) 
+{
+  meego_media_player_control_set_target_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_target);
+
+  if (impl != NULL) {
+    (impl) (self, type, params);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_set_target (MeegoMediaPlayerControlClass *klass, meego_media_player_control_set_target_impl impl)
+{
+  klass->set_target = impl;
+}
+
+
 
 gboolean
 meego_media_player_control_play (MeegoMediaPlayerControl *self)
@@ -537,7 +560,7 @@ meego_media_player_control_emit_initialized (gpointer instance)
   g_assert (instance != NULL);
   g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
   g_signal_emit (instance,
-                 meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Initialized],
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Initialized],
                  0);
 }
 void
@@ -546,7 +569,7 @@ meego_media_player_control_emit_eof (gpointer instance)
   g_assert (instance != NULL);
   g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
   g_signal_emit (instance,
-                 meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_EOF],
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_EOF],
                  0);
 }
 
@@ -557,7 +580,7 @@ meego_media_player_control_emit_error (gpointer instance,
   g_assert (instance != NULL);
   g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
   g_signal_emit (instance,
-                 meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Error],
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Error],
                  0,
                  error_num, error_des);
 }
@@ -568,7 +591,7 @@ meego_media_player_control_emit_buffered (gpointer instance)
   g_assert (instance != NULL);
   g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
   g_signal_emit (instance,
-                 meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Buffered],
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Buffered],
                  0);
 }
 void
@@ -577,7 +600,7 @@ meego_media_player_control_emit_buffering (gpointer instance)
   g_assert (instance != NULL);
   g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
   g_signal_emit (instance,
-                 meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Buffering],
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Buffering],
                  0);
 }
 
@@ -587,8 +610,18 @@ meego_media_player_control_emit_player_state_changed (gpointer instance, gint pl
   g_assert (instance != NULL);
   g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
   g_signal_emit (instance,
-                 meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_PlayerStateChanged],
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_PlayerStateChanged],
                  0, player_state);
+}
+
+void
+meego_media_player_control_emit_target_ready (gpointer instance, GHashTable *infos)
+{
+  g_assert (instance != NULL);
+  g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
+  g_signal_emit (instance,
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_TargetReady],
+                 0, infos);
 }
 void
 meego_media_player_control_emit_seeked (gpointer instance)
@@ -596,7 +629,7 @@ meego_media_player_control_emit_seeked (gpointer instance)
   g_assert (instance != NULL);
   g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
   g_signal_emit (instance,
-                 meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Seeked],
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Seeked],
                  0);
 }
 void
@@ -605,7 +638,7 @@ meego_media_player_control_emit_stopped (gpointer instance)
   g_assert (instance != NULL);
   g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
   g_signal_emit (instance,
-                 meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Stopped],
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Stopped],
                  0);
 }
 
@@ -615,7 +648,7 @@ meego_media_player_control_emit_request_window (gpointer instance)
   g_assert (instance != NULL);
   g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
   g_signal_emit (instance,
-                 meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_RequestWindow],
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_RequestWindow],
                  0);
 }
 
@@ -623,7 +656,7 @@ static inline void
 meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
 {
 
-  meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Initialized] =
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Initialized] =
     g_signal_new ("initialized",
                   G_OBJECT_CLASS_TYPE (klass),
                   G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
@@ -633,7 +666,7 @@ meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
                   G_TYPE_NONE,
                   0);
 
-  meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_EOF] =
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_EOF] =
     g_signal_new ("eof",
                   G_OBJECT_CLASS_TYPE (klass),
                   G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
@@ -643,7 +676,7 @@ meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
                   G_TYPE_NONE,
                   0);
 
-  meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Error] =
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Error] =
     g_signal_new ("error",
                   G_OBJECT_CLASS_TYPE (klass),
                   G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
@@ -655,7 +688,7 @@ meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
                   G_TYPE_UINT,
                   G_TYPE_STRING);
 
-  meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Seeked] =
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Seeked] =
     g_signal_new ("seeked",
                   G_OBJECT_CLASS_TYPE (klass),
                   G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
@@ -665,7 +698,7 @@ meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
                   G_TYPE_NONE,
                   0);
 
-  meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Stopped] =
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Stopped] =
     g_signal_new ("stopped",
                   G_OBJECT_CLASS_TYPE (klass),
                   G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
@@ -675,7 +708,7 @@ meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
                   G_TYPE_NONE,
                   0);
 
-  meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_RequestWindow] =
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_RequestWindow] =
     g_signal_new ("request-window",
                   G_OBJECT_CLASS_TYPE (klass),
                   G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
@@ -685,7 +718,7 @@ meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
                   G_TYPE_NONE,
                   0);
 
-  meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Buffering] =
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Buffering] =
     g_signal_new ("buffering",
                   G_OBJECT_CLASS_TYPE (klass),
                   G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
@@ -695,7 +728,7 @@ meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
                   G_TYPE_NONE,
                   0);
 
-  meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_Buffered] =
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Buffered] =
     g_signal_new ("buffered",
                   G_OBJECT_CLASS_TYPE (klass),
                   G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
@@ -705,7 +738,7 @@ meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
                   G_TYPE_NONE,
                   0);
 
-  meego_media_player_control_signals[SINGLA_MEEGO_MEDIA_PLAYER_CONTROL_PlayerStateChanged] =
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_PlayerStateChanged] =
     g_signal_new ("player-state-changed",
                   G_OBJECT_CLASS_TYPE (klass),
                   G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
@@ -716,6 +749,15 @@ meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
                   1,
                   G_TYPE_INT);
 
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_TargetReady] =
+    g_signal_new ("target-ready",
+                  G_OBJECT_CLASS_TYPE (klass),
+                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+                  0,
+                  NULL, NULL,
+                  g_cclosure_marshal_VOID__BOXED,
+                  G_TYPE_NONE,
+                  1, dbus_g_type_get_map("GHashTable", G_TYPE_STRING, G_TYPE_VALUE));
 }
 
 static void

@@ -64,7 +64,25 @@ method_name = (
 	GetPlayerState
 ) = range (len(method_name))
 
+(
+    XWINDOW,
+    DataCopy,
+    Socket,
+    ReservedType0,#On CE4100 platform, indicate using gdl plane directly to render video data 
+    ReservedType1,
+    ReservedType2,
+    ReservedType3
+) = range (7)
 
+#CE4100 specific
+(
+  UPP_A,
+  UPP_B,
+  UPP_C
+) = range (4, 7)
+
+#define TARGET_PARAM_KEY_RECTANGLE "rectangle"
+#define TARGET_PARAM_KEY_PlANE_ID "plane-id"
 
 
 def initialized_cb():
@@ -94,6 +112,10 @@ def error_cb(err_id, msg):
 def request_window_cb():
     print "Player engine request a X window"
 
+def target_ready_cb(target_infos):
+    print "target's rectangle = '%s'" % target_infos["rectangle"]#Assume we are using gdl plane target
+    print "target's plane-id = '%d'" % target_infos["plane-id"]
+
 def connect_sigs (proxy):
      print "connect signals"
      proxy.connect_to_signal("Initialized", initialized_cb)
@@ -105,6 +127,7 @@ def connect_sigs (proxy):
      proxy.connect_to_signal("Stopped", stopped_cb)
      proxy.connect_to_signal("Error", error_cb)
      proxy.connect_to_signal("PlayerStateChanged", player_state_changed_cb)
+     proxy.connect_to_signal("TargetReady", target_ready_cb)
      return
 
 
@@ -156,7 +179,8 @@ class CmdHandler(threading.Thread):
             else :
                 self.player.SetUri(uri)
         elif mid == SetTarget:
-            print "SetTarget, not implemented for now"
+            print "SetTarget"
+	    self.player.SetTarget(ReservedType0, {"rectangle":"0,0,352,288", "plane-id":UPP_A})
         elif mid == Play:
             print "Play"
             self.player.Play()

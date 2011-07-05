@@ -33,6 +33,11 @@ typedef gboolean (*meego_media_player_control_set_uri_impl) (MeegoMediaPlayerCon
     const gchar *in_uri);
 void meego_media_player_control_implement_set_uri (MeegoMediaPlayerControlClass *klass, meego_media_player_control_set_uri_impl impl);
 
+typedef gboolean (*meego_media_player_control_set_target_impl) (MeegoMediaPlayerControl *self,
+    gint type, GHashTable *params);
+void meego_media_player_control_implement_set_target (MeegoMediaPlayerControlClass *klass, meego_media_player_control_set_target_impl impl);
+
+
 typedef gboolean (*meego_media_player_control_play_impl) (MeegoMediaPlayerControl *self);
 void meego_media_player_control_implement_play (MeegoMediaPlayerControlClass *klass, meego_media_player_control_play_impl impl);
 
@@ -110,6 +115,7 @@ void meego_media_player_control_implement_get_player_state (MeegoMediaPlayerCont
 
 /*virtual function wrappers*/
 gboolean meego_media_player_control_set_uri (MeegoMediaPlayerControl *self, const gchar *in_uri);
+gboolean meego_media_player_control_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params);
 gboolean meego_media_player_control_play (MeegoMediaPlayerControl *self);
 gboolean meego_media_player_control_pause (MeegoMediaPlayerControl *self);
 gboolean meego_media_player_control_stop (MeegoMediaPlayerControl *self);
@@ -143,6 +149,7 @@ void meego_media_player_control_emit_request_window (gpointer instance);
 void meego_media_player_control_emit_buffering (gpointer instance);
 void meego_media_player_control_emit_buffered (gpointer instance);
 void meego_media_player_control_emit_player_state_changed (gpointer instance, gint cur_state);
+void meego_media_player_control_emit_target_ready(gpointer instance, GHashTable *infos);
 
 G_END_DECLS
 #endif
