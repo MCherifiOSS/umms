@@ -43,8 +43,8 @@ static gchar *live_src_uri[] = { "http://", "mms://", "mmsh://", "rtsp://",
     if (!g_ascii_strncasecmp (uri, *src, strlen(*src))) {                          \
       ret = TRUE;                                                                  \
       break;                                                                       \
-      src++;                                                                       \
     }                                                                              \
+    src++;                                                                         \
   }                                                                                \
   ret;                                                                             \
 })
