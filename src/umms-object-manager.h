@@ -40,16 +40,18 @@ struct _UmmsObjectManager
 
 struct _UmmsObjectManagerClass
 {
-    GObjectClass parent_class;
+  GObjectClass parent_class;
 };
 
-GType umms_object_manager_get_type (void) G_GNUC_CONST;
 
+GType umms_object_manager_get_type (void) G_GNUC_CONST;
 UmmsObjectManager *umms_object_manager_new (void);
 gboolean umms_object_manager_request_media_player(UmmsObjectManager *self, gchar **object_path, GError **error);
-gboolean umms_object_manager_request_media_player_unattended(UmmsObjectManager *self, gdouble time_to_execution, gchar **token, gchar **object_path, GError **error);
+gboolean umms_object_manager_request_media_player_unattended(UmmsObjectManager *self, gdouble time_to_execution, 
+        gchar **token, gchar **object_path, GError **error);
 gboolean umms_object_manager_remove_media_player(UmmsObjectManager *self, gchar *object_path, GError **error);
 
 G_END_DECLS
 
 #endif /* _UMMS_OBJECT_MANAGER_H */
+
