@@ -29,6 +29,26 @@ static const gchar *gst_state[] = {
   "GST_STATE_PLAYING"
 };
 
+
+/* list of URIs that we consider to be live source. */
+static gchar *live_src_uri[] = { "http://", "mms://", "mmsh://", "rtsp://",
+    "mmsu://", "mmst://", "fd://", "myth://", "ssh://", "ftp://", "sftp://",
+    NULL};
+
+#define IS_LIVE_URI(uri)                                                           \
+({                                                                                 \
+  gboolean ret = FALSE;                                                            \
+  gchar ** src = live_src_uri;                                                     \
+  while (*src) {                                                                   \
+    if (!g_ascii_strncasecmp (uri, *src, strlen(*src))) {                          \
+      ret = TRUE;                                                                  \
+      break;                                                                       \
+      src++;                                                                       \
+    }                                                                              \
+  }                                                                                \
+  ret;                                                                             \
+})
+
 struct _EngineGstPrivate {
   GstElement *pipeline;
 
@@ -144,6 +164,7 @@ engine_gst_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *par
   return TRUE;
 }
 
+
 static gboolean
 engine_gst_play (MeegoMediaPlayerControl *self)
 {
@@ -154,7 +175,19 @@ engine_gst_play (MeegoMediaPlayerControl *self)
     return FALSE;
   }
 
-  priv->target = PlayerStatePlaying;
+  if(IS_LIVE_URI(priv->uri)) {     
+//    ISmdGstClock *ismd_clock = NULL;
+    /* For the special case of live source.
+       Becasue our hardware decoder and sink need the special clock type and if the clock type is wrong,
+       the hardware can not work well.  In file case, the provide_clock will be called after all the elements
+       have been made and added in pause state, so the element which represent the hardware will provide the
+       right clock. But in live source case, the state change from NULL to playing is continous and the provide_clock
+       function may be called before hardware element has been made. So we need to set the clock of pipeline statically here.*/
+//    ismd_clock = g_object_new (ISMD_GST_TYPE_CLOCK, NULL); 
+//    gst_pipeline_use_clock (GST_PIPELINE_CAST(priv->pipeline), GST_CLOCK_CAST(ismd_clock));
+  }
+
+  priv->target = PlayerStateNull; /* Set to NULL here, wait for bus's callback to report the right state. */
   gst_element_set_state (priv->pipeline, GST_STATE_PLAYING);
 
   return TRUE;
