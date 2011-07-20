@@ -86,14 +86,15 @@ meego_media_player_control_set_uri (MeegoMediaPlayerControl *self,
   return TRUE;
 }
 
-void meego_media_player_control_implement_set_uri (MeegoMediaPlayerControlClass *klass, meego_media_player_control_set_uri_impl impl)
+void meego_media_player_control_implement_set_uri (MeegoMediaPlayerControlClass *klass,
+                                                   meego_media_player_control_set_uri_impl impl)
 {
   klass->set_uri = impl;
 }
 
 gboolean
 meego_media_player_control_set_target (MeegoMediaPlayerControl *self,
-   gint type, GHashTable *params) 
+                                       gint type, GHashTable *params) 
 {
   meego_media_player_control_set_target_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_target);
 
@@ -105,7 +106,8 @@ meego_media_player_control_set_target (MeegoMediaPlayerControl *self,
   return TRUE;
 }
 
-void meego_media_player_control_implement_set_target (MeegoMediaPlayerControlClass *klass, meego_media_player_control_set_target_impl impl)
+void meego_media_player_control_implement_set_target (MeegoMediaPlayerControlClass *klass,
+                                                      meego_media_player_control_set_target_impl impl)
 {
   klass->set_target = impl;
 }
@@ -126,7 +128,8 @@ meego_media_player_control_play (MeegoMediaPlayerControl *self)
 }
 
 
-void meego_media_player_control_implement_play (MeegoMediaPlayerControlClass *klass, meego_media_player_control_play_impl impl)
+void meego_media_player_control_implement_play (MeegoMediaPlayerControlClass *klass,
+                                                meego_media_player_control_play_impl impl)
 {
   klass->play = impl;
 }
@@ -145,7 +148,8 @@ meego_media_player_control_pause (MeegoMediaPlayerControl *self)
 }
 
 
-void meego_media_player_control_implement_pause (MeegoMediaPlayerControlClass *klass, meego_media_player_control_pause_impl impl)
+void meego_media_player_control_implement_pause (MeegoMediaPlayerControlClass *klass,
+                                                 meego_media_player_control_pause_impl impl)
 {
   klass->pause = impl;
 }
@@ -164,7 +168,8 @@ meego_media_player_control_stop (MeegoMediaPlayerControl *self)
 }
 
 
-void meego_media_player_control_implement_stop (MeegoMediaPlayerControlClass *klass, meego_media_player_control_stop_impl impl)
+void meego_media_player_control_implement_stop (MeegoMediaPlayerControlClass *klass, 
+                                                meego_media_player_control_stop_impl impl)
 {
   klass->stop = impl;
 }
@@ -172,7 +177,7 @@ void meego_media_player_control_implement_stop (MeegoMediaPlayerControlClass *kl
 
 gboolean
 meego_media_player_control_set_position (MeegoMediaPlayerControl *self,
-    gint64 in_pos)
+                                         gint64 in_pos)
 {
   meego_media_player_control_set_position_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_position);
 
@@ -186,7 +191,8 @@ meego_media_player_control_set_position (MeegoMediaPlayerControl *self,
 }
 
 
-void meego_media_player_control_implement_set_position (MeegoMediaPlayerControlClass *klass, meego_media_player_control_set_position_impl impl)
+void meego_media_player_control_implement_set_position (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_set_position_impl impl)
 {
   klass->set_position = impl;
 }
@@ -205,7 +211,8 @@ meego_media_player_control_get_position (MeegoMediaPlayerControl *self, gint64 *
 }
 
 
-void meego_media_player_control_implement_get_position (MeegoMediaPlayerControlClass *klass, meego_media_player_control_get_position_impl impl)
+void meego_media_player_control_implement_get_position (MeegoMediaPlayerControlClass *klass,
+                                                       meego_media_player_control_get_position_impl impl)
 {
   klass->get_position = impl;
 }
@@ -213,9 +220,10 @@ void meego_media_player_control_implement_get_position (MeegoMediaPlayerControlC
 
 gboolean
 meego_media_player_control_set_playback_rate (MeegoMediaPlayerControl *self,
-    gdouble in_rate)
+                                              gdouble in_rate)
 {
-  meego_media_player_control_set_playback_rate_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_playback_rate);
+  meego_media_player_control_set_playback_rate_impl impl =
+            (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_playback_rate);
 
   if (impl != NULL) {
     (impl) (self,
@@ -227,7 +235,8 @@ meego_media_player_control_set_playback_rate (MeegoMediaPlayerControl *self,
 }
 
 
-void meego_media_player_control_implement_set_playback_rate (MeegoMediaPlayerControlClass *klass, meego_media_player_control_set_playback_rate_impl impl)
+void meego_media_player_control_implement_set_playback_rate (MeegoMediaPlayerControlClass *klass,
+                                                             meego_media_player_control_set_playback_rate_impl impl)
 {
   klass->set_playback_rate = impl;
 }
@@ -235,7 +244,8 @@ void meego_media_player_control_implement_set_playback_rate (MeegoMediaPlayerCon
 gboolean
 meego_media_player_control_get_playback_rate (MeegoMediaPlayerControl *self, gdouble *out_rate)
 {
-  meego_media_player_control_get_playback_rate_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_playback_rate);
+  meego_media_player_control_get_playback_rate_impl impl =
+                     (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_playback_rate);
 
   if (impl != NULL) {
     (impl) (self, out_rate);
@@ -246,7 +256,8 @@ meego_media_player_control_get_playback_rate (MeegoMediaPlayerControl *self, gdo
 }
 
 
-void meego_media_player_control_implement_get_playback_rate (MeegoMediaPlayerControlClass *klass, meego_media_player_control_get_playback_rate_impl impl)
+void meego_media_player_control_implement_get_playback_rate (MeegoMediaPlayerControlClass *klass,
+                                                             meego_media_player_control_get_playback_rate_impl impl)
 {
   klass->get_playback_rate = impl;
 }
@@ -268,7 +279,8 @@ meego_media_player_control_set_volume (MeegoMediaPlayerControl *self,
 }
 
 
-void meego_media_player_control_implement_set_volume (MeegoMediaPlayerControlClass *klass, meego_media_player_control_set_volume_impl impl)
+void meego_media_player_control_implement_set_volume (MeegoMediaPlayerControlClass *klass,
+                                                      meego_media_player_control_set_volume_impl impl)
 {
   klass->set_volume = impl;
 }
@@ -287,7 +299,8 @@ meego_media_player_control_get_volume (MeegoMediaPlayerControl *self, gint *vol)
 }
 
 
-void meego_media_player_control_implement_get_volume (MeegoMediaPlayerControlClass *klass, meego_media_player_control_get_volume_impl impl)
+void meego_media_player_control_implement_get_volume (MeegoMediaPlayerControlClass *klass,
+                                                      meego_media_player_control_get_volume_impl impl)
 {
   klass->get_volume = impl;
 }
@@ -295,7 +308,7 @@ void meego_media_player_control_implement_get_volume (MeegoMediaPlayerControlCla
 
 gboolean
 meego_media_player_control_set_window_id (MeegoMediaPlayerControl *self,
-    gdouble in_win_id)
+                                          gdouble in_win_id)
 {
   meego_media_player_control_set_window_id_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_window_id);
 
@@ -309,7 +322,8 @@ meego_media_player_control_set_window_id (MeegoMediaPlayerControl *self,
 }
 
 
-void meego_media_player_control_implement_set_window_id (MeegoMediaPlayerControlClass *klass, meego_media_player_control_set_window_id_impl impl)
+void meego_media_player_control_implement_set_window_id (MeegoMediaPlayerControlClass *klass,
+                                                         meego_media_player_control_set_window_id_impl impl)
 {
   klass->set_window_id = impl;
 }
@@ -325,7 +339,8 @@ meego_media_player_control_set_video_size (MeegoMediaPlayerControl *self,
     guint in_w,
     guint in_h)
 {
-  meego_media_player_control_set_video_size_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_video_size);
+  meego_media_player_control_set_video_size_impl impl =
+                   (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_video_size);
 
   if (impl != NULL) {
     (impl) (self,
@@ -340,7 +355,8 @@ meego_media_player_control_set_video_size (MeegoMediaPlayerControl *self,
 }
 
 
-void meego_media_player_control_implement_set_video_size (MeegoMediaPlayerControlClass *klass, meego_media_player_control_set_video_size_impl impl)
+void meego_media_player_control_implement_set_video_size (MeegoMediaPlayerControlClass *klass,
+                                                         meego_media_player_control_set_video_size_impl impl)
 {
   klass->set_video_size = impl;
 }
@@ -359,7 +375,8 @@ meego_media_player_control_get_video_size (MeegoMediaPlayerControl *self, guint 
 }
 
 
-void meego_media_player_control_implement_get_video_size (MeegoMediaPlayerControlClass *klass, meego_media_player_control_get_video_size_impl impl)
+void meego_media_player_control_implement_get_video_size (MeegoMediaPlayerControlClass *klass,
+                                                          meego_media_player_control_get_video_size_impl impl)
 {
   klass->get_video_size = impl;
 }
@@ -367,7 +384,8 @@ void meego_media_player_control_implement_get_video_size (MeegoMediaPlayerContro
 gboolean
 meego_media_player_control_get_buffered_time (MeegoMediaPlayerControl *self, gint64 *buffered_time)
 {
-  meego_media_player_control_get_buffered_time_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_buffered_time);
+  meego_media_player_control_get_buffered_time_impl impl =
+           (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_buffered_time);
 
   if (impl != NULL) {
     (impl) (self, buffered_time);
@@ -378,7 +396,8 @@ meego_media_player_control_get_buffered_time (MeegoMediaPlayerControl *self, gin
 }
 
 
-void meego_media_player_control_implement_get_buffered_time (MeegoMediaPlayerControlClass *klass, meego_media_player_control_get_buffered_time_impl impl)
+void meego_media_player_control_implement_get_buffered_time (MeegoMediaPlayerControlClass *klass,
+                                                          meego_media_player_control_get_buffered_time_impl impl)
 {
   klass->get_buffered_time = impl;
 }
@@ -386,7 +405,8 @@ void meego_media_player_control_implement_get_buffered_time (MeegoMediaPlayerCon
 gboolean
 meego_media_player_control_get_buffered_bytes (MeegoMediaPlayerControl *self, gint64 *buffered_time)
 {
-  meego_media_player_control_get_buffered_bytes_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_buffered_bytes);
+  meego_media_player_control_get_buffered_bytes_impl impl =
+             (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_buffered_bytes);
 
   if (impl != NULL) {
     (impl) (self, buffered_time);
@@ -397,7 +417,8 @@ meego_media_player_control_get_buffered_bytes (MeegoMediaPlayerControl *self, gi
 }
 
 
-void meego_media_player_control_implement_get_buffered_bytes (MeegoMediaPlayerControlClass *klass, meego_media_player_control_get_buffered_bytes_impl impl)
+void meego_media_player_control_implement_get_buffered_bytes (MeegoMediaPlayerControlClass *klass, 
+                                                        meego_media_player_control_get_buffered_bytes_impl impl)
 {
   klass->get_buffered_bytes = impl;
 }
@@ -405,7 +426,8 @@ void meego_media_player_control_implement_get_buffered_bytes (MeegoMediaPlayerCo
 gboolean
 meego_media_player_control_get_media_size_time (MeegoMediaPlayerControl *self, gint64 *media_size_time)
 {
-  meego_media_player_control_get_media_size_time_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_media_size_time);
+  meego_media_player_control_get_media_size_time_impl impl =
+                  (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_media_size_time);
 
   if (impl != NULL) {
     (impl) (self, media_size_time);
@@ -416,7 +438,8 @@ meego_media_player_control_get_media_size_time (MeegoMediaPlayerControl *self, g
 }
 
 
-void meego_media_player_control_implement_get_media_size_time (MeegoMediaPlayerControlClass *klass, meego_media_player_control_get_media_size_time_impl impl)
+void meego_media_player_control_implement_get_media_size_time (MeegoMediaPlayerControlClass *klass,
+                                                         meego_media_player_control_get_media_size_time_impl impl)
 {
   klass->get_media_size_time = impl;
 }
@@ -424,7 +447,8 @@ void meego_media_player_control_implement_get_media_size_time (MeegoMediaPlayerC
 gboolean
 meego_media_player_control_get_media_size_bytes (MeegoMediaPlayerControl *self, gint64 *media_size_bytes)
 {
-  meego_media_player_control_get_media_size_bytes_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_media_size_bytes);
+  meego_media_player_control_get_media_size_bytes_impl impl =
+                   (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_media_size_bytes);
 
   if (impl != NULL) {
     (impl) (self, media_size_bytes);
@@ -435,7 +459,8 @@ meego_media_player_control_get_media_size_bytes (MeegoMediaPlayerControl *self, 
 }
 
 
-void meego_media_player_control_implement_get_media_size_bytes (MeegoMediaPlayerControlClass *klass, meego_media_player_control_get_media_size_bytes_impl impl)
+void meego_media_player_control_implement_get_media_size_bytes (MeegoMediaPlayerControlClass *klass,
+                                                            meego_media_player_control_get_media_size_bytes_impl impl)
 {
   klass->get_media_size_bytes = impl;
 }
@@ -454,7 +479,8 @@ meego_media_player_control_has_video (MeegoMediaPlayerControl *self, gboolean *h
 }
 
 
-void meego_media_player_control_implement_has_video (MeegoMediaPlayerControlClass *klass, meego_media_player_control_has_video_impl impl)
+void meego_media_player_control_implement_has_video (MeegoMediaPlayerControlClass *klass,
+                                                     meego_media_player_control_has_video_impl impl)
 {
   klass->has_video = impl;
 }
@@ -473,7 +499,8 @@ meego_media_player_control_has_audio (MeegoMediaPlayerControl *self, gboolean *h
 }
 
 
-void meego_media_player_control_implement_has_audio (MeegoMediaPlayerControlClass *klass, meego_media_player_control_has_audio_impl impl)
+void meego_media_player_control_implement_has_audio (MeegoMediaPlayerControlClass *klass,
+                                                     meego_media_player_control_has_audio_impl impl)
 {
   klass->has_audio = impl;
 }
@@ -492,7 +519,8 @@ meego_media_player_control_is_streaming (MeegoMediaPlayerControl *self, gboolean
 }
 
 
-void meego_media_player_control_implement_is_streaming (MeegoMediaPlayerControlClass *klass, meego_media_player_control_is_streaming_impl impl)
+void meego_media_player_control_implement_is_streaming (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_is_streaming_impl impl)
 {
   klass->is_streaming = impl;
 }
@@ -511,7 +539,8 @@ meego_media_player_control_is_seekable (MeegoMediaPlayerControl *self, gboolean 
 }
 
 
-void meego_media_player_control_implement_is_seekable (MeegoMediaPlayerControlClass *klass, meego_media_player_control_is_seekable_impl impl)
+void meego_media_player_control_implement_is_seekable (MeegoMediaPlayerControlClass *klass,
+                                                       meego_media_player_control_is_seekable_impl impl)
 {
   klass->is_seekable = impl;
 }
@@ -519,7 +548,8 @@ void meego_media_player_control_implement_is_seekable (MeegoMediaPlayerControlCl
 gboolean
 meego_media_player_control_support_fullscreen (MeegoMediaPlayerControl *self, gboolean *support_fullscreen)
 {
-  meego_media_player_control_support_fullscreen_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->support_fullscreen);
+  meego_media_player_control_support_fullscreen_impl impl = 
+                  (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->support_fullscreen);
 
   if (impl != NULL) {
     (impl) (self, support_fullscreen);
@@ -530,7 +560,8 @@ meego_media_player_control_support_fullscreen (MeegoMediaPlayerControl *self, gb
 }
 
 
-void meego_media_player_control_implement_support_fullscreen (MeegoMediaPlayerControlClass *klass, meego_media_player_control_support_fullscreen_impl impl)
+void meego_media_player_control_implement_support_fullscreen (MeegoMediaPlayerControlClass *klass, 
+                                                  meego_media_player_control_support_fullscreen_impl impl)
 {
   klass->support_fullscreen = impl;
 }
@@ -538,7 +569,8 @@ void meego_media_player_control_implement_support_fullscreen (MeegoMediaPlayerCo
 gboolean
 meego_media_player_control_get_player_state (MeegoMediaPlayerControl *self, gint *state)
 {
-  meego_media_player_control_get_player_state_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_player_state);
+  meego_media_player_control_get_player_state_impl impl =
+                   (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_player_state);
 
   if (impl != NULL) {
     (impl) (self, state);
@@ -550,7 +582,8 @@ meego_media_player_control_get_player_state (MeegoMediaPlayerControl *self, gint
 
 
 void
-meego_media_player_control_implement_get_player_state (MeegoMediaPlayerControlClass *klass, meego_media_player_control_get_player_state_impl impl)
+meego_media_player_control_implement_get_player_state (MeegoMediaPlayerControlClass *klass,
+                                                       meego_media_player_control_get_player_state_impl impl)
 {
   klass->get_player_state = impl;
 }
