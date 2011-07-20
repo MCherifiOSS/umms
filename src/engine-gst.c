@@ -3,6 +3,8 @@
 #include <gst/interfaces/xoverlay.h>
 /* for the volume property */
 #include <gst/interfaces/streamvolume.h>
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
 #include "umms-common.h"
 #include "umms-debug.h"
 #include "umms-error.h"
@@ -44,17 +46,30 @@ struct _EngineGstPrivate {
 
   //UMMS defined player state
   PlayerState player_state;//current state
-  PlayerState target;//target state, for async state change(*==>PlayerStatePaused, PlayerStateNull/Stopped==>PlayerStatePlaying)
+  PlayerState pending_state;//target state, for async state change(*==>PlayerStatePaused, PlayerStateNull/Stopped==>PlayerStatePlaying)
 
   gboolean is_live;
   gint64 duration;//ms
   gint64 total_bytes;
+
+  //XWindow target stuff
+  gboolean xwin_initialized;
+  gint     target_type;
+  Window   app_win_id;//top-level window
+  Window   video_win_id;
+  Display  *disp;
+  GThread  *event_thread;
+  gboolean event_thread_running;
 };
 
 static void _reset_engine (MeegoMediaPlayerControl *self);
 static gboolean _query_buffering_percent (GstElement *pipe, gdouble *percent);
 static void _source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data);
 static gboolean _stop_pipe (MeegoMediaPlayerControl *control);
+static gboolean engine_gst_set_video_size (MeegoMediaPlayerControl *self, guint x, guint y, guint w, guint h);
+static gboolean create_xevent_handle_thread (MeegoMediaPlayerControl *self);
+static gboolean destroy_xevent_handle_thread (MeegoMediaPlayerControl *self);
+
 
 static gboolean
 engine_gst_set_uri (MeegoMediaPlayerControl *self,
@@ -70,7 +85,7 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
               priv->uri,
               uri);
 
-  _reset_engine (self);
+  //_reset_engine (self);
 
   priv->uri = g_strdup (uri);
 
@@ -94,52 +109,327 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
 }
 
 static gboolean
+get_video_rectangle (MeegoMediaPlayerControl *self, gint *ax, gint *ay, gint *w, gint *h, gint *rx, gint *ry)
+{
+  XWindowAttributes video_win_attr, app_win_attr;
+  gint app_x, app_y;
+  Window junkwin;
+  Status status;
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  status = XGetWindowAttributes (priv->disp, priv->app_win_id, &app_win_attr);
+  if (!status) {
+    UMMS_DEBUG ("Get top-level window attributes failed");
+    return FALSE;
+  }
+  status = XGetWindowAttributes (priv->disp, priv->video_win_id, &video_win_attr);
+  if (!status) {
+    UMMS_DEBUG ("Get top-level window attributes failed");
+    return FALSE;
+  }
+
+  (void) XTranslateCoordinates (priv->disp, priv->app_win_id, app_win_attr.root, 
+      -app_win_attr.border_width,
+      -app_win_attr.border_width,
+      &app_x, &app_y, &junkwin);
+  UMMS_DEBUG ("app window app_absolute_x = %d, app_absolute_y = %d", app_x, app_y);
+
+ (void) XTranslateCoordinates (priv->disp, priv->video_win_id, video_win_attr.root, 
+      -video_win_attr.border_width,
+      -video_win_attr.border_width,
+      ax, ay, &junkwin);
+
+  UMMS_DEBUG ("video window video_absolute_x = %d, video_absolute_y = %d", *ax, *ay);
+
+  *rx = *ax - app_x;
+  *ry = *ay - app_y;
+  *w = video_win_attr.width;
+  *h = video_win_attr.height;
+  UMMS_DEBUG ("video window video_relative_x = %d, video_relative_y = %d", *rx, *ry);
+  UMMS_DEBUG ("video w=%d,y=%d", *w, *h);
+  return TRUE;
+}
+
+static gboolean
+cutout (MeegoMediaPlayerControl *self, gint x, gint y, gint w, gint h)
+{
+  Atom property;
+  gchar data[256];
+  gint status;
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  property = XInternAtom (priv->disp,"_MUTTER_HINTS",0);
+  if (!property) {
+    UMMS_DEBUG ("XInternAtom failed");
+    return FALSE;
+  }
+
+  g_sprintf (data, "meego-tv-cutout-x=%d:meego-tv-cutout-y=%d:meego-tv-cutout-width=%d:meego-tv-cutout-height=%d:meego-tv-half-trans=0:meego-tv-full-window=0", x, y, w, h);
+
+  UMMS_DEBUG ("Hints to mtv-mutter = \"%s\"", data);
+
+  XChangeProperty(priv->disp, priv->app_win_id,property,XA_STRING,8,PropModeReplace,(unsigned char *)data, strlen(data));
+  return TRUE;
+}
+
+
+static Window 
+get_app_win (MeegoMediaPlayerControl *self, Window win)
+{
+
+  Window root_win, parent_win, grandparent_win;
+  unsigned int num_children;
+  Window *child_list;
+
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+  Display *dpy = priv->disp;
+
+  if (!XQueryTree(dpy, win, &root_win, &parent_win, &child_list,
+        &num_children)) {
+    UMMS_DEBUG("Can't query window(%lx)'s parent.", win);
+    return 0;
+  }
+  UMMS_DEBUG("root=(%lx),window(%lx)'s parent = (%lx)", root_win, win, parent_win);
+  if (child_list) XFree((gchar *)child_list);
+  if (root_win == parent_win) {
+    UMMS_DEBUG("Parent is root, so we got the app window(%lx)", win);
+    return win;
+  }
+
+  if (!XQueryTree(dpy, parent_win, &root_win, &grandparent_win, &child_list,
+        &num_children)) {
+    UMMS_DEBUG("Can't query window(%lx)'s grandparent.", win);
+    return 0;
+  }
+  if (child_list) XFree((gchar *)child_list);
+  UMMS_DEBUG("root=(%lx),window(%lx)'s grandparent = (%lx)", root_win, win, grandparent_win);
+
+  if (grandparent_win == root_win) {
+    UMMS_DEBUG("Grandpa is root, so we got the app window(%lx)", win);
+    return win;
+  } else {
+    return get_app_win (self, parent_win);
+  }
+}
+
+static gboolean
+unset_xwindow_target (MeegoMediaPlayerControl *self)
+{
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  if (!priv->xwin_initialized)
+    return TRUE;
+
+  destroy_xevent_handle_thread (self);
+  priv->xwin_initialized = FALSE;
+  return TRUE;
+}
+
+static void
+engine_gst_handle_xevents (MeegoMediaPlayerControl *control)
+{
+  XEvent e;
+  gint x,y,w,h,rx,ry;
+  EngineGstPrivate *priv = GET_PRIVATE (control);
+
+  g_return_if_fail (control);
+
+  /* Handle Expose */
+  while (XCheckWindowEvent (priv->disp,
+          priv->app_win_id, StructureNotifyMask, &e)) {
+    switch (e.type) {
+      case ConfigureNotify:
+        get_video_rectangle (control, &x, &y, &w, &h, &rx, &ry);
+        cutout (control, rx, ry, w, h);
+        engine_gst_set_video_size (control, x, y, w, h);
+        UMMS_DEBUG ("Got ConfigureNotify, video window abs_x=%d,abs_y=%d,w=%d,y=%d", x, y, w, h);
+        break;
+      default:
+        break;
+    }
+  }
+
+}
+static gpointer
+engine_gst_event_thread (MeegoMediaPlayerControl* control)
+{
+
+  EngineGstPrivate *priv = GET_PRIVATE (control);
+
+  UMMS_DEBUG ("Begin");
+  while (priv->event_thread_running) {
+
+    if (priv->app_win_id) {
+      engine_gst_handle_xevents (control);
+    }
+    /* FIXME: do we want to align this with the framerate or anything else? */
+    g_usleep (G_USEC_PER_SEC / 20);
+
+  }
+
+  UMMS_DEBUG ("End");
+  return NULL;
+}
+
+static gboolean
+create_xevent_handle_thread (MeegoMediaPlayerControl *self)
+{
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  UMMS_DEBUG ("Begin");
+  if (!priv->event_thread) {
+      /* Setup our event listening thread */
+      UMMS_DEBUG ("run xevent thread");
+      priv->event_thread_running = TRUE;
+      priv->event_thread = g_thread_create (
+          (GThreadFunc) engine_gst_event_thread, self, TRUE, NULL);
+  }
+  return TRUE;
+}
+
+static gboolean
+destroy_xevent_handle_thread (MeegoMediaPlayerControl *self)
+{
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  UMMS_DEBUG ("Begin");
+  if (priv->event_thread) {
+      priv->event_thread_running = FALSE;
+      g_thread_join (priv->event_thread);
+      priv->event_thread = NULL;
+  }
+  UMMS_DEBUG ("End");
+  return TRUE;
+}
+
+static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTable *params)
+{
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+  GstElement *vsink;
+  GValue *val = NULL;
+
+  vsink = gst_element_factory_make ("ismd_vidrend_bin", NULL);
+  if (!vsink) {
+    UMMS_DEBUG ("Failed to make ismd_vidrend_bin");
+    return FALSE;
+  }
+
+  val = g_hash_table_lookup (params, TARGET_PARAM_KEY_RECTANGLE);
+  if (val) {
+    g_object_set (vsink, "rectangle", g_value_get_string (val), NULL);
+    UMMS_DEBUG ("rectangle = '%s'",  g_value_get_string (val));
+  }
+
+  val = g_hash_table_lookup (params, TARGET_PARAM_KEY_PlANE_ID);
+  if (val) {
+    g_object_set (vsink, "gdl-plane", g_value_get_int (val), NULL);
+    UMMS_DEBUG ("gdl plane = '%d'",  g_value_get_int (val));
+  }
+
+  g_object_set (priv->pipeline, "video-sink", vsink, NULL);
+  return TRUE;
+}
+
+/* 
+ * 1. Retrive "video-window-id" and "top-window-id".
+ * 2. Make videosink element and set its rectangle property according to video window geometry.
+ * 3  Cutout video window geometry according to its relative position to application win.
+ * 4. Create xevent handle thread.
+ */
+
+static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable *params)
+{
+  GstElement *vsink;
+  GValue *val;
+  gint x, y, w, h, rx, ry;
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  if (priv->xwin_initialized) {
+    UMMS_DEBUG ("xwindow target has been initialized, ingnore this setup");
+    return TRUE;
+  }
+
+  val = g_hash_table_lookup (params, "video-window-id");
+  if (!val) {
+    UMMS_DEBUG ("no video-window-id");
+    return FALSE;
+  }
+  priv->video_win_id = (Window)g_value_get_int64 (val);
+  
+
+  val = g_hash_table_lookup (params, "top-window-id");
+  if (!val) {
+    UMMS_DEBUG ("no top-windo-id passed");
+    return FALSE;
+  }
+  priv->app_win_id = (Window)g_value_get_int64 (val);
+
+  if (!priv->disp)
+    priv->disp = XOpenDisplay (NULL);
+
+  if (!priv->disp) {
+    UMMS_DEBUG ("Could not open display");
+    return FALSE;
+  }
+  
+  get_video_rectangle (self, &x, &y, &w, &h, &rx, &ry);
+  cutout (self, rx, ry, w, h);
+
+  //make ismd video sink and set its rectangle property
+  vsink = gst_element_factory_make ("ismd_vidrend_bin", NULL);
+  if (!vsink) {
+    UMMS_DEBUG ("Failed to make ismd_vidrend_bin");
+    return FALSE;
+  }
+
+  gchar *rectangle_des = NULL;
+  rectangle_des = g_strdup_printf ("%u,%u,%u,%u", x, y, w, h);
+  UMMS_DEBUG ("set rectangle damension :'%s'\n", rectangle_des);
+  g_object_set (G_OBJECT(vsink), "rectangle", rectangle_des, NULL);
+  g_free (rectangle_des);
+
+  UMMS_DEBUG ("set ismd_vidrend_bin to playbin2");
+  g_object_set (priv->pipeline, "video-sink", vsink, NULL);
+
+  //Monitor top-level window's structure change event.
+  XSelectInput (priv->disp, priv->app_win_id,
+      StructureNotifyMask);
+  create_xevent_handle_thread (self);
+
+  priv->target_type = XWindow;
+  priv->xwin_initialized = TRUE;
+
+  return TRUE;
+}
+
+static gboolean
 engine_gst_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params)
 {
   EngineGstPrivate *priv = GET_PRIVATE (self);
   GstElement *vsink;
-  GstState state, pending;
-  GstStateChangeReturn ret;
   GValue *val = NULL;
 
   switch (type) {
-    case XWINDOW:
+    case XWindow:
+      setup_xwindow_target (self, params);
       break;
     case DataCopy:
+      UMMS_DEBUG ("DataCopy target");
       break;
     case Socket:
       UMMS_DEBUG ("unsupported target type: Socket");
-      ret = FALSE;
+      return FALSE;
       break;
     case ReservedType0:
       /*
-       * Use ReservedType0 to represent the gdl-plane video output.
-       * Choose ismd_vidrend_bin as video render.
+       * ReservedType0 represents the gdl-plane video output in our UMMS implementation.
        */
-      vsink = gst_element_factory_make ("ismd_vidrend_bin", NULL);
-      if (!vsink) {
-        UMMS_DEBUG ("Failed to make ismd_vidrend_bin");
-        return FALSE;
-      }
-
-      val = g_hash_table_lookup (params, TARGET_PARAM_KEY_RECTANGLE);
-      if (val) {
-        g_object_set (vsink, "rectangle", g_value_get_string (val), NULL);
-        UMMS_DEBUG ("rectangle = '%s'",  g_value_get_string (val));
-      }
-
-      val = g_hash_table_lookup (params, TARGET_PARAM_KEY_PlANE_ID);
-      if (val) {
-        g_object_set (vsink, "gdl-plane", g_value_get_int (val), NULL);
-        UMMS_DEBUG ("gdl plane = '%d'",  g_value_get_int (val));
-      }
-
-      UMMS_DEBUG ("set ismd_vidrend_bin to playbin2");
-      g_object_set (priv->pipeline, "video-sink", vsink, NULL);
+      setup_gdl_plane_target (self, params);
       break;
     default:
       break;
   }
+  priv->target_type = type;
 
   return TRUE;
 }
@@ -154,7 +444,7 @@ engine_gst_play (MeegoMediaPlayerControl *self)
     return FALSE;
   }
 
-  priv->target = PlayerStatePlaying;
+  priv->pending_state = PlayerStatePlaying;
   gst_element_set_state (priv->pipeline, GST_STATE_PLAYING);
 
   return TRUE;
@@ -171,7 +461,7 @@ engine_gst_pause (MeegoMediaPlayerControl *self)
     return FALSE;
   }
 
-  priv->target = PlayerStatePaused;
+  priv->pending_state = PlayerStatePaused;
   UMMS_DEBUG ("%s: called", __FUNCTION__);
   return TRUE;
 }
@@ -198,7 +488,7 @@ _reset_engine (MeegoMediaPlayerControl *self)
   priv->buffering = FALSE;
   priv->buffer_percent = -1;
   priv->player_state = PlayerStateStopped;
-  priv->target = PlayerStateNull;
+  priv->pending_state = PlayerStateNull;
 
   return;
 }
@@ -214,6 +504,7 @@ _stop_pipe (MeegoMediaPlayerControl *control)
     return FALSE;
   }
 
+
   UMMS_DEBUG ("gstreamer engine stopped");
   return TRUE;
 }
@@ -225,6 +516,10 @@ engine_gst_stop (MeegoMediaPlayerControl *self)
 
   if (!_stop_pipe (self))
     return FALSE;
+
+  if (priv->target_type == XWindow) {
+    unset_xwindow_target (self);
+  }
 
   priv->player_state = PlayerStateStopped;
   meego_media_player_control_emit_stopped (self);
@@ -926,6 +1221,11 @@ engine_gst_dispose (GObject *object)
     priv->pipeline = NULL;
   }
 
+  if (priv->disp) {
+    XCloseDisplay (priv->disp);
+    priv->disp = NULL;
+  }
+
   G_OBJECT_CLASS (engine_gst_parent_class)->dispose (object);
 }
 
@@ -1002,7 +1302,7 @@ bus_message_error_cb (GstBus     *bus,
   UMMS_DEBUG ("message::error received on bus");
 
   gst_message_parse_error (message, &error, NULL);
-  gst_element_set_state (priv->pipeline, GST_STATE_NULL);
+  _stop_pipe (self);
 
   meego_media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, error->message);
 
@@ -1037,11 +1337,11 @@ bus_message_buffering_cb (GstBus *bus,
 
       UMMS_DEBUG ("Done buffering");
       priv->buffering = FALSE;
-      if (priv->target == PlayerStatePlaying)
+      if (priv->pending_state == PlayerStatePlaying)
         gst_element_set_state (priv->pipeline, GST_STATE_PLAYING);
       meego_media_player_control_emit_buffered (self);
 
-    } else if (!priv->buffering && priv->target == PlayerStatePlaying) {
+    } else if (!priv->buffering && priv->pending_state == PlayerStatePlaying) {
       priv->buffering = TRUE;
       UMMS_DEBUG ("Set pipeline to paused for buffering data");
       gst_element_set_state (priv->pipeline, GST_STATE_PAUSED);
@@ -1145,6 +1445,7 @@ engine_gst_init (EngineGst *self)
   g_object_set (priv->pipeline, "flags", flags, NULL);
 
   priv->player_state = PlayerStateNull;
+  priv->target_type = ReservedType0;
 
 }
 

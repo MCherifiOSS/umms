@@ -15,7 +15,7 @@ typedef enum {
 }PlayerState;
 
 typedef enum {
-    XWINDOW,
+    XWindow,
     DataCopy,
     Socket,
     ReservedType0,//On CE4100 platform, indicate using gdl plane directly to render video data 
