@@ -259,7 +259,7 @@ engine_gst_stop (MeegoMediaPlayerControl *self)
   if (!_stop_pipe (self))
     return FALSE;
 
-  priv->player_state = PlayerStateStopped;
+  priv->target = PlayerStateStopped;
   meego_media_player_control_emit_stopped (self);
 
   return TRUE;
