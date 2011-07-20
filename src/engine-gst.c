@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 #include <gst/gst.h>
 #include <gst/interfaces/xoverlay.h>
 /* for the volume property */
@@ -821,8 +822,7 @@ _query_buffering_percent (GstElement *pipe, gdouble *percent)
 }
 
 static gboolean
-engine_gst_get_buffered_time (MeegoMediaPlayerControl *self,
-    gint64 *buffered_time)
+engine_gst_get_buffered_time (MeegoMediaPlayerControl *self, gint64 *buffered_time)
 {
   gint64 duration;
   gdouble percent;
@@ -846,8 +846,7 @@ engine_gst_get_buffered_time (MeegoMediaPlayerControl *self,
 }
 
 static gboolean
-engine_gst_set_window_id (MeegoMediaPlayerControl *self,
-    gdouble window_id)
+engine_gst_set_window_id (MeegoMediaPlayerControl *self, gdouble window_id)
 {
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
@@ -862,6 +861,54 @@ engine_gst_set_window_id (MeegoMediaPlayerControl *self,
   gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (priv->vsink), (gint) window_id );
   return TRUE;
 }
+
+
+static gboolean
+engine_gst_get_current_video (MeegoMediaPlayerControl *self, gint *cur_video)
+{
+
+  return TRUE;
+}
+
+static gboolean 
+engine_gst_get_current_audio (MeegoMediaPlayerControl *self, gint *cur_audio)
+{
+
+  return TRUE;
+}
+
+
+static gboolean 
+engine_gst_set_current_video (MeegoMediaPlayerControl *self, gint cur_video)
+{
+
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_set_current_audio (MeegoMediaPlayerControl *self, gint cur_audio)
+{
+
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_get_video_num (MeegoMediaPlayerControl *self, gint *video_num)
+{
+
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_get_audio_num (MeegoMediaPlayerControl *self, gint *audio_num)
+{
+
+  return TRUE;
+}
+
 
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
@@ -912,11 +959,22 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_set_window_id);
   meego_media_player_control_implement_get_player_state (klass,
       engine_gst_get_player_state);
-  meego_media_player_control_implement_get_buffered_bytes(klass,
+  meego_media_player_control_implement_get_buffered_bytes (klass,
       engine_gst_get_buffered_bytes);
-  meego_media_player_control_implement_get_buffered_time(klass,
+  meego_media_player_control_implement_get_buffered_time (klass,
       engine_gst_get_buffered_time);
-
+  meego_media_player_control_implement_get_current_video (klass,
+      engine_gst_get_current_video);
+  meego_media_player_control_implement_get_current_audio (klass,
+      engine_gst_get_current_audio);
+  meego_media_player_control_implement_set_current_video (klass,
+      engine_gst_set_current_video);
+  meego_media_player_control_implement_set_current_audio (klass,
+      engine_gst_set_current_audio);
+  meego_media_player_control_implement_get_video_num (klass,
+      engine_gst_get_video_num);
+  meego_media_player_control_implement_get_audio_num (klass,
+      engine_gst_get_audio_num);
 }
 
 static void
