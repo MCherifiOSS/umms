@@ -345,8 +345,7 @@ static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable 
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
   if (priv->xwin_initialized) {
-    UMMS_DEBUG ("xwindow target has been initialized, ingnore this setup");
-    return TRUE;
+    unset_xwindow_target (self);
   }
 
   val = g_hash_table_lookup (params, "video-window-id");
@@ -517,10 +516,7 @@ engine_gst_stop (MeegoMediaPlayerControl *self)
   if (!_stop_pipe (self))
     return FALSE;
 
-  if (priv->target_type == XWindow) {
-    unset_xwindow_target (self);
-  }
-
+ 
   priv->player_state = PlayerStateStopped;
   meego_media_player_control_emit_stopped (self);
 
@@ -1219,6 +1215,10 @@ engine_gst_dispose (GObject *object)
   if (priv->pipeline) {
     g_object_unref (priv->pipeline);
     priv->pipeline = NULL;
+  }
+
+  if (priv->target_type == XWindow) {
+    unset_xwindow_target ((MeegoMediaPlayerControl *)object);
   }
 
   if (priv->disp) {
