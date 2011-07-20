@@ -907,6 +907,27 @@ engine_gst_get_current_audio (MeegoMediaPlayerControl *self, gint *cur_audio)
 static gboolean 
 engine_gst_set_current_video (MeegoMediaPlayerControl *self, gint cur_video)
 {
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint n_video = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  /* Because the playbin2 set_property func do no check the return value,
+     we need to get the total number and check valid for cur_video ourselves.*/
+  g_object_get (G_OBJECT (pipe), "n-video", &n_video, NULL);
+  UMMS_DEBUG ("%s: The total video numeber is %d, we want to set to %d\n",
+          __FUNCTION__, n_video, cur_video);
+  if((cur_video < 0) || (cur_video >= n_video)) {
+    UMMS_DEBUG ("%s: The current video is %d, invalid one.\n",
+            __FUNCTION__, cur_video);
+    return FALSE;
+  }
+
+  g_object_set (G_OBJECT (pipe), "current-video", cur_video, NULL);
 
   return TRUE;
 }
@@ -915,6 +936,27 @@ engine_gst_set_current_video (MeegoMediaPlayerControl *self, gint cur_video)
 static gboolean
 engine_gst_set_current_audio (MeegoMediaPlayerControl *self, gint cur_audio)
 {
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint n_audio = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  /* Because the playbin2 set_property func do no check the return value,
+     we need to get the total number and check valid for cur_audio ourselves.*/
+  g_object_get (G_OBJECT (pipe), "n-audio", &n_audio, NULL);
+  UMMS_DEBUG ("%s: The total audio numeber is %d, we want to set to %d\n",
+          __FUNCTION__, n_audio, cur_audio);
+  if((cur_audio< 0) || (cur_audio >= n_audio)) {
+    UMMS_DEBUG ("%s: The current audio is %d, invalid one.\n",
+            __FUNCTION__, cur_audio);
+    return FALSE;
+  }
+
+  g_object_set (G_OBJECT (pipe), "current-audio", cur_audio, NULL);
 
   return TRUE;
 }
