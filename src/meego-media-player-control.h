@@ -130,6 +130,30 @@ typedef gboolean (*meego_media_player_control_get_player_state_impl) (MeegoMedia
 void meego_media_player_control_implement_get_player_state (MeegoMediaPlayerControlClass *klass, 
                                                             meego_media_player_control_get_player_state_impl impl);
 
+typedef gboolean (*meego_media_player_control_get_current_video_impl) (MeegoMediaPlayerControl *self, gint *cur_video);
+void meego_media_player_control_implement_get_current_video (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_current_video_impl impl);
+
+typedef gboolean (*meego_media_player_control_get_current_audio_impl) (MeegoMediaPlayerControl *self, gint *cur_audio);
+void meego_media_player_control_implement_get_current_audio (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_current_audio_impl impl);
+
+typedef gboolean (*meego_media_player_control_set_current_video_impl) (MeegoMediaPlayerControl *self, gint cur_video);
+void meego_media_player_control_implement_set_current_video (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_set_current_video_impl impl);
+
+typedef gboolean (*meego_media_player_control_set_current_audio_impl) (MeegoMediaPlayerControl *self, gint cur_audio);
+void meego_media_player_control_implement_set_current_audio (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_set_current_audio_impl impl);
+
+typedef gboolean (*meego_media_player_control_get_video_num_impl) (MeegoMediaPlayerControl *self, gint *video_num);
+void meego_media_player_control_implement_get_video_num (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_video_num_impl impl);
+
+typedef gboolean (*meego_media_player_control_get_audio_num_impl) (MeegoMediaPlayerControl *self, gint *audio_num);
+void meego_media_player_control_implement_get_audio_num (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_audio_num_impl impl);
+
 /*virtual function wrappers*/
 gboolean meego_media_player_control_set_uri (MeegoMediaPlayerControl *self, const gchar *in_uri);
 gboolean meego_media_player_control_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params);
@@ -155,6 +179,12 @@ gboolean meego_media_player_control_is_streaming (MeegoMediaPlayerControl *self,
 gboolean meego_media_player_control_is_seekable (MeegoMediaPlayerControl *self, gboolean *seekable);
 gboolean meego_media_player_control_support_fullscreen (MeegoMediaPlayerControl *self, gboolean *support_fullscreen);
 gboolean meego_media_player_control_get_player_state (MeegoMediaPlayerControl *self, gint *state);
+gboolean meego_media_player_control_get_current_video (MeegoMediaPlayerControl *self, gint *cur_video);
+gboolean meego_media_player_control_get_current_audio (MeegoMediaPlayerControl *self, gint *cur_audio);
+gboolean meego_media_player_control_set_current_video (MeegoMediaPlayerControl *self, gint cur_video);
+gboolean meego_media_player_control_set_current_audio (MeegoMediaPlayerControl *self, gint cur_audio);
+gboolean meego_media_player_control_get_video_num (MeegoMediaPlayerControl *self, gint *video_num);
+gboolean meego_media_player_control_get_audio_num (MeegoMediaPlayerControl *self, gint *audio_num);
 
 /*signal emitter*/
 void meego_media_player_control_emit_initialized (gpointer instance);
