@@ -187,7 +187,7 @@ engine_gst_play (MeegoMediaPlayerControl *self)
 //    gst_pipeline_use_clock (GST_PIPELINE_CAST(priv->pipeline), GST_CLOCK_CAST(ismd_clock));
   }
 
-  priv->target = PlayerStateNull; /* Set to NULL here, wait for bus's callback to report the right state. */
+  priv->target = PlayerStatePlaying;
   gst_element_set_state (priv->pipeline, GST_STATE_PLAYING);
 
   return TRUE;
