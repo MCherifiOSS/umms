@@ -866,6 +866,19 @@ engine_gst_set_window_id (MeegoMediaPlayerControl *self, gdouble window_id)
 static gboolean
 engine_gst_get_current_video (MeegoMediaPlayerControl *self, gint *cur_video)
 {
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint c_video = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  g_object_get (G_OBJECT (pipe), "current-video", &c_video, NULL);
+  UMMS_DEBUG ("%s: the current video stream is %d\n", __FUNCTION__, c_video);
+
+  *cur_video = c_video;
 
   return TRUE;
 }
@@ -873,6 +886,19 @@ engine_gst_get_current_video (MeegoMediaPlayerControl *self, gint *cur_video)
 static gboolean 
 engine_gst_get_current_audio (MeegoMediaPlayerControl *self, gint *cur_audio)
 {
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint c_audio = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  g_object_get (G_OBJECT (pipe), "current-audio", &c_audio, NULL);
+  UMMS_DEBUG ("%s: the current audio stream is %d\n", __FUNCTION__, c_audio);
+
+  *cur_audio = c_audio;
 
   return TRUE;
 }
@@ -897,6 +923,19 @@ engine_gst_set_current_audio (MeegoMediaPlayerControl *self, gint cur_audio)
 static gboolean
 engine_gst_get_video_num (MeegoMediaPlayerControl *self, gint *video_num)
 {
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint n_video = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  g_object_get (G_OBJECT (pipe), "n-video", &n_video, NULL);
+  UMMS_DEBUG ("%s: the video number of the stream is %d\n", __FUNCTION__, n_video);
+
+  *video_num = n_video;
 
   return TRUE;
 }
@@ -905,6 +944,19 @@ engine_gst_get_video_num (MeegoMediaPlayerControl *self, gint *video_num)
 static gboolean
 engine_gst_get_audio_num (MeegoMediaPlayerControl *self, gint *audio_num)
 {
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint n_audio = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  g_object_get (G_OBJECT (pipe), "n-audio", &n_audio, NULL);
+  UMMS_DEBUG ("%s: the audio number of the stream is %d\n", __FUNCTION__, n_audio);
+
+  *audio_num = n_audio;
 
   return TRUE;
 }
