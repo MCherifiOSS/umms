@@ -330,6 +330,54 @@ static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTabl
   return TRUE;
 }
 
+/*
+ * To get the top level window according to subwindow.
+ * Some prerequisites should be satisfied:
+ * 1. The X server uses 29 bits(i.e. bit1--bit29) to represents a window id.
+ * 2. The X server uses bit22--bit29 to represents a connection/client, it means X server supports 256 connections/clients at maximum.
+ * 3. The top-level window and subwindow is requested from the same connection.
+ * 1 and 2 are the case of xorg server.
+ * 3 is always satisfied, unless subwindow is requested from a process which is not the same process hosting the top-level window.
+*/
+static Window get_top_level_win (MeegoMediaPlayerControl *self, Window sub_win)
+{
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+  Display *disp = priv->disp;
+  Window root_win, parent_win, cur_win;
+  unsigned int num_children;
+  Window *child_list = NULL;
+  Window top_win = 0;
+  gboolean done = FALSE;
+
+  if (!disp)
+    return 0;
+
+  printf ("============%s:Begin, sub_win=%lx ==========\n", __FUNCTION__, sub_win);
+#define CLIENT_MASK (0x1fe00000)
+#define FROM_THE_SAME_PROC(w1,w2) ((w1&CLIENT_MASK) == (w2&CLIENT_MASK))
+
+  cur_win = sub_win;
+  while (!done) {
+    if (!XQueryTree(disp, cur_win, &root_win, &parent_win, &child_list,&num_children)) {
+      UMMS_DEBUG ("Can't query window tree.");
+      return 0;
+    }
+
+    UMMS_DEBUG ("cur_win(%lx), parent_win(%lx)", cur_win, parent_win);
+    if (child_list) XFree((char *)child_list);
+
+    if (!FROM_THE_SAME_PROC(cur_win, parent_win)){
+      UMMS_DEBUG ("Got the top-level window(%lx)", cur_win);
+      top_win = cur_win;
+      done = TRUE;
+      break;
+    };
+    cur_win = parent_win;
+  }
+  printf ("============%s:End==========\n", __FUNCTION__);
+  return top_win;
+}
+
 /* 
  * 1. Retrive "video-window-id" and "top-window-id".
  * 2. Make videosink element and set its rectangle property according to video window geometry.
@@ -348,21 +396,6 @@ static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable 
     unset_xwindow_target (self);
   }
 
-  val = g_hash_table_lookup (params, "video-window-id");
-  if (!val) {
-    UMMS_DEBUG ("no video-window-id");
-    return FALSE;
-  }
-  priv->video_win_id = (Window)g_value_get_int64 (val);
-  
-
-  val = g_hash_table_lookup (params, "top-window-id");
-  if (!val) {
-    UMMS_DEBUG ("no top-windo-id passed");
-    return FALSE;
-  }
-  priv->app_win_id = (Window)g_value_get_int64 (val);
-
   if (!priv->disp)
     priv->disp = XOpenDisplay (NULL);
 
@@ -370,7 +403,20 @@ static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable 
     UMMS_DEBUG ("Could not open display");
     return FALSE;
   }
-  
+
+  val = g_hash_table_lookup (params, "window-id");
+  if (!val) {
+    UMMS_DEBUG ("no window-id");
+    return FALSE;
+  }
+  priv->video_win_id = (Window)g_value_get_int64 (val);
+  priv->app_win_id = get_top_level_win (self, priv->video_win_id);
+
+  if (!priv->app_win_id) {
+    UMMS_DEBUG ("Get top-level window failed");
+    return FALSE;
+  }
+
   get_video_rectangle (self, &x, &y, &w, &h, &rx, &ry);
   cutout (self, rx, ry, w, h);
 
@@ -405,8 +451,11 @@ static gboolean
 engine_gst_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params)
 {
   EngineGstPrivate *priv = GET_PRIVATE (self);
-  GstElement *vsink;
-  GValue *val = NULL;
+
+  if (!priv->pipeline) {
+    UMMS_DEBUG ("Engine not loaded, reason may be SetUri not invoked");
+    return FALSE;
+  }
 
   switch (type) {
     case XWindow:
