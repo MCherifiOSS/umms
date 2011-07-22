@@ -1,4 +1,4 @@
-
+#include <string.h>
 #include <stdarg.h>
 #include <gobject/gvaluecollector.h>
 #include <glib.h>
@@ -42,7 +42,7 @@ param_table_create (const gchar* key1, ...)
     g_value_init (val, valtype); 
     collect_err = NULL; 
     G_VALUE_COLLECT (val, args, G_VALUE_NOCOPY_CONTENTS, &collect_err); 
-    g_hash_table_insert(params, key, val);
+    g_hash_table_insert(params, (gpointer)key, val);
     key = va_arg (args, gpointer); 
   } 
 

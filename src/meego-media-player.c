@@ -579,7 +579,7 @@ meego_media_player_constructed (GObject *player)
   //For client existence checking
   if (priv->attended) {
     UMMS_DEBUG ("Attended execution, add client checking");
-    priv->timeout_id = g_timeout_add (CHECK_INTERVAL, client_existence_check, player);
+    priv->timeout_id = g_timeout_add (CHECK_INTERVAL, (GSourceFunc)client_existence_check, player);
   }
 }
 static void

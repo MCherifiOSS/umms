@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 #include <gst/gst.h>
 #include <gst/interfaces/xoverlay.h>
 /* for the volume property */
@@ -11,6 +12,7 @@
 #include "engine-gst.h"
 #include "meego-media-player-control.h"
 #include "param-table.h"
+
 
 
 static void meego_media_player_control_init (MeegoMediaPlayerControl* iface);
@@ -30,6 +32,26 @@ static const gchar *gst_state[] = {
   "GST_STATE_PAUSED",
   "GST_STATE_PLAYING"
 };
+
+
+/* list of URIs that we consider to be live source. */
+static gchar *live_src_uri[] = { "http://", "mms://", "mmsh://", "rtsp://",
+    "mmsu://", "mmst://", "fd://", "myth://", "ssh://", "ftp://", "sftp://",
+    NULL};
+
+#define IS_LIVE_URI(uri)                                                           \
+({                                                                                 \
+  gboolean ret = FALSE;                                                            \
+  gchar ** src = live_src_uri;                                                     \
+  while (*src) {                                                                   \
+    if (!g_ascii_strncasecmp (uri, *src, strlen(*src))) {                          \
+      ret = TRUE;                                                                  \
+      break;                                                                       \
+    }                                                                              \
+    src++;                                                                         \
+  }                                                                                \
+  ret;                                                                             \
+})
 
 struct _EngineGstPrivate {
   GstElement *pipeline;
@@ -482,6 +504,7 @@ engine_gst_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *par
   return TRUE;
 }
 
+
 static gboolean
 engine_gst_play (MeegoMediaPlayerControl *self)
 {
@@ -490,6 +513,18 @@ engine_gst_play (MeegoMediaPlayerControl *self)
   if (!priv->uri) {
     UMMS_DEBUG(" Unable to set playing state - no URI set");
     return FALSE;
+  }
+
+  if(IS_LIVE_URI(priv->uri)) {     
+//    ISmdGstClock *ismd_clock = NULL;
+    /* For the special case of live source.
+       Becasue our hardware decoder and sink need the special clock type and if the clock type is wrong,
+       the hardware can not work well.  In file case, the provide_clock will be called after all the elements
+       have been made and added in pause state, so the element which represent the hardware will provide the
+       right clock. But in live source case, the state change from NULL to playing is continous and the provide_clock
+       function may be called before hardware element has been made. So we need to set the clock of pipeline statically here.*/
+//    ismd_clock = g_object_new (ISMD_GST_TYPE_CLOCK, NULL); 
+//    gst_pipeline_use_clock (GST_PIPELINE_CAST(priv->pipeline), GST_CLOCK_CAST(ismd_clock));
   }
 
   priv->pending_state = PlayerStatePlaying;
@@ -565,7 +600,6 @@ engine_gst_stop (MeegoMediaPlayerControl *self)
   if (!_stop_pipe (self))
     return FALSE;
 
- 
   priv->player_state = PlayerStateStopped;
   meego_media_player_control_emit_stopped (self);
 
@@ -1128,8 +1162,7 @@ _query_buffering_percent (GstElement *pipe, gdouble *percent)
 }
 
 static gboolean
-engine_gst_get_buffered_time (MeegoMediaPlayerControl *self,
-    gint64 *buffered_time)
+engine_gst_get_buffered_time (MeegoMediaPlayerControl *self, gint64 *buffered_time)
 {
   gint64 duration;
   gdouble percent;
@@ -1153,8 +1186,7 @@ engine_gst_get_buffered_time (MeegoMediaPlayerControl *self,
 }
 
 static gboolean
-engine_gst_set_window_id (MeegoMediaPlayerControl *self,
-    gdouble window_id)
+engine_gst_set_window_id (MeegoMediaPlayerControl *self, gdouble window_id)
 {
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
@@ -1169,6 +1201,148 @@ engine_gst_set_window_id (MeegoMediaPlayerControl *self,
   gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (priv->vsink), (gint) window_id );
   return TRUE;
 }
+
+
+static gboolean
+engine_gst_get_current_video (MeegoMediaPlayerControl *self, gint *cur_video)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint c_video = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  g_object_get (G_OBJECT (pipe), "current-video", &c_video, NULL);
+  UMMS_DEBUG ("%s: the current video stream is %d\n", __FUNCTION__, c_video);
+
+  *cur_video = c_video;
+
+  return TRUE;
+}
+
+static gboolean 
+engine_gst_get_current_audio (MeegoMediaPlayerControl *self, gint *cur_audio)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint c_audio = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  g_object_get (G_OBJECT (pipe), "current-audio", &c_audio, NULL);
+  UMMS_DEBUG ("%s: the current audio stream is %d\n", __FUNCTION__, c_audio);
+
+  *cur_audio = c_audio;
+
+  return TRUE;
+}
+
+
+static gboolean 
+engine_gst_set_current_video (MeegoMediaPlayerControl *self, gint cur_video)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint n_video = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  /* Because the playbin2 set_property func do no check the return value,
+     we need to get the total number and check valid for cur_video ourselves.*/
+  g_object_get (G_OBJECT (pipe), "n-video", &n_video, NULL);
+  UMMS_DEBUG ("%s: The total video numeber is %d, we want to set to %d\n",
+          __FUNCTION__, n_video, cur_video);
+  if((cur_video < 0) || (cur_video >= n_video)) {
+    UMMS_DEBUG ("%s: The current video is %d, invalid one.\n",
+            __FUNCTION__, cur_video);
+    return FALSE;
+  }
+
+  g_object_set (G_OBJECT (pipe), "current-video", cur_video, NULL);
+
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_set_current_audio (MeegoMediaPlayerControl *self, gint cur_audio)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint n_audio = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  /* Because the playbin2 set_property func do no check the return value,
+     we need to get the total number and check valid for cur_audio ourselves.*/
+  g_object_get (G_OBJECT (pipe), "n-audio", &n_audio, NULL);
+  UMMS_DEBUG ("%s: The total audio numeber is %d, we want to set to %d\n",
+          __FUNCTION__, n_audio, cur_audio);
+  if((cur_audio< 0) || (cur_audio >= n_audio)) {
+    UMMS_DEBUG ("%s: The current audio is %d, invalid one.\n",
+            __FUNCTION__, cur_audio);
+    return FALSE;
+  }
+
+  g_object_set (G_OBJECT (pipe), "current-audio", cur_audio, NULL);
+
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_get_video_num (MeegoMediaPlayerControl *self, gint *video_num)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint n_video = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  g_object_get (G_OBJECT (pipe), "n-video", &n_video, NULL);
+  UMMS_DEBUG ("%s: the video number of the stream is %d\n", __FUNCTION__, n_video);
+
+  *video_num = n_video;
+
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_get_audio_num (MeegoMediaPlayerControl *self, gint *audio_num)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint n_audio = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  g_object_get (G_OBJECT (pipe), "n-audio", &n_audio, NULL);
+  UMMS_DEBUG ("%s: the audio number of the stream is %d\n", __FUNCTION__, n_audio);
+
+  *audio_num = n_audio;
+
+  return TRUE;
+}
+
 
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
@@ -1219,11 +1393,22 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_set_window_id);
   meego_media_player_control_implement_get_player_state (klass,
       engine_gst_get_player_state);
-  meego_media_player_control_implement_get_buffered_bytes(klass,
+  meego_media_player_control_implement_get_buffered_bytes (klass,
       engine_gst_get_buffered_bytes);
-  meego_media_player_control_implement_get_buffered_time(klass,
+  meego_media_player_control_implement_get_buffered_time (klass,
       engine_gst_get_buffered_time);
-
+  meego_media_player_control_implement_get_current_video (klass,
+      engine_gst_get_current_video);
+  meego_media_player_control_implement_get_current_audio (klass,
+      engine_gst_get_current_audio);
+  meego_media_player_control_implement_set_current_video (klass,
+      engine_gst_set_current_video);
+  meego_media_player_control_implement_set_current_audio (klass,
+      engine_gst_set_current_audio);
+  meego_media_player_control_implement_get_video_num (klass,
+      engine_gst_get_video_num);
+  meego_media_player_control_implement_get_audio_num (klass,
+      engine_gst_get_audio_num);
 }
 
 static void
