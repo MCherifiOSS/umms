@@ -92,6 +92,7 @@ gboolean meego_media_player_is_seekable(MeegoMediaPlayer *self, gboolean *is_see
 gboolean meego_media_player_support_fullscreen(MeegoMediaPlayer *self, gboolean *support_fullscreen, GError **error);
 gboolean meego_media_player_get_player_state(MeegoMediaPlayer *self, gint *state, GError **error);
 gboolean meego_media_player_reply(MeegoMediaPlayer *self, GError **error);
+gboolean meego_media_player_set_proxy (MeegoMediaPlayer *self, GHashTable *params, GError **error);
 
 
 G_END_DECLS

@@ -33,6 +33,7 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_set_current_audio_impl set_current_audio;
   meego_media_player_control_get_video_num_impl get_video_num;
   meego_media_player_control_get_audio_num_impl get_audio_num;
+  meego_media_player_control_set_proxy_impl set_proxy;
 };
 
 enum {
@@ -719,6 +720,25 @@ void meego_media_player_control_implement_get_audio_num (MeegoMediaPlayerControl
   klass->get_audio_num = impl;
 }
 
+gboolean
+meego_media_player_control_set_proxy (MeegoMediaPlayerControl *self,
+                                       GHashTable *params) 
+{
+  meego_media_player_control_set_proxy_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_proxy);
+
+  if (impl != NULL) {
+    (impl) (self, params);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_set_proxy (MeegoMediaPlayerControlClass *klass,
+                                                      meego_media_player_control_set_proxy_impl impl)
+{
+  klass->set_proxy = impl;
+}
 
 void
 meego_media_player_control_emit_initialized (gpointer instance)

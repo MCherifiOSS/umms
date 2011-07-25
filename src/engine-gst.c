@@ -25,6 +25,12 @@ G_DEFINE_TYPE_WITH_CODE (EngineGst, engine_gst, G_TYPE_OBJECT,
 
 #define GET_PRIVATE(o) ((EngineGst *)o)->priv
 
+#define RESET_STR(str) \
+     if (str) {       \
+       g_free(str);   \
+       str = NULL;    \
+     }
+
 static const gchar *gst_state[] = {
   "GST_STATE_VOID_PENDING",
   "GST_STATE_NULL",
@@ -82,6 +88,11 @@ struct _EngineGstPrivate {
   Display  *disp;
   GThread  *event_thread;
   gboolean event_thread_running;
+  
+  //http proxy
+  gchar    *proxy_uri;
+  gchar    *proxy_id;
+  gchar    *proxy_pw;
 };
 
 static void _reset_engine (MeegoMediaPlayerControl *self);
@@ -113,19 +124,7 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
 
   g_object_set (priv->pipeline, "uri", uri, NULL);
 
-  //preroll the pipe
-  if(gst_element_set_state (priv->pipeline, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
-    UMMS_DEBUG ("%s:set pipeline to paused failed", __FUNCTION__);
-    return FALSE;
-  }
-
-  ret = gst_element_get_state (priv->pipeline, &state, &pending, -1);
-  if (ret == GST_STATE_CHANGE_NO_PREROLL && state ==  GST_STATE_PAUSED) {
-    priv->is_live = TRUE;
-  } else {
-    priv->is_live = FALSE;
-  }
-  UMMS_DEBUG ("media :'%s is %slive source'", __FUNCTION__, priv->is_live ? "" : "non-");
+  priv->is_live = IS_LIVE_URI(priv->uri);
 
   return TRUE;
 }
@@ -1343,6 +1342,34 @@ engine_gst_get_audio_num (MeegoMediaPlayerControl *self, gint *audio_num)
   return TRUE;
 }
 
+static gboolean
+engine_gst_set_proxy (MeegoMediaPlayerControl *self, GHashTable *params)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  GValue *val = NULL;
+
+  g_return_val_if_fail ((self != NULL) && (params != NULL), FALSE);
+  priv = GET_PRIVATE (self);
+
+  if (g_hash_table_lookup_extended (params, "proxy-uri", NULL, &val)) {
+    RESET_STR (priv->proxy_uri);
+    priv->proxy_uri = g_value_dup_string (val);
+  }
+
+  if (g_hash_table_lookup_extended (params, "proxy-id", NULL, &val)) {
+    RESET_STR (priv->proxy_id);
+    priv->proxy_id = g_value_dup_string (val);
+  }
+
+  if (g_hash_table_lookup_extended (params, "proxy-pw", NULL, &val)) {
+    RESET_STR (priv->proxy_pw)
+    priv->proxy_pw = g_value_dup_string (val);
+  }
+
+  UMMS_DEBUG ("proxy=%s, id=%s, pw=%s", priv->proxy_uri, priv->proxy_id, priv->proxy_pw);
+  return TRUE;
+}
 
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
@@ -1409,6 +1436,8 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_get_video_num);
   meego_media_player_control_implement_get_audio_num (klass,
       engine_gst_get_audio_num);
+  meego_media_player_control_implement_set_proxy (klass,
+      engine_gst_set_proxy);
 }
 
 static void
@@ -1468,7 +1497,10 @@ engine_gst_finalize (GObject *object)
 {
   EngineGstPrivate *priv = GET_PRIVATE (object);
 
-  g_free (priv->uri);
+  RESET_STR(priv->uri);
+  RESET_STR(priv->proxy_uri);
+  RESET_STR(priv->proxy_id);
+  RESET_STR(priv->proxy_pw);
 
   G_OBJECT_CLASS (engine_gst_parent_class)->finalize (object);
 }
@@ -1494,6 +1526,7 @@ bus_message_state_change_cb (GstBus     *bus,
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
   GstState old_state, new_state;
+  PlayerState old_player_state;
   gpointer src;
 
   src = GST_MESSAGE_SRC (message);
@@ -1503,15 +1536,19 @@ bus_message_state_change_cb (GstBus     *bus,
   gst_message_parse_state_changed (message, &old_state, &new_state, NULL);
 
   UMMS_DEBUG ("state-changed: old='%s', new='%s'", gst_state[old_state], gst_state[new_state]);
+
+  old_player_state = priv->player_state;
   if (new_state == GST_STATE_PAUSED) {
     priv->player_state = PlayerStatePaused;
   } else if(new_state == GST_STATE_PLAYING) {
     priv->player_state = PlayerStatePlaying;
   } else {
-    priv->player_state = PlayerStateStopped;
+    if (new_state < old_state)//down state change to GST_STATE_READY
+      priv->player_state = PlayerStateStopped;
   }
 
-  meego_media_player_control_emit_player_state_changed (self, priv->player_state);
+  if (priv->player_state != old_player_state)
+    meego_media_player_control_emit_player_state_changed (self, priv->player_state);
 }
 
 static void
@@ -1690,6 +1727,20 @@ engine_gst_new (void)
 }
 
 static void
+_set_proxy (MeegoMediaPlayerControl *self)
+{
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+  g_return_if_fail (priv->source);
+  if (g_object_class_find_property (G_OBJECT_GET_CLASS (priv->source), "proxy") == NULL)
+    return;
+
+  UMMS_DEBUG ("Setting proxy. proxy=%s, id=%s, pw=%s", priv->proxy_uri, priv->proxy_id, priv->proxy_pw);
+  g_object_set (priv->source, "proxy", priv->proxy_uri,
+                              "proxy-id", priv->proxy_id,
+                              "proxy-pw", priv->proxy_pw, NULL);
+}
+
+static void
 _source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data)
 {
   GstElement *source;
@@ -1698,6 +1749,7 @@ _source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data)
   g_object_get(priv->pipeline, "source", &source, NULL);
   gst_object_replace((GstObject**) &priv->source, (GstObject*) source);
   UMMS_DEBUG ("source changed");
+  _set_proxy ((MeegoMediaPlayerControl *)data);
 
   return;
 }

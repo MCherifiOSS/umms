@@ -492,6 +492,16 @@ gboolean meego_media_player_get_buffered_time (MeegoMediaPlayer *player, gint64 
   return TRUE;
 }
 
+gboolean
+meego_media_player_set_proxy (MeegoMediaPlayer *player,
+    GHashTable *params,
+    GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_set_proxy (GET_CONTROL_IFACE (player), params);
+  return TRUE;
+}
+
 
 static void
 meego_media_player_get_property (GObject    *object,

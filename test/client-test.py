@@ -34,7 +34,8 @@ method_name = (
 	"IsStreaming",
 	"IsSeekable",#20
 	"SupportFullscreen",
-	"GetPlayerState"
+	"GetPlayerState",
+        "SetProxy"
 	)
 
 (
@@ -61,7 +62,8 @@ method_name = (
 	IsStreaming,
 	IsSeekable,
 	SupportFullscreen,
-	GetPlayerState
+	GetPlayerState,
+	SetProxy
 ) = range (len(method_name))
 
 (
@@ -255,6 +257,8 @@ class CmdHandler(threading.Thread):
         elif mid == GetPlayerState:
         	state = self.player.GetPlayerState()
         	print "Current state = '%s'" % state_name[state]
+        elif mid == SetProxy:
+        	state = self.player.SetProxy({"proxy-uri":"http://proxy01.pd.intel.com:911"})
         else:
         	print "Unsupported method id '%d'" % (mid)
         	self.print_help(self);

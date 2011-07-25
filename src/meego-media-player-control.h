@@ -153,6 +153,11 @@ void meego_media_player_control_implement_get_video_num (MeegoMediaPlayerControl
 typedef gboolean (*meego_media_player_control_get_audio_num_impl) (MeegoMediaPlayerControl *self, gint *audio_num);
 void meego_media_player_control_implement_get_audio_num (MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_get_audio_num_impl impl);
+typedef gboolean (*meego_media_player_control_set_proxy_impl) (MeegoMediaPlayerControl *self,
+                                                                GHashTable *params);
+void meego_media_player_control_implement_set_proxy (MeegoMediaPlayerControlClass *klass,
+                                                      meego_media_player_control_set_proxy_impl impl);
+
 
 /*virtual function wrappers*/
 gboolean meego_media_player_control_set_uri (MeegoMediaPlayerControl *self, const gchar *in_uri);
@@ -185,6 +190,7 @@ gboolean meego_media_player_control_set_current_video (MeegoMediaPlayerControl *
 gboolean meego_media_player_control_set_current_audio (MeegoMediaPlayerControl *self, gint cur_audio);
 gboolean meego_media_player_control_get_video_num (MeegoMediaPlayerControl *self, gint *video_num);
 gboolean meego_media_player_control_get_audio_num (MeegoMediaPlayerControl *self, gint *audio_num);
+gboolean meego_media_player_control_set_proxy (MeegoMediaPlayerControl *self, GHashTable *params);
 
 /*signal emitter*/
 void meego_media_player_control_emit_initialized (gpointer instance);
