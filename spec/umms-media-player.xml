@@ -106,7 +106,7 @@
 		</method>
 
 		<method name="SetProxy">
-			<arg type="a{sv}"/>
+			<arg name="param" type="a{sv}"/>
 		</method>
 
 		<signal name="Initialized">
