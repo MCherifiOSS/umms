@@ -155,7 +155,7 @@ get_video_rectangle (MeegoMediaPlayerControl *self, gint *ax, gint *ay, gint *w,
       &app_x, &app_y, &junkwin);
   UMMS_DEBUG ("app window app_absolute_x = %d, app_absolute_y = %d", app_x, app_y);
 
- (void) XTranslateCoordinates (priv->disp, priv->video_win_id, video_win_attr.root, 
+  (void) XTranslateCoordinates (priv->disp, priv->video_win_id, video_win_attr.root, 
       -video_win_attr.border_width,
       -video_win_attr.border_width,
       ax, ay, &junkwin);
@@ -1352,17 +1352,17 @@ engine_gst_set_proxy (MeegoMediaPlayerControl *self, GHashTable *params)
   g_return_val_if_fail ((self != NULL) && (params != NULL), FALSE);
   priv = GET_PRIVATE (self);
 
-  if (g_hash_table_lookup_extended (params, "proxy-uri", NULL, &val)) {
+  if (g_hash_table_lookup_extended (params, "proxy-uri", NULL, (gpointer)&val)) {
     RESET_STR (priv->proxy_uri);
     priv->proxy_uri = g_value_dup_string (val);
   }
 
-  if (g_hash_table_lookup_extended (params, "proxy-id", NULL, &val)) {
+  if (g_hash_table_lookup_extended (params, "proxy-id", NULL, (gpointer)&val)) {
     RESET_STR (priv->proxy_id);
     priv->proxy_id = g_value_dup_string (val);
   }
 
-  if (g_hash_table_lookup_extended (params, "proxy-pw", NULL, &val)) {
+  if (g_hash_table_lookup_extended (params, "proxy-pw", NULL, (gpointer)&val)) {
     RESET_STR (priv->proxy_pw)
     priv->proxy_pw = g_value_dup_string (val);
   }
@@ -1573,7 +1573,7 @@ bus_message_error_cb (GstBus     *bus,
   UMMS_DEBUG ("message::error received on bus");
 
   gst_message_parse_error (message, &error, NULL);
-  _stop_pipe (self);
+  _stop_pipe (MEEGO_MEDIA_PLAYER_CONTROL(self));
 
   meego_media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, error->message);
 
