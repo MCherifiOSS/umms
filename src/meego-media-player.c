@@ -501,6 +501,7 @@ meego_media_player_get_current_video (MeegoMediaPlayer *player, gint *cur_video,
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_current_video(GET_CONTROL_IFACE (player), cur_video);
   UMMS_DEBUG ("get the current video is %d", *cur_video);
+  return TRUE;
 }
 
 gboolean
@@ -509,6 +510,7 @@ meego_media_player_get_current_audio (MeegoMediaPlayer *player, gint *cur_audio,
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_current_audio(GET_CONTROL_IFACE (player), cur_audio);
   UMMS_DEBUG ("get the current audio is %d", *cur_audio);
+  return TRUE;
 }
 
 gboolean
@@ -517,6 +519,7 @@ meego_media_player_set_current_video (MeegoMediaPlayer *player, gint cur_video, 
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_set_current_video(GET_CONTROL_IFACE (player), cur_video);
   UMMS_DEBUG ("set the current video to %d", cur_video);
+  return TRUE;
 }
 
 gboolean
@@ -525,6 +528,7 @@ meego_media_player_set_current_audio (MeegoMediaPlayer *player, gint cur_audio, 
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_set_current_audio(GET_CONTROL_IFACE (player), cur_audio);
   UMMS_DEBUG ("set the current audio to %d", cur_audio);
+  return TRUE;
 }
 
 gboolean 
@@ -533,6 +537,7 @@ meego_media_player_get_video_num (MeegoMediaPlayer *player, gint *video_num, GEr
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_video_num(GET_CONTROL_IFACE (player), video_num);
   UMMS_DEBUG ("the total video number is %d", *video_num);
+  return TRUE;
 }
 
 gboolean 
@@ -541,6 +546,7 @@ meego_media_player_get_audio_num (MeegoMediaPlayer *player, gint *audio_num, GEr
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_audio_num(GET_CONTROL_IFACE (player), audio_num);
   UMMS_DEBUG ("the total audio number is %d", *audio_num);
+  return TRUE;
 }
 
 gboolean
