@@ -430,7 +430,7 @@ static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable 
     UMMS_DEBUG ("no window-id");
     return FALSE;
   }
-  priv->video_win_id = (Window)g_value_get_int64 (val);
+  priv->video_win_id = (Window)g_value_get_int (val);
   priv->app_win_id = get_top_level_win (self, priv->video_win_id);
 
   if (!priv->app_win_id) {
