@@ -559,6 +559,15 @@ meego_media_player_set_proxy (MeegoMediaPlayer *player,
   return TRUE;
 }
 
+gboolean 
+meego_media_player_set_subtitle_uri (MeegoMediaPlayer *player, gchar *sub_uri, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  UMMS_DEBUG ("set the subtitle uri to %s", sub_uri);
+  meego_media_player_control_set_subtitle_uri(GET_CONTROL_IFACE (player), sub_uri);
+  return TRUE;
+}
+
 static void
 meego_media_player_get_property (GObject    *object,
     guint       property_id,

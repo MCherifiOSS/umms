@@ -34,6 +34,7 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_get_video_num_impl get_video_num;
   meego_media_player_control_get_audio_num_impl get_audio_num;
   meego_media_player_control_set_proxy_impl set_proxy;
+  meego_media_player_control_set_subtitle_uri_impl set_subtitle_uri;
 };
 
 enum {
@@ -595,7 +596,8 @@ void meego_media_player_control_implement_get_player_state (MeegoMediaPlayerCont
 }
 
 
-gboolean meego_media_player_control_get_current_video (MeegoMediaPlayerControl *self, gint *cur_video)
+gboolean
+meego_media_player_control_get_current_video (MeegoMediaPlayerControl *self, gint *cur_video)
 {
   meego_media_player_control_get_current_video_impl impl =
                    (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_current_video);
@@ -616,7 +618,8 @@ void meego_media_player_control_implement_get_current_video (MeegoMediaPlayerCon
 }
 
 
-gboolean meego_media_player_control_get_current_audio (MeegoMediaPlayerControl *self, gint *cur_audio)
+gboolean
+meego_media_player_control_get_current_audio (MeegoMediaPlayerControl *self, gint *cur_audio)
 {
   meego_media_player_control_get_current_audio_impl impl =
                    (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_current_audio);
@@ -637,7 +640,8 @@ void meego_media_player_control_implement_get_current_audio (MeegoMediaPlayerCon
 }
 
 
-gboolean meego_media_player_control_set_current_video (MeegoMediaPlayerControl *self, gint cur_video)
+gboolean
+meego_media_player_control_set_current_video (MeegoMediaPlayerControl *self, gint cur_video)
 {
   meego_media_player_control_set_current_video_impl impl =
                    (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_current_video);
@@ -658,7 +662,8 @@ void meego_media_player_control_implement_set_current_video (MeegoMediaPlayerCon
 }
 
 
-gboolean meego_media_player_control_set_current_audio (MeegoMediaPlayerControl *self, gint cur_audio)
+gboolean
+meego_media_player_control_set_current_audio (MeegoMediaPlayerControl *self, gint cur_audio)
 {
   meego_media_player_control_set_current_audio_impl impl =
                    (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_current_audio);
@@ -679,7 +684,8 @@ void meego_media_player_control_implement_set_current_audio (MeegoMediaPlayerCon
 }
 
 
-gboolean meego_media_player_control_get_video_num (MeegoMediaPlayerControl *self, gint *video_num)
+gboolean
+meego_media_player_control_get_video_num (MeegoMediaPlayerControl *self, gint *video_num)
 {
   meego_media_player_control_get_video_num_impl impl =
                    (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_video_num);
@@ -700,7 +706,8 @@ void meego_media_player_control_implement_get_video_num (MeegoMediaPlayerControl
 }
 
 
-gboolean meego_media_player_control_get_audio_num (MeegoMediaPlayerControl *self, gint *audio_num)
+gboolean
+meego_media_player_control_get_audio_num (MeegoMediaPlayerControl *self, gint *audio_num)
 {
   meego_media_player_control_get_audio_num_impl impl =
                    (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_audio_num);
@@ -738,6 +745,25 @@ void meego_media_player_control_implement_set_proxy (MeegoMediaPlayerControlClas
                                                       meego_media_player_control_set_proxy_impl impl)
 {
   klass->set_proxy = impl;
+}
+
+gboolean 
+meego_media_player_control_set_subtitle_uri (MeegoMediaPlayerControl *self, gchar *sub_uri)
+{
+  meego_media_player_control_set_subtitle_uri_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_subtitle_uri);
+
+  if (impl != NULL) {
+    (impl) (self, sub_uri);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_set_subtitle_uri (MeegoMediaPlayerControlClass *klass,
+                                                            meego_media_player_control_set_subtitle_uri_impl impl)
+{
+  klass->set_subtitle_uri = impl;
 }
 
 void

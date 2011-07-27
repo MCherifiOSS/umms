@@ -133,6 +133,10 @@
 			<arg type="i" direction="out"/>
 		</method>
 
+		<method name="SetSubtitleUri">
+			<arg name="uri" type="s"/>
+		</method>
+
 		<signal name="Initialized">
 		</signal>
 

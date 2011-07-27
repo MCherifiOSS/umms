@@ -1342,6 +1342,27 @@ engine_gst_get_audio_num (MeegoMediaPlayerControl *self, gint *audio_num)
   return TRUE;
 }
 
+
+static gboolean
+engine_gst_set_subtitle_uri (MeegoMediaPlayerControl *self, gchar *sub_uri)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  /* It seems that the subtitle URI need to set before activate the group, and 
+     can not dynamic change it of current group when playing.
+     So calling this API when stream is playing may have no effect. */
+  g_object_set (G_OBJECT (pipe), "suburi", sub_uri, NULL);
+  
+  return TRUE;
+}
+
+
 static gboolean
 engine_gst_set_proxy (MeegoMediaPlayerControl *self, GHashTable *params)
 {
@@ -1438,6 +1459,8 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_get_audio_num);
   meego_media_player_control_implement_set_proxy (klass,
       engine_gst_set_proxy);
+  meego_media_player_control_implement_set_subtitle_uri (klass,
+      engine_gst_set_subtitle_uri);
 }
 
 static void
