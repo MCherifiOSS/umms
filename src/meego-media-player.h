@@ -97,6 +97,8 @@ gboolean meego_media_player_get_current_video (MeegoMediaPlayer *player, gint *c
 gboolean meego_media_player_get_current_audio (MeegoMediaPlayer *player, gint *cur_audio, GError **err);
 gboolean meego_media_player_set_current_video (MeegoMediaPlayer *player, gint cur_video, GError **err);
 gboolean meego_media_player_set_current_audio (MeegoMediaPlayer *player, gint cur_audio, GError **err);
+gboolean meego_media_player_get_video_num (MeegoMediaPlayer *player, gint *video_num, GError **err);
+gboolean meego_media_player_get_audio_num (MeegoMediaPlayer *player, gint *audio_num, GError **err);
 
 G_END_DECLS
 
