@@ -93,7 +93,10 @@ gboolean meego_media_player_support_fullscreen(MeegoMediaPlayer *self, gboolean 
 gboolean meego_media_player_get_player_state(MeegoMediaPlayer *self, gint *state, GError **error);
 gboolean meego_media_player_reply(MeegoMediaPlayer *self, GError **error);
 gboolean meego_media_player_set_proxy (MeegoMediaPlayer *self, GHashTable *params, GError **error);
-
+gboolean meego_media_player_get_current_video (MeegoMediaPlayer *player, gint *cur_video, GError **err);
+gboolean meego_media_player_get_current_audio (MeegoMediaPlayer *player, gint *cur_audio, GError **err);
+gboolean meego_media_player_set_current_video (MeegoMediaPlayer *player, gint cur_video, GError **err);
+gboolean meego_media_player_set_current_audio (MeegoMediaPlayer *player, gint cur_audio, GError **err);
 
 G_END_DECLS
 

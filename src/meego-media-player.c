@@ -468,7 +468,8 @@ meego_media_player_is_streaming (MeegoMediaPlayer *player,
   return TRUE;
 }
 
-gboolean meego_media_player_get_player_state(MeegoMediaPlayer *player, gint *state, GError **err)
+gboolean 
+meego_media_player_get_player_state(MeegoMediaPlayer *player, gint *state, GError **err)
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_player_state (GET_CONTROL_IFACE (player), state);
@@ -476,7 +477,8 @@ gboolean meego_media_player_get_player_state(MeegoMediaPlayer *player, gint *sta
   return TRUE;
 }
 
-gboolean meego_media_player_get_buffered_bytes (MeegoMediaPlayer *player, gint64 *bytes, GError **err)
+gboolean 
+meego_media_player_get_buffered_bytes (MeegoMediaPlayer *player, gint64 *bytes, GError **err)
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_buffered_bytes (GET_CONTROL_IFACE (player), bytes);
@@ -484,12 +486,45 @@ gboolean meego_media_player_get_buffered_bytes (MeegoMediaPlayer *player, gint64
   return TRUE;
 }
 
-gboolean meego_media_player_get_buffered_time (MeegoMediaPlayer *player, gint64 *size_time, GError **err)
+gboolean 
+meego_media_player_get_buffered_time (MeegoMediaPlayer *player, gint64 *size_time, GError **err)
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_buffered_time (GET_CONTROL_IFACE (player), size_time);
   UMMS_DEBUG ("buffered time = %lld",  *size_time);
   return TRUE;
+}
+
+gboolean
+meego_media_player_get_current_video (MeegoMediaPlayer *player, gint *cur_video, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_current_video(GET_CONTROL_IFACE (player), cur_video);
+  UMMS_DEBUG ("get the current video is %d", *cur_video);
+}
+
+gboolean
+meego_media_player_get_current_audio (MeegoMediaPlayer *player, gint *cur_audio, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_current_audio(GET_CONTROL_IFACE (player), cur_audio);
+  UMMS_DEBUG ("get the current audio is %d", *cur_audio);
+}
+
+gboolean
+meego_media_player_set_current_video (MeegoMediaPlayer *player, gint cur_video, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_set_current_video(GET_CONTROL_IFACE (player), cur_video);
+  UMMS_DEBUG ("set the current video to %d", cur_video);
+}
+
+gboolean
+meego_media_player_set_current_audio (MeegoMediaPlayer *player, gint cur_audio, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_set_current_audio(GET_CONTROL_IFACE (player), cur_audio);
+  UMMS_DEBUG ("set the current audio to %d", cur_audio);
 }
 
 gboolean
@@ -501,7 +536,6 @@ meego_media_player_set_proxy (MeegoMediaPlayer *player,
   meego_media_player_control_set_proxy (GET_CONTROL_IFACE (player), params);
   return TRUE;
 }
-
 
 static void
 meego_media_player_get_property (GObject    *object,
