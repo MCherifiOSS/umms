@@ -160,7 +160,7 @@ get_video_rectangle (MeegoMediaPlayerControl *self, gint *ax, gint *ay, gint *w,
       &app_x, &app_y, &junkwin);
   UMMS_DEBUG ("app window app_absolute_x = %d, app_absolute_y = %d", app_x, app_y);
 
- (void) XTranslateCoordinates (priv->disp, priv->video_win_id, video_win_attr.root, 
+  (void) XTranslateCoordinates (priv->disp, priv->video_win_id, video_win_attr.root, 
       -video_win_attr.border_width,
       -video_win_attr.border_width,
       ax, ay, &junkwin);
@@ -190,11 +190,13 @@ cutout (MeegoMediaPlayerControl *self, gint x, gint y, gint w, gint h)
     return FALSE;
   }
 
-  g_sprintf (data, "meego-tv-cutout-x=%d:meego-tv-cutout-y=%d:meego-tv-cutout-width=%d:meego-tv-cutout-height=%d:meego-tv-half-trans=0:meego-tv-full-window=0", x, y, w, h);
+  g_sprintf (data, "meego-tv-cutout-x=%d:meego-tv-cutout-y=%d:meego-tv-cutout-width=%d:"
+             "meego-tv-cutout-height=%d:meego-tv-half-trans=0:meego-tv-full-window=0", x, y, w, h);
 
   UMMS_DEBUG ("Hints to mtv-mutter = \"%s\"", data);
 
-  XChangeProperty(priv->disp, priv->app_win_id,property,XA_STRING,8,PropModeReplace,(unsigned char *)data, strlen(data));
+  XChangeProperty(priv->disp, priv->app_win_id, property, XA_STRING, 8, PropModeReplace,
+                  (unsigned char *)data, strlen(data));
   return TRUE;
 }
 
@@ -328,11 +330,10 @@ destroy_xevent_handle_thread (MeegoMediaPlayerControl *self)
   return TRUE;
 }
 
-static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTable *params)
+static gboolean setup_ismd_vbin(MeegoMediaPlayerControl *self, gchar *rect, gint plane)
 {
-  EngineGstPrivate *priv = GET_PRIVATE (self);
   GstElement *vsink;
-  GValue *val = NULL;
+  EngineGstPrivate *priv = GET_PRIVATE (self);
 
   vsink = gst_element_factory_make ("ismd_vidrend_bin", NULL);
   if (!vsink) {
@@ -340,20 +341,36 @@ static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTabl
     return FALSE;
   }
 
+  if (rect)
+    g_object_set (vsink, "rectangle", rect, NULL);
+  if (plane != -1)
+    g_object_set (vsink, "gdl-plane", plane, NULL);
+
+  g_object_set (priv->pipeline, "video-sink", vsink, NULL);
+  UMMS_DEBUG ("Set ismd_vidrend_bin to playbin2");
+  return TRUE;
+}
+
+
+static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTable *params)
+{
+  gchar *rect = NULL;
+  gint  plane = -1;
+  GValue *val = NULL;
+
   val = g_hash_table_lookup (params, TARGET_PARAM_KEY_RECTANGLE);
   if (val) {
-    g_object_set (vsink, "rectangle", g_value_get_string (val), NULL);
-    UMMS_DEBUG ("rectangle = '%s'",  g_value_get_string (val));
+    rect = (gchar *)g_value_get_string (val);
+    UMMS_DEBUG ("rectangle = '%s'", rect);
   }
 
   val = g_hash_table_lookup (params, TARGET_PARAM_KEY_PlANE_ID);
   if (val) {
-    g_object_set (vsink, "gdl-plane", g_value_get_int (val), NULL);
-    UMMS_DEBUG ("gdl plane = '%d'",  g_value_get_int (val));
+    plane = g_value_get_int (val);
+    UMMS_DEBUG ("gdl plane = '%d'", plane);
   }
-
-  g_object_set (priv->pipeline, "video-sink", vsink, NULL);
-  return TRUE;
+  
+  return setup_ismd_vbin (self, rect, plane);
 }
 
 /*
@@ -435,7 +452,7 @@ static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable 
     UMMS_DEBUG ("no window-id");
     return FALSE;
   }
-  priv->video_win_id = (Window)g_value_get_int64 (val);
+  priv->video_win_id = (Window)g_value_get_int (val);
   priv->app_win_id = get_top_level_win (self, priv->video_win_id);
 
   if (!priv->app_win_id) {
@@ -526,7 +543,8 @@ engine_gst_play (MeegoMediaPlayerControl *self)
        the hardware can not work well.  In file case, the provide_clock will be called after all the elements
        have been made and added in pause state, so the element which represent the hardware will provide the
        right clock. But in live source case, the state change from NULL to playing is continous and the provide_clock
-       function may be called before hardware element has been made. So we need to set the clock of pipeline statically here.*/
+       function may be called before hardware element has been made.
+       So we need to set the clock of pipeline statically here.*/
 //    ismd_clock = g_object_new (ISMD_GST_TYPE_CLOCK, NULL); 
 //    gst_pipeline_use_clock (GST_PIPELINE_CAST(priv->pipeline), GST_CLOCK_CAST(ismd_clock));
   }
@@ -1189,6 +1207,7 @@ engine_gst_get_buffered_time (MeegoMediaPlayerControl *self, gint64 *buffered_ti
   return TRUE;
 }
 
+
 static gboolean
 engine_gst_set_window_id (MeegoMediaPlayerControl *self, gdouble window_id)
 {
@@ -1226,6 +1245,7 @@ engine_gst_get_current_video (MeegoMediaPlayerControl *self, gint *cur_video)
 
   return TRUE;
 }
+
 
 static gboolean 
 engine_gst_get_current_audio (MeegoMediaPlayerControl *self, gint *cur_audio)
@@ -1266,7 +1286,7 @@ engine_gst_set_current_video (MeegoMediaPlayerControl *self, gint cur_video)
   UMMS_DEBUG ("%s: The total video numeber is %d, we want to set to %d\n",
           __FUNCTION__, n_video, cur_video);
   if((cur_video < 0) || (cur_video >= n_video)) {
-    UMMS_DEBUG ("%s: The current video is %d, invalid one.\n",
+    UMMS_DEBUG ("%s: The video we want to set is %d, invalid one.\n",
             __FUNCTION__, cur_video);
     return FALSE;
   }
@@ -1295,7 +1315,7 @@ engine_gst_set_current_audio (MeegoMediaPlayerControl *self, gint cur_audio)
   UMMS_DEBUG ("%s: The total audio numeber is %d, we want to set to %d\n",
           __FUNCTION__, n_audio, cur_audio);
   if((cur_audio< 0) || (cur_audio >= n_audio)) {
-    UMMS_DEBUG ("%s: The current audio is %d, invalid one.\n",
+    UMMS_DEBUG ("%s: The audio we want to set is %d, invalid one.\n",
             __FUNCTION__, cur_audio);
     return FALSE;
   }
@@ -1347,6 +1367,109 @@ engine_gst_get_audio_num (MeegoMediaPlayerControl *self, gint *audio_num)
   return TRUE;
 }
 
+
+static gboolean
+engine_gst_set_subtitle_uri (MeegoMediaPlayerControl *self, gchar *sub_uri)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  GstElement *sub_sink = NULL;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  /* We first set the subtitle render element of playbin2 using ismd_subrend_bin.
+     If failed, we just use the default subrender logic in playbin2. */
+  sub_sink = gst_element_factory_make ("ismd_subrend_bin", NULL);
+  if (sub_sink) {
+    UMMS_DEBUG ("%s: succeed to make the ismd_subrend_bin, set it to playbin2\n", __FUNCTION__);
+    g_object_set (priv->pipeline, "text-sink", sub_sink, NULL);
+  } else {
+    UMMS_DEBUG ("%s: Unable to make the ismd_subrend_bin\n", __FUNCTION__);
+  }
+
+  /* It seems that the subtitle URI need to set before activate the group, and 
+     can not dynamic change it of current group when playing.
+     So calling this API when stream is playing may have no effect. */
+  g_object_set (G_OBJECT (pipe), "suburi", sub_uri, NULL);
+  
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_get_subtitle_num (MeegoMediaPlayerControl *self, gint *sub_num)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint n_sub = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  g_object_get (G_OBJECT (pipe), "n-text", &n_sub, NULL);
+  UMMS_DEBUG ("%s: the subtitle number of the stream is %d\n", __FUNCTION__, n_sub);
+
+  *sub_num = n_sub;
+
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_get_current_subtitle (MeegoMediaPlayerControl *self, gint *cur_sub)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint c_sub = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  g_object_get (G_OBJECT (pipe), "current-text", &c_sub, NULL);
+  UMMS_DEBUG ("%s: the current subtitle stream is %d\n", __FUNCTION__, c_sub);
+
+  *cur_sub = c_sub;
+
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_set_current_subtitle (MeegoMediaPlayerControl *self, gint cur_sub)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint n_sub = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  /* Because the playbin2 set_property func do no check the return value,
+     we need to get the total number and check valid for cur_sub ourselves.*/
+  g_object_get (G_OBJECT (pipe), "n-text", &n_sub, NULL);
+  UMMS_DEBUG ("%s: The total subtitle numeber is %d, we want to set to %d\n",
+          __FUNCTION__, n_sub, cur_sub);
+  if((cur_sub < 0) || (cur_sub >= n_sub)) {
+    UMMS_DEBUG ("%s: The subtitle we want to set is %d, invalid one.\n",
+            __FUNCTION__, cur_sub);
+    return FALSE;
+  }
+
+  g_object_set (G_OBJECT (pipe), "current-text", cur_sub, NULL);
+
+  return TRUE;
+}
+
+
 static gboolean
 engine_gst_set_proxy (MeegoMediaPlayerControl *self, GHashTable *params)
 {
@@ -1357,17 +1480,17 @@ engine_gst_set_proxy (MeegoMediaPlayerControl *self, GHashTable *params)
   g_return_val_if_fail ((self != NULL) && (params != NULL), FALSE);
   priv = GET_PRIVATE (self);
 
-  if (g_hash_table_lookup_extended (params, "proxy-uri", NULL, &val)) {
+  if (g_hash_table_lookup_extended (params, "proxy-uri", NULL, (gpointer)&val)) {
     RESET_STR (priv->proxy_uri);
     priv->proxy_uri = g_value_dup_string (val);
   }
 
-  if (g_hash_table_lookup_extended (params, "proxy-id", NULL, &val)) {
+  if (g_hash_table_lookup_extended (params, "proxy-id", NULL, (gpointer)&val)) {
     RESET_STR (priv->proxy_id);
     priv->proxy_id = g_value_dup_string (val);
   }
 
-  if (g_hash_table_lookup_extended (params, "proxy-pw", NULL, &val)) {
+  if (g_hash_table_lookup_extended (params, "proxy-pw", NULL, (gpointer)&val)) {
     RESET_STR (priv->proxy_pw)
     priv->proxy_pw = g_value_dup_string (val);
   }
@@ -1443,6 +1566,14 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_get_audio_num);
   meego_media_player_control_implement_set_proxy (klass,
       engine_gst_set_proxy);
+  meego_media_player_control_implement_set_subtitle_uri (klass,
+      engine_gst_set_subtitle_uri);
+  meego_media_player_control_implement_get_subtitle_num (klass,
+      engine_gst_get_subtitle_num);
+  meego_media_player_control_implement_set_current_subtitle (klass,
+      engine_gst_set_current_subtitle);
+  meego_media_player_control_implement_get_current_subtitle (klass,
+      engine_gst_get_current_subtitle);
 }
 
 static void
@@ -1580,7 +1711,7 @@ bus_message_error_cb (GstBus     *bus,
   UMMS_DEBUG ("message::error received on bus");
 
   gst_message_parse_error (message, &error, NULL);
-  _stop_pipe (self);
+  _stop_pipe (MEEGO_MEDIA_PLAYER_CONTROL(self));
 
   meego_media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, error->message);
 
@@ -1726,6 +1857,8 @@ engine_gst_init (EngineGst *self)
   priv->target_type = ReservedType0;
   priv->res_mngr = umms_resource_manager_new ();
 
+#define FULL_SCREEN_RECT "0,0,0,0"
+  setup_ismd_vbin (MEEGO_MEDIA_PLAYER_CONTROL(self), FULL_SCREEN_RECT, UPP_A);
 }
 
 EngineGst *

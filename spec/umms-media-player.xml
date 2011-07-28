@@ -115,6 +115,42 @@
 		<method name="Restore">
 		</method>
 
+		<method name="GetCurrentVideo">
+			<arg type="i" direction="out"/>
+		</method>
+
+		<method name="GetCurrentAudio">
+			<arg type="i" direction="out"/>
+		</method>
+
+		<method name="SetCurrentVideo">
+			<arg name="cur_video" type="i"/>
+		</method>
+
+		<method name="SetCurrentAudio">
+			<arg name="cur_audio" type="i"/>
+		</method>
+
+		<method name="GetVideoNum">
+			<arg type="i" direction="out"/>
+		</method>
+
+		<method name="GetAudioNum">
+			<arg type="i" direction="out"/>
+		</method>
+
+		<method name="SetSubtitleUri">
+			<arg name="uri" type="s"/>
+		</method>
+
+		<method name="SetCurrentSubtitle">
+			<arg name="cur_sub" type="i"/>
+		</method>
+
+		<method name="GetCurrentSubtitle">
+			<arg type="i" direction="out"/>
+		</method>
+
 		<signal name="Initialized">
 		</signal>
 

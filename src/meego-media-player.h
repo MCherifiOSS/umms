@@ -95,6 +95,16 @@ gboolean meego_media_player_reply(MeegoMediaPlayer *self, GError **error);
 gboolean meego_media_player_set_proxy (MeegoMediaPlayer *self, GHashTable *params, GError **error);
 gboolean meego_media_player_suspend (MeegoMediaPlayer *self, GError **error);
 gboolean meego_media_player_restore (MeegoMediaPlayer *self, GError **error);
+gboolean meego_media_player_get_current_video (MeegoMediaPlayer *player, gint *cur_video, GError **err);
+gboolean meego_media_player_get_current_audio (MeegoMediaPlayer *player, gint *cur_audio, GError **err);
+gboolean meego_media_player_set_current_video (MeegoMediaPlayer *player, gint cur_video, GError **err);
+gboolean meego_media_player_set_current_audio (MeegoMediaPlayer *player, gint cur_audio, GError **err);
+gboolean meego_media_player_get_video_num (MeegoMediaPlayer *player, gint *video_num, GError **err);
+gboolean meego_media_player_get_audio_num (MeegoMediaPlayer *player, gint *audio_num, GError **err);
+gboolean meego_media_player_set_subtitle_uri (MeegoMediaPlayer *player, gchar *sub_uri, GError **err);
+gboolean meego_media_player_get_subtitle_num (MeegoMediaPlayer *player, gint *sub_num, GError **err);
+gboolean meego_media_player_get_current_subtitle (MeegoMediaPlayer *player, gint *cur_sub, GError **err);
+gboolean meego_media_player_set_current_subtitle (MeegoMediaPlayer *player, gint cur_sub, GError **err);
 
 G_END_DECLS
 
