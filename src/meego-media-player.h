@@ -2,7 +2,7 @@
 #define _MEEGO_MEDIA_PLAYER_H
 
 #include <glib-object.h>
-#include <meego-media-player-control.h>
+#include "meego-media-player-control.h"
 
 G_BEGIN_DECLS
 
@@ -93,7 +93,8 @@ gboolean meego_media_player_support_fullscreen(MeegoMediaPlayer *self, gboolean 
 gboolean meego_media_player_get_player_state(MeegoMediaPlayer *self, gint *state, GError **error);
 gboolean meego_media_player_reply(MeegoMediaPlayer *self, GError **error);
 gboolean meego_media_player_set_proxy (MeegoMediaPlayer *self, GHashTable *params, GError **error);
-
+gboolean meego_media_player_suspend (MeegoMediaPlayer *self, GError **error);
+gboolean meego_media_player_restore (MeegoMediaPlayer *self, GError **error);
 
 G_END_DECLS
 

@@ -157,6 +157,13 @@ typedef gboolean (*meego_media_player_control_set_proxy_impl) (MeegoMediaPlayerC
                                                                 GHashTable *params);
 void meego_media_player_control_implement_set_proxy (MeegoMediaPlayerControlClass *klass,
                                                       meego_media_player_control_set_proxy_impl impl);
+//typedef gboolean (*meego_media_player_control_suspend_impl) (MeegoMediaPlayerControl *self)
+//void meego_media_player_control_implement_suspend (MeegoMediaPlayerControlClass *klass,
+//                                                      meego_media_player_control_suspend_impl impl);
+//typedef gboolean (*meego_media_player_control_restore_impl) (MeegoMediaPlayerControl *self)
+//void meego_media_player_control_implement_restore (MeegoMediaPlayerControlClass *klass,
+//                                                      meego_media_player_control_restore_impl impl);
+
 
 
 /*virtual function wrappers*/
@@ -191,6 +198,8 @@ gboolean meego_media_player_control_set_current_audio (MeegoMediaPlayerControl *
 gboolean meego_media_player_control_get_video_num (MeegoMediaPlayerControl *self, gint *video_num);
 gboolean meego_media_player_control_get_audio_num (MeegoMediaPlayerControl *self, gint *audio_num);
 gboolean meego_media_player_control_set_proxy (MeegoMediaPlayerControl *self, GHashTable *params);
+//gboolean meego_media_player_control_suspend (MeegoMediaPlayerControl *self);
+//gboolean meego_media_player_control_restore (MeegoMediaPlayerControl *self);
 
 /*signal emitter*/
 void meego_media_player_control_emit_initialized (gpointer instance);

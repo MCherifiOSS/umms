@@ -109,6 +109,12 @@
 			<arg name="param" type="a{sv}"/>
 		</method>
 
+		<method name="Suspend">
+		</method>
+
+		<method name="Restore">
+		</method>
+
 		<signal name="Initialized">
 		</signal>
 
@@ -144,6 +150,15 @@
 
 		<signal name="TargetReady">
 			<arg name="info" type="a{sv}"/>
+		</signal>
+
+		<signal name="Suspended">
+		</signal>
+
+		<signal name="Restored">
+		</signal>
+
+		<signal name="NoResource">
 		</signal>
 
 	</interface>

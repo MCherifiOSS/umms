@@ -12,6 +12,7 @@ umms_server_SOURCES = umms-common.h umms-server-main.c \
 					  umms-object-manager.c umms-object-manager.h \
 					  umms-marshals.c umms-marshals.h umms-debug.h \
 						param-table.c param-table.h \
+						umms-resource-manager.c umms-resource-manager.h \
 					  ./glue/umms-object-manager-glue.h \
 					  ./glue/umms-media-player-glue.h
 

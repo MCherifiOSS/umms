@@ -35,7 +35,9 @@ method_name = (
 	"IsSeekable",#20
 	"SupportFullscreen",
 	"GetPlayerState",
-        "SetProxy"
+  "SetProxy",
+  "Suspend",
+  "Restore"
 	)
 
 (
@@ -63,11 +65,13 @@ method_name = (
 	IsSeekable,
 	SupportFullscreen,
 	GetPlayerState,
-	SetProxy
+	SetProxy,
+  Suspend,
+  Restore
 ) = range (len(method_name))
 
 (
-    XWINDOW,
+    XWindow,
     DataCopy,
     Socket,
     ReservedType0,#On CE4100 platform, indicate using gdl plane directly to render video data 
@@ -182,7 +186,8 @@ class CmdHandler(threading.Thread):
                 self.player.SetUri(uri)
         elif mid == SetTarget:
             print "SetTarget"
-	    self.player.SetTarget(ReservedType0, {"rectangle":"0,0,352,288", "plane-id":UPP_A})
+            self.player.SetTarget(ReservedType0, {"rectangle":"0,0,352,288", "plane-id":UPP_A})
+            #self.player.SetTarget(XWindow, {"window-id":0x80000d})
         elif mid == Play:
             print "Play"
             self.player.Play()
@@ -259,6 +264,10 @@ class CmdHandler(threading.Thread):
         	print "Current state = '%s'" % state_name[state]
         elif mid == SetProxy:
         	state = self.player.SetProxy({"proxy-uri":"http://proxy01.pd.intel.com:911"})
+        elif mid == Suspend:
+        	state = self.player.Suspend();
+        elif mid == Restore:
+        	state = self.player.Restore();
         else:
         	print "Unsupported method id '%d'" % (mid)
         	self.print_help(self);
@@ -271,9 +280,9 @@ error_type_name = (
 
 state_name = (
 	"PlayerStateNull",
+	"PlayerStateStopped",
 	"PlayerStatePaused",
-	"PlayerStatePlaying",
-	"PlayerStateStopped"
+	"PlayerStatePlaying"
 )
 
 

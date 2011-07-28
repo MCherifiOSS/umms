@@ -57,6 +57,9 @@ enum {
   SIGNAL_MEDIA_PLAYER_NeedReply,
   SIGNAL_MEDIA_PLAYER_ClientNoReply,
   SIGNAL_MEDIA_PLAYER_TargetReady,
+  SIGNAL_MEDIA_PLAYER_Suspended,
+  SIGNAL_MEDIA_PLAYER_Restored,
+  SIGNAL_MEDIA_PLAYER_NoResource,
   N_MEDIA_PLAYER_SIGNALS
 };
 
@@ -73,9 +76,12 @@ struct _MeegoMediaPlayerPrivate {
   guint    w;
   guint    h;
 
-  //For client existence checking
+  //For client existence checking.
   guint    no_reply_time;
   guint    timeout_id;
+
+  //Media player "snapshot", for suspend/restore operation.
+  gint position;
 
 };
 
@@ -502,6 +508,68 @@ meego_media_player_set_proxy (MeegoMediaPlayer *player,
   return TRUE;
 }
 
+//Stop player, so that all resources occupied will be released.
+gboolean
+meego_media_player_suspend(MeegoMediaPlayer *player,
+    GError **err)
+{
+  gint state = 0;
+  MeegoMediaPlayerControl *player_control = GET_CONTROL_IFACE (player);
+  MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
+
+  CHECK_ENGINE(player_control, FALSE, err);
+
+  UMMS_DEBUG ("Begin");
+  meego_media_player_control_get_player_state (player_control, &state);
+
+  //No resource occupation in PlayStateNull/PlayStateStopped
+  if (state == PlayerStateNull || state == PlayerStateStopped) {
+    return TRUE;
+  }
+
+  meego_media_player_control_get_position (player_control, &priv->position);
+  meego_media_player_control_stop (player_control);
+
+  UMMS_DEBUG ("End");
+
+  return TRUE;
+}
+
+gboolean
+meego_media_player_restore (MeegoMediaPlayer *player,
+    GError **err)
+{
+  gint state = 0;
+  gboolean seekable = FALSE;
+  MeegoMediaPlayerControl *player_control = GET_CONTROL_IFACE (player);
+  MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
+
+  CHECK_ENGINE(player_control, FALSE, err);
+  
+  UMMS_DEBUG ("Begin");
+  meego_media_player_control_get_player_state (player_control, &state);
+
+  //Already in resource occupation state.
+  if (state == PlayerStatePaused || state == PlayerStatePlaying) {
+    return TRUE;
+  }
+
+  if (state == PlayerStateNull) {
+    UMMS_DEBUG ("Can't restore media player as it is in null state.");
+    return FALSE;
+  }
+
+  meego_media_player_control_is_seekable (player_control, &seekable);
+  if (seekable) {
+    meego_media_player_control_pause(player_control);
+    meego_media_player_control_set_position (player_control, priv->position);
+  }
+  meego_media_player_control_play(player_control);
+
+  UMMS_DEBUG ("End");
+
+  return TRUE;
+}
 
 static void
 meego_media_player_get_property (GObject    *object,
@@ -607,135 +675,164 @@ meego_media_player_class_init (MeegoMediaPlayerClass *klass)
 
   g_object_class_install_property (object_class, PROP_NAME,
       g_param_spec_string ("name", "Name", "Name of the mediaplayer",
-          NULL, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+        NULL, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (object_class, PROP_ATTENDED,
       g_param_spec_boolean ("attended", "Attended", "Flag to indicate whether this execution is attended",
-          TRUE, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+        TRUE, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   media_player_signals[SIGNAL_MEDIA_PLAYER_Initialized] =
     g_signal_new ("initialized",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   media_player_signals[SIGNAL_MEDIA_PLAYER_Eof] =
     g_signal_new ("eof",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   media_player_signals[SIGNAL_MEDIA_PLAYER_Error] =
     g_signal_new ("error",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  umms_marshal_VOID__UINT_STRING,
-                  G_TYPE_NONE,
-                  2,
-                  G_TYPE_UINT,
-                  G_TYPE_STRING);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        umms_marshal_VOID__UINT_STRING,
+        G_TYPE_NONE,
+        2,
+        G_TYPE_UINT,
+        G_TYPE_STRING);
 
   media_player_signals[SIGNAL_MEDIA_PLAYER_Buffering] =
     g_signal_new ("buffering",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   media_player_signals[SIGNAL_MEDIA_PLAYER_Buffered] =
     g_signal_new ("buffered",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   media_player_signals[SIGNAL_MEDIA_PLAYER_RequestWindow] =
     g_signal_new ("request-window",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   media_player_signals[SIGNAL_MEDIA_PLAYER_Seeked] =
     g_signal_new ("seeked",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   media_player_signals[SIGNAL_MEDIA_PLAYER_Stopped] =
     g_signal_new ("stopped",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   media_player_signals[SIGNAL_MEDIA_PLAYER_PlayerStateChanged] =
     g_signal_new ("player-state-changed",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__INT,
-                  G_TYPE_NONE,
-                  1,
-                  G_TYPE_INT);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__INT,
+        G_TYPE_NONE,
+        1,
+        G_TYPE_INT);
 
   media_player_signals[SIGNAL_MEDIA_PLAYER_NeedReply] =
     g_signal_new ("need-reply",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   media_player_signals[SIGNAL_MEDIA_PLAYER_ClientNoReply] =
     g_signal_new ("client-no-reply",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   media_player_signals[SIGNAL_MEDIA_PLAYER_TargetReady] =
     g_signal_new ("target-ready",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__BOXED,
-                  G_TYPE_NONE,
-                  1, dbus_g_type_get_map("GHashTable", G_TYPE_STRING, G_TYPE_VALUE));
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__BOXED,
+        G_TYPE_NONE,
+        1, dbus_g_type_get_map("GHashTable", G_TYPE_STRING, G_TYPE_VALUE));
 
+  media_player_signals[SIGNAL_MEDIA_PLAYER_Suspended] =
+    g_signal_new ("suspended",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
+
+  media_player_signals[SIGNAL_MEDIA_PLAYER_Restored] =
+    g_signal_new ("restored",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
+
+  media_player_signals[SIGNAL_MEDIA_PLAYER_NoResource] =
+    g_signal_new ("no-resource",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 }
 
 static void 

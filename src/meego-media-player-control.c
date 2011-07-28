@@ -34,6 +34,8 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_get_video_num_impl get_video_num;
   meego_media_player_control_get_audio_num_impl get_audio_num;
   meego_media_player_control_set_proxy_impl set_proxy;
+//  meego_media_player_control_suspend_impl suspend;
+//  meego_media_player_control_restore_impl restore;
 };
 
 enum {
@@ -739,6 +741,40 @@ void meego_media_player_control_implement_set_proxy (MeegoMediaPlayerControlClas
 {
   klass->set_proxy = impl;
 }
+
+//gboolean
+//meego_media_player_control_suspend (MeegoMediaPlayerControl *self)
+//{
+//  MeegoMediaPlayerControlClass *class =  MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self);
+//  return TRUE;
+//}
+//
+//void meego_media_player_control_implement_suspend (MeegoMediaPlayerControlClass *klass,
+//                                                      meego_media_player_control_suspend_impl impl)
+//{
+//  klass->suspend = impl;
+//}
+//
+//gboolean
+//meego_media_player_control_restore (MeegoMediaPlayerControl *self,
+//                                       GHashTable *params) 
+//{
+//  meego_media_player_control_restore_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->restore);
+//
+//  if (impl != NULL) {
+//    (impl) (self);
+//  } else {
+//    g_warning ("Method not implemented\n");
+//  }
+//  return TRUE;
+//}
+//
+//void meego_media_player_control_implement_restore (MeegoMediaPlayerControlClass *klass,
+//                                                      meego_media_player_control_restore_impl impl)
+//{
+//  klass->restore = impl;
+//}
+
 
 void
 meego_media_player_control_emit_initialized (gpointer instance)

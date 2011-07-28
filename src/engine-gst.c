@@ -9,6 +9,7 @@
 #include "umms-common.h"
 #include "umms-debug.h"
 #include "umms-error.h"
+#include "umms-resource-manager.h"
 #include "engine-gst.h"
 #include "meego-media-player-control.h"
 #include "param-table.h"
@@ -93,6 +94,9 @@ struct _EngineGstPrivate {
   gchar    *proxy_uri;
   gchar    *proxy_id;
   gchar    *proxy_pw;
+
+  //resource management
+  UmmsResourceManager *res_mngr;
 };
 
 static void _reset_engine (MeegoMediaPlayerControl *self);
@@ -124,6 +128,7 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
 
   g_object_set (priv->pipeline, "uri", uri, NULL);
 
+  priv->seekable = -1;
   priv->is_live = IS_LIVE_URI(priv->uri);
 
   return TRUE;
@@ -1547,8 +1552,10 @@ bus_message_state_change_cb (GstBus     *bus,
       priv->player_state = PlayerStateStopped;
   }
 
-  if (priv->player_state != old_player_state)
+  if (priv->player_state != old_player_state) {
+    UMMS_DEBUG ("emit state changed, old=%d, new=%d", old_player_state, priv->player_state);
     meego_media_player_control_emit_player_state_changed (self, priv->player_state);
+  }
 }
 
 static void
@@ -1717,6 +1724,7 @@ engine_gst_init (EngineGst *self)
 
   priv->player_state = PlayerStateNull;
   priv->target_type = ReservedType0;
+  priv->res_mngr = umms_resource_manager_new ();
 
 }
 

@@ -8,10 +8,9 @@
 
 typedef enum {
     PlayerStateNull,
-    PlayerStatePaused,
-    PlayerStatePlaying,
     PlayerStateStopped,
-    NumOfPlayerState
+    PlayerStatePaused,
+    PlayerStatePlaying
 }PlayerState;
 
 typedef enum {

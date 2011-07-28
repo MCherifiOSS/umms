@@ -9,3 +9,4 @@
     return quark; }
 
 QUARK_FUNC(engine);
+QUARK_FUNC(resource);

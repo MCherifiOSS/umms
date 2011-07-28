@@ -12,6 +12,7 @@ engine_test_SOURCES = test-common.c test-common.h ../src/meego-media-player-cont
 					  ../src/engine-gst.c ../src/engine-gst.h \
 					  ../src/param-table.c ../src/param-table.h \
 					  ../src/umms-marshals.c ../src/umms-marshals.h \
+						../src/umms-resource-manager.c ../src/umms-resource-manager.h \
 					  engine-test.c
 
 EXTRA_DIST = client-test.py
