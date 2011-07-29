@@ -168,6 +168,14 @@ typedef gboolean (*meego_media_player_control_get_subtitle_num_impl) (MeegoMedia
 void meego_media_player_control_implement_get_subtitle_num (MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_get_subtitle_num_impl impl);
 
+typedef gboolean (*meego_media_player_control_get_current_subtitle_impl) (MeegoMediaPlayerControl *self, gint *cur_sub);
+void meego_media_player_control_implement_get_current_subtitle (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_current_subtitle_impl impl);
+
+typedef gboolean (*meego_media_player_control_set_current_subtitle_impl) (MeegoMediaPlayerControl *self, gint cur_sub);
+void meego_media_player_control_implement_set_current_subtitle (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_set_current_subtitle_impl impl);
+
 /*virtual function wrappers*/
 gboolean meego_media_player_control_set_uri (MeegoMediaPlayerControl *self, const gchar *in_uri);
 gboolean meego_media_player_control_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params);
@@ -202,7 +210,8 @@ gboolean meego_media_player_control_get_audio_num (MeegoMediaPlayerControl *self
 gboolean meego_media_player_control_set_proxy (MeegoMediaPlayerControl *self, GHashTable *params);
 gboolean meego_media_player_control_set_subtitle_uri (MeegoMediaPlayerControl *self, gchar *sub_uri);
 gboolean meego_media_player_control_get_subtitle_num (MeegoMediaPlayerControl *self, gint *sub_num);
-
+gboolean meego_media_player_control_get_current_subtitle (MeegoMediaPlayerControl *self, gint *cur_sub);
+gboolean meego_media_player_control_set_current_subtitle (MeegoMediaPlayerControl *self, gint cur_sub);
 
 /*signal emitter*/
 void meego_media_player_control_emit_initialized (gpointer instance);

@@ -1187,6 +1187,7 @@ engine_gst_get_buffered_time (MeegoMediaPlayerControl *self, gint64 *buffered_ti
   return TRUE;
 }
 
+
 static gboolean
 engine_gst_set_window_id (MeegoMediaPlayerControl *self, gdouble window_id)
 {
@@ -1224,6 +1225,7 @@ engine_gst_get_current_video (MeegoMediaPlayerControl *self, gint *cur_video)
 
   return TRUE;
 }
+
 
 static gboolean 
 engine_gst_get_current_audio (MeegoMediaPlayerControl *self, gint *cur_audio)
@@ -1264,7 +1266,7 @@ engine_gst_set_current_video (MeegoMediaPlayerControl *self, gint cur_video)
   UMMS_DEBUG ("%s: The total video numeber is %d, we want to set to %d\n",
           __FUNCTION__, n_video, cur_video);
   if((cur_video < 0) || (cur_video >= n_video)) {
-    UMMS_DEBUG ("%s: The current video is %d, invalid one.\n",
+    UMMS_DEBUG ("%s: The video we want to set is %d, invalid one.\n",
             __FUNCTION__, cur_video);
     return FALSE;
   }
@@ -1293,7 +1295,7 @@ engine_gst_set_current_audio (MeegoMediaPlayerControl *self, gint cur_audio)
   UMMS_DEBUG ("%s: The total audio numeber is %d, we want to set to %d\n",
           __FUNCTION__, n_audio, cur_audio);
   if((cur_audio< 0) || (cur_audio >= n_audio)) {
-    UMMS_DEBUG ("%s: The current audio is %d, invalid one.\n",
+    UMMS_DEBUG ("%s: The audio we want to set is %d, invalid one.\n",
             __FUNCTION__, cur_audio);
     return FALSE;
   }
@@ -1376,6 +1378,7 @@ engine_gst_set_subtitle_uri (MeegoMediaPlayerControl *self, gchar *sub_uri)
   return TRUE;
 }
 
+
 static gboolean
 engine_gst_get_subtitle_num (MeegoMediaPlayerControl *self, gint *sub_num)
 {
@@ -1395,6 +1398,57 @@ engine_gst_get_subtitle_num (MeegoMediaPlayerControl *self, gint *sub_num)
 
   return TRUE;
 }
+
+
+static gboolean
+engine_gst_get_current_subtitle (MeegoMediaPlayerControl *self, gint *cur_sub)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint c_sub = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  g_object_get (G_OBJECT (pipe), "current-text", &c_sub, NULL);
+  UMMS_DEBUG ("%s: the current subtitle stream is %d\n", __FUNCTION__, c_sub);
+
+  *cur_sub = c_sub;
+
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_set_current_subtitle (MeegoMediaPlayerControl *self, gint cur_sub)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint n_sub = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  /* Because the playbin2 set_property func do no check the return value,
+     we need to get the total number and check valid for cur_sub ourselves.*/
+  g_object_get (G_OBJECT (pipe), "n-text", &n_sub, NULL);
+  UMMS_DEBUG ("%s: The total subtitle numeber is %d, we want to set to %d\n",
+          __FUNCTION__, n_sub, cur_sub);
+  if((cur_sub < 0) || (cur_sub >= n_sub)) {
+    UMMS_DEBUG ("%s: The subtitle we want to set is %d, invalid one.\n",
+            __FUNCTION__, cur_sub);
+    return FALSE;
+  }
+
+  g_object_set (G_OBJECT (pipe), "current-text", cur_sub, NULL);
+
+  return TRUE;
+}
+
 
 static gboolean
 engine_gst_set_proxy (MeegoMediaPlayerControl *self, GHashTable *params)
@@ -1496,6 +1550,10 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_set_subtitle_uri);
   meego_media_player_control_implement_get_subtitle_num (klass,
       engine_gst_get_subtitle_num);
+  meego_media_player_control_implement_set_current_subtitle (klass,
+      engine_gst_set_current_subtitle);
+  meego_media_player_control_implement_get_current_subtitle (klass,
+      engine_gst_get_current_subtitle);
 }
 
 static void

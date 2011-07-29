@@ -577,6 +577,24 @@ meego_media_player_get_subtitle_num (MeegoMediaPlayer *player, gint *sub_num, GE
   return TRUE;
 }
 
+gboolean 
+meego_media_player_get_current_subtitle (MeegoMediaPlayer *player, gint *cur_sub, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_current_subtitle(GET_CONTROL_IFACE (player), cur_sub);
+  UMMS_DEBUG ("get the current subtitle is %d", *cur_sub);
+  return TRUE;
+}
+
+gboolean 
+meego_media_player_set_current_subtitle (MeegoMediaPlayer *player, gint cur_sub, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_set_current_subtitle(GET_CONTROL_IFACE (player), cur_sub);
+  UMMS_DEBUG ("set the current subtitle to %d", cur_sub);
+  return TRUE;
+}
+
 static void
 meego_media_player_get_property (GObject    *object,
     guint       property_id,

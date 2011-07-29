@@ -36,6 +36,8 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_set_proxy_impl set_proxy;
   meego_media_player_control_set_subtitle_uri_impl set_subtitle_uri;
   meego_media_player_control_get_audio_num_impl get_subtitle_num;
+  meego_media_player_control_get_current_subtitle_impl get_current_subtitle;
+  meego_media_player_control_set_current_subtitle_impl set_current_subtitle;
 };
 
 enum {
@@ -786,6 +788,47 @@ void meego_media_player_control_implement_get_subtitle_num (MeegoMediaPlayerCont
 {
   klass->get_subtitle_num = impl;
 }
+
+gboolean 
+meego_media_player_control_get_current_subtitle (MeegoMediaPlayerControl *self, gint *cur_sub)
+{
+  meego_media_player_control_get_current_subtitle_impl impl =
+                   (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_current_subtitle);
+
+  if (impl != NULL) {
+    (impl) (self, cur_sub);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_current_subtitle (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_current_subtitle_impl impl)
+{
+  klass->get_current_subtitle = impl;
+}
+
+gboolean 
+meego_media_player_control_set_current_subtitle (MeegoMediaPlayerControl *self, gint cur_sub)
+{
+  meego_media_player_control_set_current_subtitle_impl impl =
+                   (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_current_subtitle);
+
+  if (impl != NULL) {
+    (impl) (self, cur_sub);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_set_current_subtitle (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_set_current_subtitle_impl impl)
+{
+  klass->set_current_subtitle = impl;
+}
+
 
 void
 meego_media_player_control_emit_initialized (gpointer instance)
