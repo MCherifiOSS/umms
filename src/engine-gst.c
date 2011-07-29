@@ -472,7 +472,7 @@ static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable 
 
   gchar *rectangle_des = NULL;
   rectangle_des = g_strdup_printf ("%u,%u,%u,%u", x, y, w, h);
-  UMMS_DEBUG ("set rectangle damension :'%s'\n", rectangle_des);
+  UMMS_DEBUG ("set rectangle damension :'%s'", rectangle_des);
   g_object_set (G_OBJECT(vsink), "rectangle", rectangle_des, NULL);
   g_free (rectangle_des);
 
@@ -567,7 +567,7 @@ engine_gst_pause (MeegoMediaPlayerControl *self)
   }
 
   priv->pending_state = PlayerStatePaused;
-  UMMS_DEBUG ("%s: called", __FUNCTION__);
+  UMMS_DEBUG ("called");
   return TRUE;
 }
 
@@ -605,7 +605,7 @@ _stop_pipe (MeegoMediaPlayerControl *control)
   EngineGstPrivate *priv = GET_PRIVATE (control);
 
   if (gst_element_set_state(priv->pipeline, GST_STATE_NULL) == GST_STATE_CHANGE_FAILURE) {
-    UMMS_DEBUG (" Unable to set NULL state");
+    UMMS_DEBUG ("Unable to set NULL state");
     return FALSE;
   }
 
@@ -639,7 +639,7 @@ _is_ismd_vidrend_bin (GstElement * element, gpointer user_data)
   }
 
   ele_name = gst_element_get_name (element);
-  UMMS_DEBUG ("%s:element name='%s'\n", __FUNCTION__, ele_name);
+  UMMS_DEBUG ("element name='%s'", ele_name);
 
   //ugly solution, check by element metadata will be better
   ele_name = gst_element_get_name (element);
@@ -680,7 +680,7 @@ _get_ismd_vidrend_bin (GstBin *bin)
   gst_iterator_free (children);
 
   if (result) {
-    GST_INFO ("found ismd_vidrend_bin.\n" );
+    GST_INFO ("found ismd_vidrend_bin." );
   }
 
   return GST_ELEMENT_CAST (result);
@@ -696,7 +696,7 @@ engine_gst_set_video_size (MeegoMediaPlayerControl *self,
   GstElement *vsink_bin;
 
   g_return_val_if_fail (pipe, FALSE);
-  UMMS_DEBUG ("%s: invoked", __FUNCTION__);
+  UMMS_DEBUG ("invoked");
 
   //We use ismd_vidrend_bin as video-sink, so we can set rectangle property.
   g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
@@ -704,7 +704,7 @@ engine_gst_set_video_size (MeegoMediaPlayerControl *self,
     gchar *rectangle_des = NULL;
 
     rectangle_des = g_strdup_printf ("%u,%u,%u,%u", x, y, w, h);
-    UMMS_DEBUG ("set rectangle damension :'%s'\n", rectangle_des);
+    UMMS_DEBUG ("set rectangle damension :'%s'", rectangle_des);
     g_object_set (G_OBJECT(vsink_bin), "rectangle", rectangle_des, NULL);
     g_free (rectangle_des);
     gst_object_unref (vsink_bin);
@@ -728,13 +728,13 @@ engine_gst_get_video_size (MeegoMediaPlayerControl *self,
   GstElement *vsink_bin;
 
   g_return_val_if_fail (pipe, FALSE);
-  UMMS_DEBUG ("%s: invoked", __FUNCTION__);
+  UMMS_DEBUG ("invoked");
   g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
   if (vsink_bin) {
     gchar *rectangle_des = NULL;
     g_object_get (G_OBJECT(vsink_bin), "rectangle", &rectangle_des, NULL);
     sscanf (rectangle_des, "%u,%u,%u,%u", x, y, w, h);
-    UMMS_DEBUG ("got rectangle damension :'%u,%u,%u,%u'\n", *x, *y, *w, *h);
+    UMMS_DEBUG ("got rectangle damension :'%u,%u,%u,%u'", *x, *y, *w, *h);
     gst_object_unref (vsink_bin);
     ret = TRUE;
   } else {
@@ -887,7 +887,7 @@ engine_gst_get_playback_rate (MeegoMediaPlayerControl *self, gdouble *out_rate)
   pipe = priv->pipeline;
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
-  UMMS_DEBUG ("%s:invoked", __FUNCTION__);
+  UMMS_DEBUG ("invoked");
   query = gst_query_new_segment (GST_FORMAT_TIME);
 
   if (gst_element_query (pipe, query)) {
@@ -915,10 +915,10 @@ engine_gst_set_volume (MeegoMediaPlayerControl *self, gint vol)
   pipe = priv->pipeline;
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
-  UMMS_DEBUG ("%s:invoked", __FUNCTION__);
+  UMMS_DEBUG ("invoked");
 
   volume = CLAMP ((((gdouble)vol) / 100), 0.0, 1.0);
-  UMMS_DEBUG ("%s:set volume to = %f", __FUNCTION__, volume);
+  UMMS_DEBUG ("set volume to = %f", volume);
   gst_stream_volume_set_volume (GST_STREAM_VOLUME (pipe),
       GST_STREAM_VOLUME_FORMAT_CUBIC,
       volume);
@@ -940,13 +940,13 @@ engine_gst_get_volume (MeegoMediaPlayerControl *self, gint *volume)
   pipe = priv->pipeline;
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
-  UMMS_DEBUG ("%s:invoked", __FUNCTION__);
+  UMMS_DEBUG ("invoked");
 
   vol = gst_stream_volume_get_volume (GST_STREAM_VOLUME (pipe),
         GST_STREAM_VOLUME_FORMAT_CUBIC);
 
   *volume = vol * 100;
-  UMMS_DEBUG ("%s:cur volume=%f(double), %d(int)", __FUNCTION__, vol, *volume);
+  UMMS_DEBUG ("cur volume=%f(double), %d(int)", vol, *volume);
 
   return TRUE;
 }
@@ -967,13 +967,13 @@ engine_gst_get_media_size_time (MeegoMediaPlayerControl *self, gint64 *media_siz
   pipe = priv->pipeline;
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
-  UMMS_DEBUG ("%s:invoked", __FUNCTION__);
+  UMMS_DEBUG ("invoked");
 
   if (gst_element_query_duration (pipe, &fmt, &duration)) {
     *media_size_time = duration / GST_MSECOND;
-    UMMS_DEBUG ("%s:media size = %lld (ms)", __FUNCTION__, *media_size_time);
+    UMMS_DEBUG ("media size = %lld (ms)", *media_size_time);
   } else {
-    UMMS_DEBUG ("%s: query media_size_time failed", __FUNCTION__);
+    UMMS_DEBUG ("query media_size_time failed");
     *media_size_time = -1;
   }
 
@@ -997,7 +997,7 @@ engine_gst_get_media_size_bytes (MeegoMediaPlayerControl *self, gint64 *media_si
   source = priv->source;
   g_return_val_if_fail (GST_IS_ELEMENT (source), FALSE);
 
-  UMMS_DEBUG ("%s:invoked", __FUNCTION__);
+  UMMS_DEBUG ("invoked");
 
   if (!gst_element_query_duration (source, &fmt, &length)) {
 
@@ -1052,10 +1052,10 @@ engine_gst_has_video (MeegoMediaPlayerControl *self, gboolean *has_video)
   pipe = priv->pipeline;
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
-  UMMS_DEBUG ("%s:invoked", __FUNCTION__);
+  UMMS_DEBUG ("invoked");
 
   g_object_get (G_OBJECT (pipe), "n-video", &n_video, NULL);
-  UMMS_DEBUG ("%s: '%d' videos in stream", __FUNCTION__, n_video);
+  UMMS_DEBUG ("'%d' videos in stream", n_video);
   *has_video = (n_video > 0) ? (TRUE) : (FALSE);
 
   return TRUE;
@@ -1075,10 +1075,10 @@ engine_gst_has_audio (MeegoMediaPlayerControl *self, gboolean *has_audio)
   pipe = priv->pipeline;
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
-  UMMS_DEBUG ("%s:invoked", __FUNCTION__);
+  UMMS_DEBUG ("invoked");
 
   g_object_get (G_OBJECT (pipe), "n-audio", &n_audio, NULL);
-  UMMS_DEBUG ("%s: '%d' audio tracks in stream", __FUNCTION__, n_audio);
+  UMMS_DEBUG ("'%d' audio tracks in stream", n_audio);
   *has_audio = (n_audio > 0) ? (TRUE) : (FALSE);
 
   return TRUE;
@@ -1105,12 +1105,12 @@ engine_gst_is_streaming (MeegoMediaPlayerControl *self, gboolean *is_streaming)
   pipe = priv->pipeline;
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
-  UMMS_DEBUG ("%s:invoked", __FUNCTION__);
+  UMMS_DEBUG ("invoked");
 
   g_return_val_if_fail (priv->uri, FALSE);
   /*For now, we consider live source to be streaming source , hence unseekable.*/
   *is_streaming = priv->is_live;
-  UMMS_DEBUG ("%s:uri:'%s' is %s streaming source", __FUNCTION__, priv->uri, (*is_streaming) ? "" : "not");
+  UMMS_DEBUG ("uri:'%s' is %s streaming source", priv->uri, (*is_streaming) ? "" : "not");
   return TRUE;
 }
 
@@ -1163,7 +1163,7 @@ _query_buffering_percent (GstElement *pipe, gdouble *percent)
 
   if (!gst_element_query(pipe, query)) {
     gst_query_unref(query);
-    UMMS_DEBUG ("%s: failed", __FUNCTION__);
+    UMMS_DEBUG ("failed");
     return FALSE;
   }
 
@@ -1218,7 +1218,7 @@ engine_gst_set_window_id (MeegoMediaPlayerControl *self, gdouble window_id)
     return FALSE;
   }
 
-  UMMS_DEBUG ("SetWindowId called, id = %d\n",
+  UMMS_DEBUG ("SetWindowId called, id = %d",
               (gint)window_id);
 
   gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (priv->vsink), (gint) window_id );
