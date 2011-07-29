@@ -325,11 +325,10 @@ destroy_xevent_handle_thread (MeegoMediaPlayerControl *self)
   return TRUE;
 }
 
-static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTable *params)
+static gboolean setup_ismd_vbin(MeegoMediaPlayerControl *self, gchar *rect, gint plane)
 {
-  EngineGstPrivate *priv = GET_PRIVATE (self);
   GstElement *vsink;
-  GValue *val = NULL;
+  EngineGstPrivate *priv = GET_PRIVATE (self);
 
   vsink = gst_element_factory_make ("ismd_vidrend_bin", NULL);
   if (!vsink) {
@@ -337,20 +336,36 @@ static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTabl
     return FALSE;
   }
 
+  if (rect)
+    g_object_set (vsink, "rectangle", rect, NULL);
+  if (plane != -1)
+    g_object_set (vsink, "gdl-plane", plane, NULL);
+
+  g_object_set (priv->pipeline, "video-sink", vsink, NULL);
+  UMMS_DEBUG ("Set ismd_vidrend_bin to playbin2");
+  return TRUE;
+}
+
+
+static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTable *params)
+{
+  gchar *rect = NULL;
+  gint  plane = -1;
+  GValue *val = NULL;
+
   val = g_hash_table_lookup (params, TARGET_PARAM_KEY_RECTANGLE);
   if (val) {
-    g_object_set (vsink, "rectangle", g_value_get_string (val), NULL);
-    UMMS_DEBUG ("rectangle = '%s'",  g_value_get_string (val));
+    rect = g_value_get_string (val);
+    UMMS_DEBUG ("rectangle = '%s'", rect);
   }
 
   val = g_hash_table_lookup (params, TARGET_PARAM_KEY_PlANE_ID);
   if (val) {
-    g_object_set (vsink, "gdl-plane", g_value_get_int (val), NULL);
-    UMMS_DEBUG ("gdl plane = '%d'",  g_value_get_int (val));
+    plane = g_value_get_int (val);
+    UMMS_DEBUG ("gdl plane = '%d'", plane);
   }
-
-  g_object_set (priv->pipeline, "video-sink", vsink, NULL);
-  return TRUE;
+  
+  return setup_ismd_vbin (self, rect, plane);
 }
 
 /*
@@ -1834,6 +1849,8 @@ engine_gst_init (EngineGst *self)
   priv->player_state = PlayerStateNull;
   priv->target_type = ReservedType0;
 
+#define FULL_SCREEN_RECT "0,0,0,0"
+  setup_ismd_vbin (self, FULL_SCREEN_RECT, UPP_A);
 }
 
 EngineGst *
