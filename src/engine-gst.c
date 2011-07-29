@@ -1239,7 +1239,7 @@ engine_gst_get_current_video (MeegoMediaPlayerControl *self, gint *cur_video)
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
   g_object_get (G_OBJECT (pipe), "current-video", &c_video, NULL);
-  UMMS_DEBUG ("%s: the current video stream is %d\n", __FUNCTION__, c_video);
+  UMMS_DEBUG ("the current video stream is %d", c_video);
 
   *cur_video = c_video;
 
@@ -1260,7 +1260,7 @@ engine_gst_get_current_audio (MeegoMediaPlayerControl *self, gint *cur_audio)
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
   g_object_get (G_OBJECT (pipe), "current-audio", &c_audio, NULL);
-  UMMS_DEBUG ("%s: the current audio stream is %d\n", __FUNCTION__, c_audio);
+  UMMS_DEBUG ("the current audio stream is %d", c_audio);
 
   *cur_audio = c_audio;
 
@@ -1283,11 +1283,9 @@ engine_gst_set_current_video (MeegoMediaPlayerControl *self, gint cur_video)
   /* Because the playbin2 set_property func do no check the return value,
      we need to get the total number and check valid for cur_video ourselves.*/
   g_object_get (G_OBJECT (pipe), "n-video", &n_video, NULL);
-  UMMS_DEBUG ("%s: The total video numeber is %d, we want to set to %d\n",
-          __FUNCTION__, n_video, cur_video);
+  UMMS_DEBUG ("The total video numeber is %d, we want to set to %d", n_video, cur_video);
   if((cur_video < 0) || (cur_video >= n_video)) {
-    UMMS_DEBUG ("%s: The video we want to set is %d, invalid one.\n",
-            __FUNCTION__, cur_video);
+    UMMS_DEBUG ("The video we want to set is %d, invalid one.", cur_video);
     return FALSE;
   }
 
@@ -1312,11 +1310,9 @@ engine_gst_set_current_audio (MeegoMediaPlayerControl *self, gint cur_audio)
   /* Because the playbin2 set_property func do no check the return value,
      we need to get the total number and check valid for cur_audio ourselves.*/
   g_object_get (G_OBJECT (pipe), "n-audio", &n_audio, NULL);
-  UMMS_DEBUG ("%s: The total audio numeber is %d, we want to set to %d\n",
-          __FUNCTION__, n_audio, cur_audio);
+  UMMS_DEBUG ("The total audio numeber is %d, we want to set to %d", n_audio, cur_audio);
   if((cur_audio< 0) || (cur_audio >= n_audio)) {
-    UMMS_DEBUG ("%s: The audio we want to set is %d, invalid one.\n",
-            __FUNCTION__, cur_audio);
+    UMMS_DEBUG ("The audio we want to set is %d, invalid one.", cur_audio);
     return FALSE;
   }
 
@@ -1339,7 +1335,7 @@ engine_gst_get_video_num (MeegoMediaPlayerControl *self, gint *video_num)
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
   g_object_get (G_OBJECT (pipe), "n-video", &n_video, NULL);
-  UMMS_DEBUG ("%s: the video number of the stream is %d\n", __FUNCTION__, n_video);
+  UMMS_DEBUG ("the video number of the stream is %d", n_video);
 
   *video_num = n_video;
 
@@ -1360,7 +1356,7 @@ engine_gst_get_audio_num (MeegoMediaPlayerControl *self, gint *audio_num)
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
   g_object_get (G_OBJECT (pipe), "n-audio", &n_audio, NULL);
-  UMMS_DEBUG ("%s: the audio number of the stream is %d\n", __FUNCTION__, n_audio);
+  UMMS_DEBUG ("the audio number of the stream is %d", n_audio);
 
   *audio_num = n_audio;
 
@@ -1384,10 +1380,10 @@ engine_gst_set_subtitle_uri (MeegoMediaPlayerControl *self, gchar *sub_uri)
      If failed, we just use the default subrender logic in playbin2. */
   sub_sink = gst_element_factory_make ("ismd_subrend_bin", NULL);
   if (sub_sink) {
-    UMMS_DEBUG ("%s: succeed to make the ismd_subrend_bin, set it to playbin2\n", __FUNCTION__);
+    UMMS_DEBUG ("succeed to make the ismd_subrend_bin, set it to playbin2");
     g_object_set (priv->pipeline, "text-sink", sub_sink, NULL);
   } else {
-    UMMS_DEBUG ("%s: Unable to make the ismd_subrend_bin\n", __FUNCTION__);
+    UMMS_DEBUG ("Unable to make the ismd_subrend_bin");
   }
 
   /* It seems that the subtitle URI need to set before activate the group, and 
@@ -1412,7 +1408,7 @@ engine_gst_get_subtitle_num (MeegoMediaPlayerControl *self, gint *sub_num)
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
   g_object_get (G_OBJECT (pipe), "n-text", &n_sub, NULL);
-  UMMS_DEBUG ("%s: the subtitle number of the stream is %d\n", __FUNCTION__, n_sub);
+  UMMS_DEBUG ("the subtitle number of the stream is %d", n_sub);
 
   *sub_num = n_sub;
 
@@ -1433,7 +1429,7 @@ engine_gst_get_current_subtitle (MeegoMediaPlayerControl *self, gint *cur_sub)
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
   g_object_get (G_OBJECT (pipe), "current-text", &c_sub, NULL);
-  UMMS_DEBUG ("%s: the current subtitle stream is %d\n", __FUNCTION__, c_sub);
+  UMMS_DEBUG ("the current subtitle stream is %d", c_sub);
 
   *cur_sub = c_sub;
 
@@ -1456,11 +1452,9 @@ engine_gst_set_current_subtitle (MeegoMediaPlayerControl *self, gint cur_sub)
   /* Because the playbin2 set_property func do no check the return value,
      we need to get the total number and check valid for cur_sub ourselves.*/
   g_object_get (G_OBJECT (pipe), "n-text", &n_sub, NULL);
-  UMMS_DEBUG ("%s: The total subtitle numeber is %d, we want to set to %d\n",
-          __FUNCTION__, n_sub, cur_sub);
+  UMMS_DEBUG ("The total subtitle numeber is %d, we want to set to %d", n_sub, cur_sub);
   if((cur_sub < 0) || (cur_sub >= n_sub)) {
-    UMMS_DEBUG ("%s: The subtitle we want to set is %d, invalid one.\n",
-            __FUNCTION__, cur_sub);
+    UMMS_DEBUG ("The subtitle we want to set is %d, invalid one.", cur_sub);
     return FALSE;
   }
 
