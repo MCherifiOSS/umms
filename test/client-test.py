@@ -186,7 +186,8 @@ class CmdHandler(threading.Thread):
                 self.player.SetUri(uri)
         elif mid == SetTarget:
             print "SetTarget"
-            self.player.SetTarget(ReservedType0, {"rectangle":"0,0,352,288", "plane-id":UPP_A})
+            self.player.SetTarget(DataCopy, {})
+            #self.player.SetTarget(ReservedType0, {"rectangle":"0,0,352,288", "plane-id":UPP_A})
             #self.player.SetTarget(XWindow, {"window-id":0x80000d})
         elif mid == Play:
             print "Play"

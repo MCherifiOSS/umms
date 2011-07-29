@@ -432,6 +432,22 @@ static Window get_top_level_win (MeegoMediaPlayerControl *self, Window sub_win)
   return top_win;
 }
 
+static gboolean setup_datacopy_target (MeegoMediaPlayerControl *self, GHashTable *params)
+{
+  GstElement *shmvbin = NULL;
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  shmvbin = gst_element_factory_make ("shmvidrendbin", NULL);
+  if (!shmvbin) {
+    UMMS_DEBUG ("Making \"shmvidrendbin\" failed");
+    return FALSE;
+  }
+
+  g_object_set (priv->pipeline, "video-sink", shmvbin, NULL);
+  UMMS_DEBUG ("Set \"shmvidrendbin\" to playbin2");
+  return TRUE;
+}
+
 /* 
  * 1. Retrive "video-window-id" and "top-window-id".
  * 2. Make videosink element and set its rectangle property according to video window geometry.
@@ -514,7 +530,7 @@ engine_gst_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *par
       ret = setup_xwindow_target (self, params);
       break;
     case DataCopy:
-      UMMS_DEBUG ("DataCopy target");
+      setup_datacopy_target(self, params);
       break;
     case Socket:
       UMMS_DEBUG ("unsupported target type: Socket");
