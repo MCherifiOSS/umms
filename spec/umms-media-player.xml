@@ -137,6 +137,14 @@
 			<arg name="uri" type="s"/>
 		</method>
 
+		<method name="SetCurrentSubtitle">
+			<arg name="cur_sub" type="i"/>
+		</method>
+
+		<method name="GetCurrentSubtitle">
+			<arg type="i" direction="out"/>
+		</method>
+
 		<signal name="Initialized">
 		</signal>
 
