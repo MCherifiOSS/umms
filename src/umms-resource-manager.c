@@ -1,4 +1,5 @@
 #include "umms-debug.h"
+#include "umms-common.h"
 #include "umms-resource-manager.h"
 
 G_DEFINE_TYPE (UmmsResourceManager, umms_resource_manager, G_TYPE_OBJECT)
@@ -8,10 +9,16 @@ G_DEFINE_TYPE (UmmsResourceManager, umms_resource_manager, G_TYPE_OBJECT)
 #define GET_PRIVATE(o) ((UmmsResourceManager *)o)->priv
 
 //UPP_A and UPP_B
-#define MAX_ACTIVE_PLANE 2
+#define MAX_PLANE 2
 typedef struct _ResourceMngr{
 }ResourceMngr;
 
+struct _Plane{
+  gint     id;
+  gboolean used;
+};
+
+struct _Plane planes[MAX_PLANE] = {{UPP_A, FALSE},{UPP_B, FALSE}};
 
 struct _UmmsResourceManagerPrivate {
   gint active_plane_cnt;
@@ -98,44 +105,77 @@ umms_resource_manager_new (void)
   return mngr_global;
 }
 
-gboolean 
-_request_plane_resource_unlock (UmmsResourceManager *self)
+static Resource *
+_request_plane_resource_unlock (UmmsResourceManager *self, gint prefer_plane)
 {
-  gboolean ret;
-  UmmsResourceManagerPrivate *priv = GET_PRIVATE (self);
-  if (priv->active_plane_cnt < MAX_ACTIVE_PLANE) {
-    priv->active_plane_cnt++;
-    ret = TRUE;
-  } else {
-    ret = FALSE;
-  }
-  UMMS_DEBUG ("active_plane_cnt = %d, ret = %d", priv->active_plane_cnt, ret);
-  return ret;
-}
+  Resource *res = NULL;
+  gint i;
 
-gboolean 
-_release_plane_resource_unlock (UmmsResourceManager *self)
-{
-  UmmsResourceManagerPrivate *priv = GET_PRIVATE (self);
-
-  if (priv->active_plane_cnt > 0) {
-    priv->active_plane_cnt--;
+  //Respect the preference given by client.
+  if (prefer_plane != INVALID_RES_HANDLE) {
+    for (i=0; i<MAX_PLANE; i++) {
+      if ((planes[i].id == prefer_plane) && (planes[i].used == FALSE)) {
+        planes[i].used = TRUE;
+        goto done;
+      }
+    }
+    UMMS_DEBUG ("Prefer plane(%d) is not available", prefer_plane);
   }
 
-  UMMS_DEBUG ("active_plane_cnt = %d", priv->active_plane_cnt);
-  return TRUE;
+  //Find the first available plane.
+  for (i=0; i<MAX_PLANE; i++) {
+    if (!planes[i].used) {
+      planes[i].used = TRUE;
+      goto done;
+    }
+  }
+  UMMS_DEBUG ("No available plane");
+  return NULL;
+
+done:
+  res = (Resource *)g_malloc (sizeof(Resource));
+  if (!res) {
+    UMMS_DEBUG ("malloc failed");
+    return NULL;
+  }
+  res->type = ResourceTypePlane;
+  res->handle = planes[i].id;
+  UMMS_DEBUG ("Return the avaliable plane(%d)", res->handle);
+  return res;
 }
 
-gboolean 
-umms_resource_manager_request_resource (UmmsResourceManager *self, ResourceType type)
+static void
+_release_plane_resource_unlock (UmmsResourceManager *self, Resource *res)
 {
-  gboolean result = FALSE;
-  UmmsResourceManagerPrivate *priv = GET_PRIVATE (self);
+  gint i;
 
+  for (i=0; i<MAX_PLANE; i++) {
+    if (planes[i].id == res->handle) {
+      planes[i].used = FALSE;
+      g_free (res);
+      UMMS_DEBUG ("plane '%d' released", planes[i].id);
+      return;
+    }
+  }
+
+  UMMS_DEBUG ("Invalid plane id '%d'", res->handle);
+  return;
+}
+
+Resource *
+umms_resource_manager_request_resource (UmmsResourceManager *self, ResourceRequest *req)
+{
+  UmmsResourceManagerPrivate *priv;
+  Resource *result = NULL;
+
+  g_return_val_if_fail (self, NULL);
+  g_return_val_if_fail (req, NULL);
+
+  priv = GET_PRIVATE (self);
   g_mutex_lock (priv->lock);
-  switch (type) {
+  switch (req->type) {
     case ResourceTypePlane:
-      result = _request_plane_resource_unlock (self);
+      result = _request_plane_resource_unlock (self, req->preference);
       break;
     default:
       break;
@@ -144,14 +184,19 @@ umms_resource_manager_request_resource (UmmsResourceManager *self, ResourceType 
   return result;
 }
 
-gboolean umms_resource_manager_release_resource (UmmsResourceManager *self, ResourceType type) 
+void 
+umms_resource_manager_release_resource (UmmsResourceManager *self, Resource *res)
 {
-  UmmsResourceManagerPrivate *priv = GET_PRIVATE (self);
+  UmmsResourceManagerPrivate *priv;
+
+  g_return_if_fail (self && res);
+
+  priv = GET_PRIVATE (self);
 
   g_mutex_lock (priv->lock);
-  switch (type) {
+  switch (res->type) {
     case ResourceTypePlane:
-      _release_plane_resource_unlock (self);
+      _release_plane_resource_unlock (self, res);
       break;
     default:
       break;

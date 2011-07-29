@@ -31,6 +31,7 @@ G_DEFINE_TYPE_WITH_CODE (EngineGst, engine_gst, G_TYPE_OBJECT,
        g_free(str);   \
        str = NULL;    \
      }
+#define INVALID_PLANE_ID -1
 
 static const gchar *gst_state[] = {
   "GST_STATE_VOID_PENDING",
@@ -81,6 +82,13 @@ struct _EngineGstPrivate {
   gint64 duration;//ms
   gint64 total_bytes;
 
+  /* For convenience, use target_initialized to control the invoking of engine_gst_set_target().
+   * That means just support setting target once each engine. Without this restriction, target manipulation will be more
+   * complicated. e.g. Switching XWindow target to non-XWindow target should destroy event_thread created for monitoring 
+   * xwindow's reconfiguration. Additionally, target related resources (e.g. plane) may be released when switching target.
+   */
+  gboolean target_initialized;
+
   //XWindow target stuff
   gboolean xwin_initialized;
   gint     target_type;
@@ -97,6 +105,7 @@ struct _EngineGstPrivate {
 
   //resource management
   UmmsResourceManager *res_mngr;
+  GList    *res_list;
 };
 
 static void _reset_engine (MeegoMediaPlayerControl *self);
@@ -343,10 +352,12 @@ static gboolean setup_ismd_vbin(MeegoMediaPlayerControl *self, gchar *rect, gint
 
   if (rect)
     g_object_set (vsink, "rectangle", rect, NULL);
-  if (plane != -1)
+
+  if (plane != INVALID_PLANE_ID)
     g_object_set (vsink, "gdl-plane", plane, NULL);
 
   g_object_set (priv->pipeline, "video-sink", vsink, NULL);
+
   UMMS_DEBUG ("Set ismd_vidrend_bin to playbin2");
   return TRUE;
 }
@@ -355,7 +366,7 @@ static gboolean setup_ismd_vbin(MeegoMediaPlayerControl *self, gchar *rect, gint
 static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTable *params)
 {
   gchar *rect = NULL;
-  gint  plane = -1;
+  gint  plane = INVALID_PLANE_ID;
   GValue *val = NULL;
 
   val = g_hash_table_lookup (params, TARGET_PARAM_KEY_RECTANGLE);
@@ -464,20 +475,12 @@ static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable 
   cutout (self, rx, ry, w, h);
 
   //make ismd video sink and set its rectangle property
-  vsink = gst_element_factory_make ("ismd_vidrend_bin", NULL);
-  if (!vsink) {
-    UMMS_DEBUG ("Failed to make ismd_vidrend_bin");
-    return FALSE;
-  }
-
   gchar *rectangle_des = NULL;
   rectangle_des = g_strdup_printf ("%u,%u,%u,%u", x, y, w, h);
-  UMMS_DEBUG ("set rectangle damension :'%s'", rectangle_des);
-  g_object_set (G_OBJECT(vsink), "rectangle", rectangle_des, NULL);
-  g_free (rectangle_des);
 
-  UMMS_DEBUG ("set ismd_vidrend_bin to playbin2");
-  g_object_set (priv->pipeline, "video-sink", vsink, NULL);
+  UMMS_DEBUG ("set rectangle damension :'%s'", rectangle_des);
+  setup_ismd_vbin (self, rectangle_des, INVALID_PLANE_ID);
+  g_free (rectangle_des);
 
   //Monitor top-level window's structure change event.
   XSelectInput (priv->disp, priv->app_win_id,
@@ -493,7 +496,13 @@ static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable 
 static gboolean
 engine_gst_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params)
 {
+  gboolean ret = TRUE;
   EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  if (priv->target_initialized) {
+    UMMS_DEBUG ("Target has been initialized, not support set again");
+    return TRUE;
+  }
 
   if (!priv->pipeline) {
     UMMS_DEBUG ("Engine not loaded, reason may be SetUri not invoked");
@@ -502,38 +511,113 @@ engine_gst_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *par
 
   switch (type) {
     case XWindow:
-      setup_xwindow_target (self, params);
+      ret = setup_xwindow_target (self, params);
       break;
     case DataCopy:
       UMMS_DEBUG ("DataCopy target");
       break;
     case Socket:
       UMMS_DEBUG ("unsupported target type: Socket");
-      return FALSE;
+      ret = FALSE;
       break;
     case ReservedType0:
       /*
        * ReservedType0 represents the gdl-plane video output in our UMMS implementation.
        */
-      setup_gdl_plane_target (self, params);
+      ret = setup_gdl_plane_target (self, params);
       break;
     default:
       break;
   }
-  priv->target_type = type;
 
-  return TRUE;
+  if (ret) {
+    priv->target_type = type;
+    priv->target_initialized = TRUE;
+  }
+
+  return ret;
 }
 
+static gboolean 
+prepare_plane (MeegoMediaPlayerControl *self)
+{
+  GstElement *vsink_bin;
+  gint plane;
+  gboolean ret = TRUE;
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  g_object_get (G_OBJECT(priv->pipeline), "video-sink", &vsink_bin, NULL);
+
+  if (vsink_bin) {
+    if (g_object_class_find_property (G_OBJECT_GET_CLASS (vsink_bin), "gdl-plane") == NULL) {
+      UMMS_DEBUG ("vsink has no gdl-plane property, which means target type is not XWindow or ReservedType0");
+      return ret;
+    }
+
+    g_object_get (G_OBJECT(vsink_bin), "gdl-plane", &plane, NULL);
+
+    //request plane resource
+    ResourceRequest req = {ResourceTypePlane, plane};
+    Resource *res = NULL;
+
+    res = umms_resource_manager_request_resource (priv->res_mngr, &req);
+
+    if (!res) {
+      UMMS_DEBUG ("Failed");
+      ret = FALSE;
+    } else if (plane != res->handle) {
+      g_object_set (G_OBJECT(vsink_bin), "gdl-plane", res->handle, NULL);
+      UMMS_DEBUG ("Plane changed '%d'==>'%d'", plane,  res->handle);
+    } else {
+      //Do nothing;  
+    }
+
+    priv->res_list = g_list_append (priv->res_list, res);
+    gst_object_unref (vsink_bin);
+  }
+
+  return ret;
+}
+
+/*The timing to prepare resource is PlayerStateNull/PlayerStateStopped to PlayerStatePaused/PlayerStatePlaying.
+*/
+static gboolean
+prepare_resource (MeegoMediaPlayerControl *self)
+{
+  //For now, only care about gdl plane.
+  return prepare_plane(self);
+}
+
+static void
+release_resource (MeegoMediaPlayerControl *self)
+{
+  GList *g;
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  for (g = priv->res_list; g; g = g->next) {
+    Resource *res = (Resource *) (g->data);
+    umms_resource_manager_release_resource (priv->res_mngr, res);
+  }
+  g_list_free (priv->res_list);
+  priv->res_list = NULL;
+
+  return;
+}
 
 static gboolean
 engine_gst_play (MeegoMediaPlayerControl *self)
 {
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
+
   if (!priv->uri) {
     UMMS_DEBUG(" Unable to set playing state - no URI set");
     return FALSE;
+  }
+
+  if (priv->player_state == PlayerStateNull || priv->player_state == PlayerStateStopped) {
+    if (!prepare_resource (self))
+      return FALSE;
   }
 
   if(IS_LIVE_URI(priv->uri)) {     
@@ -560,13 +644,23 @@ engine_gst_pause (MeegoMediaPlayerControl *self)
 {
   GstStateChangeReturn ret;
   EngineGstPrivate *priv = GET_PRIVATE (self);
+  PlayerState old_pending;
+
+
+  if (priv->player_state == PlayerStateNull || priv->player_state == PlayerStateStopped) {
+    if (!prepare_resource (self))
+      return FALSE;
+  }
+
+  old_pending = priv->pending_state;
+  priv->pending_state = PlayerStatePaused;
 
   if (gst_element_set_state(priv->pipeline, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
     UMMS_DEBUG ("set pipeline to paused failed");
+    priv->pending_state = old_pending;
     return FALSE;
   }
 
-  priv->pending_state = PlayerStatePaused;
   UMMS_DEBUG ("called");
   return TRUE;
 }
@@ -609,6 +703,7 @@ _stop_pipe (MeegoMediaPlayerControl *control)
     return FALSE;
   }
 
+  release_resource (control);
 
   UMMS_DEBUG ("gstreamer engine stopped");
   return TRUE;
@@ -1848,9 +1943,12 @@ engine_gst_init (EngineGst *self)
   g_object_set (priv->pipeline, "flags", flags, NULL);
 
   priv->player_state = PlayerStateNull;
-  priv->target_type = ReservedType0;
   priv->res_mngr = umms_resource_manager_new ();
+  priv->res_list = NULL;
 
+  priv->target_initialized = FALSE;
+  //Setup default target.
+  priv->target_type = ReservedType0;
 #define FULL_SCREEN_RECT "0,0,0,0"
   setup_ismd_vbin (MEEGO_MEDIA_PLAYER_CONTROL(self), FULL_SCREEN_RECT, UPP_A);
 }

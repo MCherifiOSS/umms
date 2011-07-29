@@ -30,6 +30,8 @@ G_BEGIN_DECLS
 typedef struct _UmmsResourceManager UmmsResourceManager;
 typedef struct _UmmsResourceManagerClass UmmsResourceManagerClass;
 typedef struct _UmmsResourceManagerPrivate UmmsResourceManagerPrivate;
+typedef struct _Resource Resource;
+typedef struct _ResourceRequest ResourceRequest;
 typedef enum    _ResourceType ResourceType;
 struct _UmmsResourceManager
 {
@@ -45,14 +47,29 @@ struct _UmmsResourceManagerClass
 
 enum _ResourceType
 {
-  ResourceTypePlane,
-  ResourceTypeLast
+  ResourceTypePlane = (1 << 0),
+  ResourceTypeTuner = (1 << 1),
+  ResourceTypeHwDec = (1 << 2)
 };
+
+#define INVALID_RES_HANDLE -1
+//Actual resource returned by resource manager.
+struct _Resource {
+  ResourceType type;
+  guint        handle;
+};
+
+//Resource requested by user.
+struct _ResourceRequest {
+  ResourceType type;
+  guint        preference;//Expected resource by client (e.g. for ResourceTypePlane, it may be UPP_A). 
+};
+
 
 GType umms_resource_manager_get_type (void) G_GNUC_CONST;
 UmmsResourceManager *umms_resource_manager_new (void);
-gboolean umms_resource_manager_request_resource (UmmsResourceManager *self, ResourceType type);
-gboolean umms_resource_manager_release_resource (UmmsResourceManager *self, ResourceType type);
+Resource *umms_resource_manager_request_resource (UmmsResourceManager *self, ResourceRequest *req);
+void umms_resource_manager_release_resource (UmmsResourceManager *self, Resource *res);
 
 G_END_DECLS
 
