@@ -355,7 +355,7 @@ static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTabl
 
   val = g_hash_table_lookup (params, TARGET_PARAM_KEY_RECTANGLE);
   if (val) {
-    rect = g_value_get_string (val);
+    rect = (gchar *)g_value_get_string (val);
     UMMS_DEBUG ("rectangle = '%s'", rect);
   }
 
@@ -1850,7 +1850,7 @@ engine_gst_init (EngineGst *self)
   priv->target_type = ReservedType0;
 
 #define FULL_SCREEN_RECT "0,0,0,0"
-  setup_ismd_vbin (self, FULL_SCREEN_RECT, UPP_A);
+  setup_ismd_vbin (MEEGO_MEDIA_PLAYER_CONTROL(self), FULL_SCREEN_RECT, UPP_A);
 }
 
 EngineGst *
