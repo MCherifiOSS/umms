@@ -568,6 +568,15 @@ meego_media_player_set_subtitle_uri (MeegoMediaPlayer *player, gchar *sub_uri, G
   return TRUE;
 }
 
+gboolean
+meego_media_player_get_subtitle_num (MeegoMediaPlayer *player, gint *sub_num, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_subtitle_num(GET_CONTROL_IFACE (player), sub_num);
+  UMMS_DEBUG ("the total subtitle number is %d", *sub_num);
+  return TRUE;
+}
+
 static void
 meego_media_player_get_property (GObject    *object,
     guint       property_id,

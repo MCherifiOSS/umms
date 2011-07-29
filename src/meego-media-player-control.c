@@ -35,6 +35,7 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_get_audio_num_impl get_audio_num;
   meego_media_player_control_set_proxy_impl set_proxy;
   meego_media_player_control_set_subtitle_uri_impl set_subtitle_uri;
+  meego_media_player_control_get_audio_num_impl get_subtitle_num;
 };
 
 enum {
@@ -764,6 +765,26 @@ void meego_media_player_control_implement_set_subtitle_uri (MeegoMediaPlayerCont
                                                             meego_media_player_control_set_subtitle_uri_impl impl)
 {
   klass->set_subtitle_uri = impl;
+}
+
+gboolean 
+meego_media_player_control_get_subtitle_num (MeegoMediaPlayerControl *self, gint *sub_num)
+{
+  meego_media_player_control_get_subtitle_num_impl impl =
+                   (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_subtitle_num);
+
+  if (impl != NULL) {
+    (impl) (self, sub_num);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_subtitle_num (MeegoMediaPlayerControlClass *klass,
+                                                            meego_media_player_control_get_subtitle_num_impl impl)
+{
+  klass->get_subtitle_num = impl;
 }
 
 void

@@ -1376,6 +1376,25 @@ engine_gst_set_subtitle_uri (MeegoMediaPlayerControl *self, gchar *sub_uri)
   return TRUE;
 }
 
+static gboolean
+engine_gst_get_subtitle_num (MeegoMediaPlayerControl *self, gint *sub_num)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint n_sub = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  g_object_get (G_OBJECT (pipe), "n-text", &n_sub, NULL);
+  UMMS_DEBUG ("%s: the subtitle number of the stream is %d\n", __FUNCTION__, n_sub);
+
+  *sub_num = n_sub;
+
+  return TRUE;
+}
 
 static gboolean
 engine_gst_set_proxy (MeegoMediaPlayerControl *self, GHashTable *params)
@@ -1475,6 +1494,8 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_set_proxy);
   meego_media_player_control_implement_set_subtitle_uri (klass,
       engine_gst_set_subtitle_uri);
+  meego_media_player_control_implement_get_subtitle_num (klass,
+      engine_gst_get_subtitle_num);
 }
 
 static void
