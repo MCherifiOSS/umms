@@ -185,11 +185,13 @@ cutout (MeegoMediaPlayerControl *self, gint x, gint y, gint w, gint h)
     return FALSE;
   }
 
-  g_sprintf (data, "meego-tv-cutout-x=%d:meego-tv-cutout-y=%d:meego-tv-cutout-width=%d:meego-tv-cutout-height=%d:meego-tv-half-trans=0:meego-tv-full-window=0", x, y, w, h);
+  g_sprintf (data, "meego-tv-cutout-x=%d:meego-tv-cutout-y=%d:meego-tv-cutout-width=%d:"
+             "meego-tv-cutout-height=%d:meego-tv-half-trans=0:meego-tv-full-window=0", x, y, w, h);
 
   UMMS_DEBUG ("Hints to mtv-mutter = \"%s\"", data);
 
-  XChangeProperty(priv->disp, priv->app_win_id,property,XA_STRING,8,PropModeReplace,(unsigned char *)data, strlen(data));
+  XChangeProperty(priv->disp, priv->app_win_id, property, XA_STRING, 8, PropModeReplace,
+                  (unsigned char *)data, strlen(data));
   return TRUE;
 }
 
@@ -521,7 +523,8 @@ engine_gst_play (MeegoMediaPlayerControl *self)
        the hardware can not work well.  In file case, the provide_clock will be called after all the elements
        have been made and added in pause state, so the element which represent the hardware will provide the
        right clock. But in live source case, the state change from NULL to playing is continous and the provide_clock
-       function may be called before hardware element has been made. So we need to set the clock of pipeline statically here.*/
+       function may be called before hardware element has been made.
+       So we need to set the clock of pipeline statically here.*/
 //    ismd_clock = g_object_new (ISMD_GST_TYPE_CLOCK, NULL); 
 //    gst_pipeline_use_clock (GST_PIPELINE_CAST(priv->pipeline), GST_CLOCK_CAST(ismd_clock));
   }
@@ -1348,11 +1351,22 @@ engine_gst_set_subtitle_uri (MeegoMediaPlayerControl *self, gchar *sub_uri)
 {
   EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
+  GstElement *sub_sink = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
   priv = GET_PRIVATE (self);
   pipe = priv->pipeline;
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  /* We first set the subtitle render element of playbin2 using ismd_subrend_bin.
+     If failed, we just use the default subrender logic in playbin2. */
+  sub_sink = gst_element_factory_make ("ismd_subrend_bin", NULL);
+  if (sub_sink) {
+    UMMS_DEBUG ("%s: succeed to make the ismd_subrend_bin, set it to playbin2\n", __FUNCTION__);
+    g_object_set (priv->pipeline, "text-sink", sub_sink, NULL);
+  } else {
+    UMMS_DEBUG ("%s: Unable to make the ismd_subrend_bin\n", __FUNCTION__);
+  }
 
   /* It seems that the subtitle URI need to set before activate the group, and 
      can not dynamic change it of current group when playing.
