@@ -448,6 +448,87 @@ static gboolean setup_datacopy_target (MeegoMediaPlayerControl *self, GHashTable
   return TRUE;
 }
 
+static int x_print_error(
+    Display *dpy,
+    XErrorEvent *event,
+    FILE *fp)
+{
+  char buffer[BUFSIZ];
+  char mesg[BUFSIZ];
+  char number[32];
+  const char *mtype = "XlibMessage";
+  XGetErrorText(dpy, event->error_code, buffer, BUFSIZ);
+  XGetErrorDatabaseText(dpy, mtype, "XError", "X Error", mesg, BUFSIZ);
+  (void) fprintf(fp, "%s:  %s\n  ", mesg, buffer);
+  XGetErrorDatabaseText(dpy, mtype, "MajorCode", "Request Major code %d",
+      mesg, BUFSIZ);
+  (void) fprintf(fp, mesg, event->request_code);
+  if (event->request_code < 128) {
+    sprintf(number, "%d", event->request_code);
+    XGetErrorDatabaseText(dpy, "XRequest", number, "", buffer, BUFSIZ);
+  }
+
+  (void) fprintf(fp, " (%s)\n", buffer);
+  if (event->request_code >= 128) {
+    XGetErrorDatabaseText(dpy, mtype, "MinorCode", "Request Minor code %d",
+        mesg, BUFSIZ);
+    fputs("  ", fp);
+    (void) fprintf(fp, mesg, event->minor_code);
+
+    fputs("\n", fp);
+  }
+  if (event->error_code >= 128) {
+    strcpy(buffer, "Value");
+    XGetErrorDatabaseText(dpy, mtype, buffer, "", mesg, BUFSIZ);
+    if (mesg[0]) {
+      fputs("  ", fp);
+      (void) fprintf(fp, mesg, event->resourceid);
+      fputs("\n", fp);
+    }
+
+  } else if ((event->error_code == BadWindow) ||
+      (event->error_code == BadPixmap) ||
+      (event->error_code == BadCursor) ||
+      (event->error_code == BadFont) ||
+      (event->error_code == BadDrawable) ||
+      (event->error_code == BadColor) ||
+      (event->error_code == BadGC) ||
+      (event->error_code == BadIDChoice) ||
+      (event->error_code == BadValue) ||
+      (event->error_code == BadAtom)) {
+    if (event->error_code == BadValue)
+      XGetErrorDatabaseText(dpy, mtype, "Value", "Value 0x%x",
+          mesg, BUFSIZ);
+    else if (event->error_code == BadAtom)
+      XGetErrorDatabaseText(dpy, mtype, "AtomID", "AtomID 0x%x",
+          mesg, BUFSIZ);
+    else
+      XGetErrorDatabaseText(dpy, mtype, "ResourceID", "ResourceID 0x%x",
+          mesg, BUFSIZ);
+    fputs("  ", fp);
+    (void) fprintf(fp, mesg, event->resourceid);
+    fputs("\n", fp);
+  }
+  XGetErrorDatabaseText(dpy, mtype, "ErrorSerial", "Error Serial #%d",
+      mesg, BUFSIZ);
+  fputs("  ", fp);
+  (void) fprintf(fp, mesg, event->serial);
+  XGetErrorDatabaseText(dpy, mtype, "CurrentSerial", "Current Serial #%d",
+      mesg, BUFSIZ);
+  fputs("\n  ", fp);
+  if (event->error_code == BadImplementation) return 0;
+  return 1;
+}
+
+//Mostly the same as default handler, but not exit process.
+int xerror_handler (
+	Display *dpy,
+	XErrorEvent *event)
+{
+    return x_print_error (dpy, event, stderr);
+}
+
+
 /* 
  * 1. Retrive "video-window-id" and "top-window-id".
  * 2. Make videosink element and set its rectangle property according to video window geometry.
@@ -473,6 +554,8 @@ static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable 
     UMMS_DEBUG ("Could not open display");
     return FALSE;
   }
+
+  XSetErrorHandler (xerror_handler);
 
   val = g_hash_table_lookup (params, "window-id");
   if (!val) {
