@@ -14,6 +14,7 @@ typedef enum {
 }PlayerState;
 
 typedef enum {
+    TargetTypeInvalid = -1,
     XWindow,
     DataCopy,
     Socket,

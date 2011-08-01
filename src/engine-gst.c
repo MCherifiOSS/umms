@@ -82,11 +82,6 @@ struct _EngineGstPrivate {
   gint64 duration;//ms
   gint64 total_bytes;
 
-  /* For convenience, use target_initialized to control the invoking of engine_gst_set_target().
-   * That means just support setting target once each engine. Without this restriction, target manipulation will be more
-   * complicated. e.g. Switching XWindow target to non-XWindow target should destroy event_thread created for monitoring 
-   * xwindow's reconfiguration. Additionally, target related resources (e.g. plane) may be released when switching target.
-   */
   gboolean target_initialized;
 
   //XWindow target stuff
@@ -530,9 +525,9 @@ int xerror_handler (
 
 
 /* 
- * 1. Retrive "video-window-id" and "top-window-id".
- * 2. Make videosink element and set its rectangle property according to video window geometry.
- * 3  Cutout video window geometry according to its relative position to application win.
+ * 1. Calculate top-level window according to video window.
+ * 2. Cutout video window geometry according to its relative position to top-level window.
+ * 3. Setup underlying ismd_vidrend_bin element.
  * 4. Create xevent handle thread.
  */
 
@@ -593,19 +588,62 @@ static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable 
 }
 
 static gboolean
+unset_target (MeegoMediaPlayerControl *self)
+{
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  if (!priv->target_initialized)
+    return TRUE;
+
+  /*
+   *For DataCopy and ReservedType0, gstreamer will handle the video-sink element elegantly. 
+   *Nothing need to do here.
+   */
+  switch (priv->target_type) {
+    case XWindow:
+      unset_xwindow_target (self);
+      break;
+    case DataCopy:
+      break;
+    case Socket:
+      g_assert_not_reached ();
+      break;
+    case ReservedType0:
+      break;
+    default:
+      g_assert_not_reached ();
+      break;
+  }
+
+  priv->target_type = TargetTypeInvalid;
+  priv->target_initialized = FALSE;
+  return TRUE;
+}
+
+static gboolean
 engine_gst_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params)
 {
   gboolean ret = TRUE;
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
-  if (priv->target_initialized) {
-    UMMS_DEBUG ("Target has been initialized, not support set again");
-    return TRUE;
+  /*
+   * Set target can only happen at Null or Stopped. Two reasons:
+   * 1. Gstreamer don't support switching sink on the fly. 
+   * 2. PlayerStateNull/PlayerStateStopped means all target related resources have been released.
+   *    It is more convenience for resource management implementing.
+   */
+  if (priv->player_state != PlayerStateNull && priv->player_state != PlayerStateStopped) {
+    UMMS_DEBUG ("Ignored, can only set target at PlayerStateNull or PlayerStateStopped");
+    return FALSE;
   }
 
   if (!priv->pipeline) {
     UMMS_DEBUG ("Engine not loaded, reason may be SetUri not invoked");
     return FALSE;
+  }
+
+  if (priv->target_initialized) {
+    unset_target (self);
   }
 
   switch (type) {

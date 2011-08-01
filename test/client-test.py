@@ -186,9 +186,15 @@ class CmdHandler(threading.Thread):
                 self.player.SetUri(uri)
         elif mid == SetTarget:
             print "SetTarget"
-            self.player.SetTarget(DataCopy, {})
-            #self.player.SetTarget(ReservedType0, {"rectangle":"0,0,352,288", "plane-id":UPP_A})
-            #self.player.SetTarget(XWindow, {"window-id":0x80000d})
+            type = raw_input("Input target type: 'd' for DataCopy, 'r' for ReservedType0(plane), 'x' for XWindow\n")
+            if type == "d":
+                self.player.SetTarget(DataCopy, {})
+            elif type == "r": 
+                self.player.SetTarget(ReservedType0, {"rectangle":"0,0,352,288", "plane-id":UPP_A})
+            elif type == "x":
+                self.player.SetTarget(XWindow, {"window-id":0x400013})
+            else:
+                print "Not supported target type:'%s'\n" % (type)
         elif mid == Play:
             print "Play"
             self.player.Play()
