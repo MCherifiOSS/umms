@@ -43,7 +43,7 @@ static const gchar *gst_state[] = {
 
 
 /* list of URIs that we consider to be live source. */
-static gchar *live_src_uri[] = { "http://", "mms://", "mmsh://", "rtsp://",
+static gchar *live_src_uri[] = {"mms://", "mmsh://", "rtsp://",
     "mmsu://", "mmst://", "fd://", "myth://", "ssh://", "ftp://", "sftp://",
     NULL};
 
