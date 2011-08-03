@@ -1725,6 +1725,23 @@ engine_gst_set_proxy (MeegoMediaPlayerControl *self, GHashTable *params)
   return TRUE;
 }
 
+
+static gboolean
+engine_gst_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint buf_val) 
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+
+  return TRUE;
+}
+
+
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
 {
@@ -1800,6 +1817,8 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_set_current_subtitle);
   meego_media_player_control_implement_get_current_subtitle (klass,
       engine_gst_get_current_subtitle);
+  meego_media_player_control_implement_set_buffer_depth (klass,
+      engine_gst_set_buffer_depth);
 }
 
 static void

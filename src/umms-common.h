@@ -31,6 +31,12 @@ typedef enum {
   UPP_C = 6
 }GdlPlaneId;
 
+typedef enum {
+  BufferFormatInvalid = -1,
+  BufferFormatByTime,
+  BufferFormatByBytes
+}BufferFormat;
+
 #define TARGET_PARAM_KEY_RECTANGLE "rectangle"
 #define TARGET_PARAM_KEY_PlANE_ID "plane-id"
 
