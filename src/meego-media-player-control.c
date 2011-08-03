@@ -831,7 +831,7 @@ void meego_media_player_control_implement_set_current_subtitle (MeegoMediaPlayer
 }
 
 gboolean 
-meego_media_player_control_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint buf_val)
+meego_media_player_control_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 buf_val)
 {
   meego_media_player_control_set_buffer_depth_impl impl =
                    (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_buffer_depth);

@@ -217,7 +217,7 @@ gboolean meego_media_player_control_set_subtitle_uri (MeegoMediaPlayerControl *s
 gboolean meego_media_player_control_get_subtitle_num (MeegoMediaPlayerControl *self, gint *sub_num);
 gboolean meego_media_player_control_get_current_subtitle (MeegoMediaPlayerControl *self, gint *cur_sub);
 gboolean meego_media_player_control_set_current_subtitle (MeegoMediaPlayerControl *self, gint cur_sub);
-gboolean meego_media_player_control_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint buf_val);
+gboolean meego_media_player_control_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 buf_val);
 
 /*signal emitter*/
 void meego_media_player_control_emit_initialized (gpointer instance);

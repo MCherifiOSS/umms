@@ -661,6 +661,15 @@ meego_media_player_set_current_subtitle (MeegoMediaPlayer *player, gint cur_sub,
   return TRUE;
 }
 
+gboolean 
+meego_media_player_set_buffer_depth (MeegoMediaPlayer *player, gint format, gint64 buf_val, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_set_buffer_depth(GET_CONTROL_IFACE (player), format, buf_val);
+  UMMS_DEBUG ("set the format to %d, buffer to %lld", format, buf_val);
+  return TRUE;
+}
+
 static void
 meego_media_player_get_property (GObject    *object,
     guint       property_id,
