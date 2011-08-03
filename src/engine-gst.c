@@ -1727,7 +1727,7 @@ engine_gst_set_proxy (MeegoMediaPlayerControl *self, GHashTable *params)
 
 
 static gboolean
-engine_gst_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint buf_val) 
+engine_gst_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 buf_val) 
 {
   EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
@@ -1737,6 +1737,21 @@ engine_gst_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint bu
   pipe = priv->pipeline;
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
+  if(buf_val < 0) {
+    UMMS_DEBUG("The buffer depth value is %lld, invalid one", buf_val);
+    return FALSE;
+  }
+
+  if(format == BufferFormatByTime) {
+    g_object_set (G_OBJECT (pipe), "buffer-duration", buf_val, NULL);
+    UMMS_DEBUG("Set the buffer-duration to %lld", buf_val);
+  } else if(format == BufferFormatByBytes) {
+    g_object_set (G_OBJECT (pipe), "buffer-size", buf_val, NULL);
+    UMMS_DEBUG("Set the buffer-size to %lld", buf_val);
+  } else {
+    UMMS_DEBUG("Pass the wrong format:%d to buffer depth setting", format);
+    return FALSE;
+  }
 
   return TRUE;
 }
