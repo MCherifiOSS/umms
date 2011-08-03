@@ -103,7 +103,6 @@ struct _EngineGstPrivate {
   GList    *res_list;
 };
 
-static void _reset_engine (MeegoMediaPlayerControl *self);
 static gboolean _query_buffering_percent (GstElement *pipe, gdouble *percent);
 static void _source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data);
 static gboolean _stop_pipe (MeegoMediaPlayerControl *control);
@@ -126,14 +125,28 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
               priv->uri,
               uri);
 
-  //_reset_engine (self);
+  if (priv->uri) {
+    _stop_pipe(self);
+    g_free (priv->uri);
+    priv->uri = NULL;
+  }
 
+  if (priv->source) {
+    g_object_unref (priv->source);
+    priv->source = NULL;
+  }
+
+  priv->total_bytes = -1;
+  priv->duration = -1;
+  priv->seekable = -1;
+  priv->buffering = FALSE;
+  priv->buffer_percent = -1;
+  priv->player_state = PlayerStateStopped;
+  priv->pending_state = PlayerStateNull;
   priv->uri = g_strdup (uri);
+  priv->is_live = IS_LIVE_URI(priv->uri);
 
   g_object_set (priv->pipeline, "uri", uri, NULL);
-
-  priv->seekable = -1;
-  priv->is_live = IS_LIVE_URI(priv->uri);
 
   return TRUE;
 }
@@ -801,34 +814,6 @@ engine_gst_pause (MeegoMediaPlayerControl *self)
   UMMS_DEBUG ("called");
   return TRUE;
 }
-
-static void
-_reset_engine (MeegoMediaPlayerControl *self)
-{
-  EngineGstPrivate *priv = GET_PRIVATE (self);
-
-  if (priv->uri) {
-    _stop_pipe(self);
-    g_free (priv->uri);
-    priv->uri = NULL;
-  }
-
-  if (priv->source) {
-    g_object_unref (priv->source);
-    priv->source = NULL;
-  }
-
-  priv->total_bytes = -1;
-  priv->duration = -1;
-  priv->seekable = -1;
-  priv->buffering = FALSE;
-  priv->buffer_percent = -1;
-  priv->player_state = PlayerStateStopped;
-  priv->pending_state = PlayerStateNull;
-
-  return;
-}
-
 
 static gboolean
 _stop_pipe (MeegoMediaPlayerControl *control)
