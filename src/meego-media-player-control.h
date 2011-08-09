@@ -181,6 +181,10 @@ typedef gboolean (*meego_media_player_control_set_buffer_depth_impl) (MeegoMedia
 void meego_media_player_control_implement_set_buffer_depth (MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_set_buffer_depth_impl impl);
 
+typedef gboolean (*meego_media_player_control_set_mute_impl) (MeegoMediaPlayerControl *self, gint mute);
+void meego_media_player_control_implement_set_mute (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_set_mute_impl impl);
+
 /*virtual function wrappers*/
 gboolean meego_media_player_control_set_uri (MeegoMediaPlayerControl *self, const gchar *in_uri);
 gboolean meego_media_player_control_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params);
@@ -218,6 +222,7 @@ gboolean meego_media_player_control_get_subtitle_num (MeegoMediaPlayerControl *s
 gboolean meego_media_player_control_get_current_subtitle (MeegoMediaPlayerControl *self, gint *cur_sub);
 gboolean meego_media_player_control_set_current_subtitle (MeegoMediaPlayerControl *self, gint cur_sub);
 gboolean meego_media_player_control_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 buf_val);
+gboolean meego_media_player_control_set_mute (MeegoMediaPlayerControl *self, gint mute);
 
 /*signal emitter*/
 void meego_media_player_control_emit_initialized (gpointer instance);

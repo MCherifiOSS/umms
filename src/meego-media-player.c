@@ -670,6 +670,14 @@ meego_media_player_set_buffer_depth (MeegoMediaPlayer *player, gint format, gint
   return TRUE;
 }
 
+gboolean meego_media_player_set_mute (MeegoMediaPlayer *player, gint mute, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_set_mute(GET_CONTROL_IFACE (player), mute);
+  UMMS_DEBUG ("set the mute to %d", mute);
+  return TRUE;
+}
+
 static void
 meego_media_player_get_property (GObject    *object,
     guint       property_id,

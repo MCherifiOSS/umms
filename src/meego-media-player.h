@@ -106,6 +106,7 @@ gboolean meego_media_player_get_subtitle_num (MeegoMediaPlayer *player, gint *su
 gboolean meego_media_player_get_current_subtitle (MeegoMediaPlayer *player, gint *cur_sub, GError **err);
 gboolean meego_media_player_set_current_subtitle (MeegoMediaPlayer *player, gint cur_sub, GError **err);
 gboolean meego_media_player_set_buffer_depth (MeegoMediaPlayer *player, gint format, gint64 buf_val, GError **err);
+gboolean meego_media_player_set_mute (MeegoMediaPlayer *player, gint mute, GError **err);
 
 G_END_DECLS
 

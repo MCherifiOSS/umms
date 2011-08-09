@@ -1744,6 +1744,13 @@ engine_gst_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 
 }
 
 
+static gboolean
+engine_gst_set_mute (MeegoMediaPlayerControl *self, gint mute) 
+{
+  return TRUE;
+}
+
+
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
 {
@@ -1821,6 +1828,8 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_get_current_subtitle);
   meego_media_player_control_implement_set_buffer_depth (klass,
       engine_gst_set_buffer_depth);
+  meego_media_player_control_implement_set_mute (klass,
+      engine_gst_set_mute);
 }
 
 static void

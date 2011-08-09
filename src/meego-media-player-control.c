@@ -39,6 +39,7 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_get_current_subtitle_impl get_current_subtitle;
   meego_media_player_control_set_current_subtitle_impl set_current_subtitle;
   meego_media_player_control_set_buffer_depth_impl set_buffer_depth;
+  meego_media_player_control_set_mute_impl set_mute;
 };
 
 enum {
@@ -848,6 +849,26 @@ void meego_media_player_control_implement_set_buffer_depth (MeegoMediaPlayerCont
                                                         meego_media_player_control_set_buffer_depth_impl impl)
 {
   klass->set_buffer_depth = impl;
+}
+
+gboolean 
+meego_media_player_control_set_mute (MeegoMediaPlayerControl *self, gint mute)
+{
+  meego_media_player_control_set_mute_impl impl =
+                   (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_mute);
+
+  if (impl != NULL) {
+    (impl) (self, mute);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_set_mute (MeegoMediaPlayerControlClass *klass,
+                                                   meego_media_player_control_set_mute_impl impl)
+{
+  klass->set_mute = impl;
 }
 
 void
