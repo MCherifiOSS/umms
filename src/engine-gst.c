@@ -1150,6 +1150,8 @@ engine_gst_get_volume (MeegoMediaPlayerControl *self, gint *volume)
   EngineGstPrivate *priv;
   gdouble vol;
 
+  *volume = -1;
+
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
