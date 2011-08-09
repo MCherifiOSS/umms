@@ -71,6 +71,7 @@ struct _MeegoMediaPlayerPrivate {
 
   gchar    *uri;
   gint     volume;
+  gint     mute;
   gint     x;
   gint     y;
   guint    w;
@@ -239,6 +240,7 @@ meego_media_player_set_uri (MeegoMediaPlayer *player,
 
   meego_media_player_control_set_uri (player->player_control, uri);
   meego_media_player_control_set_volume (player->player_control, priv->volume);
+  meego_media_player_control_set_mute (player->player_control, priv->mute);
 
   g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_Initialized], 0);
 
@@ -672,9 +674,17 @@ meego_media_player_set_buffer_depth (MeegoMediaPlayer *player, gint format, gint
 
 gboolean meego_media_player_set_mute (MeegoMediaPlayer *player, gint mute, GError **err)
 {
-  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
-  meego_media_player_control_set_mute(GET_CONTROL_IFACE (player), mute);
-  UMMS_DEBUG ("set the mute to %d", mute);
+  MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
+  MeegoMediaPlayerControl *player_control = GET_CONTROL_IFACE (player);
+
+  UMMS_DEBUG ("will set mute to %d", mute);
+  
+  if (player_control) {
+    meego_media_player_control_set_mute(GET_CONTROL_IFACE (player), mute);
+  } else {
+    UMMS_DEBUG ("Cache the mute to later loaded.");
+    priv->mute = mute;
+  }
   return TRUE;
 }
 

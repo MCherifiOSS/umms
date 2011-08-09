@@ -1747,7 +1747,20 @@ engine_gst_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 
 static gboolean
 engine_gst_set_mute (MeegoMediaPlayerControl *self, gint mute) 
 {
-  return TRUE;
+ GstElement *pipe;
+ EngineGstPrivate *priv;
+
+ g_return_val_if_fail (self != NULL, FALSE);
+ g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+ priv = GET_PRIVATE (self);
+ pipe = priv->pipeline;
+ g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+ UMMS_DEBUG ("set mute to = %d", mute);
+ gst_stream_volume_set_mute (GST_STREAM_VOLUME (pipe), mute);
+
+ return TRUE;
 }
 
 
