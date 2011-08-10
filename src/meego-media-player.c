@@ -672,7 +672,8 @@ meego_media_player_set_buffer_depth (MeegoMediaPlayer *player, gint format, gint
   return TRUE;
 }
 
-gboolean meego_media_player_set_mute (MeegoMediaPlayer *player, gint mute, GError **err)
+gboolean 
+meego_media_player_set_mute (MeegoMediaPlayer *player, gint mute, GError **err)
 {
   MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
   MeegoMediaPlayerControl *player_control = GET_CONTROL_IFACE (player);
@@ -685,6 +686,16 @@ gboolean meego_media_player_set_mute (MeegoMediaPlayer *player, gint mute, GErro
     UMMS_DEBUG ("Cache the mute to later loaded.");
     priv->mute = mute;
   }
+  return TRUE;
+}
+
+gboolean 
+meego_media_player_is_mute (MeegoMediaPlayer *player, gint *mute, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+
+  meego_media_player_control_is_mute (GET_CONTROL_IFACE (player), mute);
+  UMMS_DEBUG ("current mute is %d", *mute);
   return TRUE;
 }
 
