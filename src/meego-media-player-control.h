@@ -189,6 +189,10 @@ typedef gboolean (*meego_media_player_control_is_mute_impl) (MeegoMediaPlayerCon
 void meego_media_player_control_implement_is_mute (MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_is_mute_impl impl);
 
+typedef gboolean (*meego_media_player_control_set_scale_mode_impl) (MeegoMediaPlayerControl *self, gint scale_mode);
+void meego_media_player_control_implement_set_scale_mode (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_set_scale_mode_impl impl);
+
 /*virtual function wrappers*/
 gboolean meego_media_player_control_set_uri (MeegoMediaPlayerControl *self, const gchar *in_uri);
 gboolean meego_media_player_control_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params);
@@ -228,6 +232,7 @@ gboolean meego_media_player_control_set_current_subtitle (MeegoMediaPlayerContro
 gboolean meego_media_player_control_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 buf_val);
 gboolean meego_media_player_control_set_mute (MeegoMediaPlayerControl *self, gint mute);
 gboolean meego_media_player_control_is_mute (MeegoMediaPlayerControl *self, gint *mute);
+gboolean meego_media_player_control_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode);
 
 /*signal emitter*/
 void meego_media_player_control_emit_initialized (gpointer instance);

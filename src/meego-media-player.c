@@ -72,6 +72,7 @@ struct _MeegoMediaPlayerPrivate {
   gchar    *uri;
   gint     volume;
   gint     mute;
+  gint     scale_mode;
   gint     x;
   gint     y;
   guint    w;
@@ -238,9 +239,11 @@ meego_media_player_set_uri (MeegoMediaPlayer *player,
         0);
   }
 
+  /* Set all the cached property. */
   meego_media_player_control_set_uri (player->player_control, uri);
   meego_media_player_control_set_volume (player->player_control, priv->volume);
   meego_media_player_control_set_mute (player->player_control, priv->mute);
+  meego_media_player_control_set_scale_mode (player->player_control, priv->scale_mode);
 
   g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_Initialized], 0);
 
@@ -696,6 +699,22 @@ meego_media_player_is_mute (MeegoMediaPlayer *player, gint *mute, GError **err)
 
   meego_media_player_control_is_mute (GET_CONTROL_IFACE (player), mute);
   UMMS_DEBUG ("current mute is %d", *mute);
+  return TRUE;
+}
+
+gboolean meego_media_player_set_scale_mode (MeegoMediaPlayer *player, gint scale_mode, GError **err)
+{
+  MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
+  MeegoMediaPlayerControl *player_control = GET_CONTROL_IFACE (player);
+
+  UMMS_DEBUG ("will set scale mode to %d", scale_mode);
+  
+  if (player_control) {
+    meego_media_player_control_set_scale_mode (GET_CONTROL_IFACE (player), scale_mode);
+  } else {
+    UMMS_DEBUG ("Cache the scale mode to later loaded.");
+    priv->scale_mode = scale_mode;
+  }
   return TRUE;
 }
 
