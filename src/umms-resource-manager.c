@@ -10,18 +10,25 @@ G_DEFINE_TYPE (UmmsResourceManager, umms_resource_manager, G_TYPE_OBJECT)
 
 //UPP_A and UPP_B
 #define MAX_PLANE 2
-typedef struct _ResourceMngr{
-}ResourceMngr;
+#define MAX_HW_VIDDEC 2
+#define MAX_HW_CLOCK 5
+#define MAX_HW_TUNER 1
 
-struct _Plane{
+typedef struct _ResourceItem{
   gint     id;
   gboolean used;
-};
+}ResourceItem;
 
-struct _Plane planes[MAX_PLANE] = {{UPP_A, FALSE},{UPP_B, FALSE}};
+static ResourceItem planes[MAX_PLANE] = {{UPP_A, FALSE},{UPP_B, FALSE}};
+static ResourceItem hw_viddec[MAX_HW_VIDDEC] = {{1, FALSE},{2, FALSE}};
+static ResourceItem hw_clock[MAX_HW_CLOCK] = {{1, FALSE},{2, FALSE},{3, FALSE},{4, FALSE},{5, FALSE}};
+static ResourceItem hw_tuner[MAX_HW_TUNER] = {{1, FALSE}};
+
+//The sequence must follow the enum _ResourceType definition. 
+guint limit[ResourceTypeNum] = {MAX_PLANE, MAX_HW_VIDDEC, MAX_HW_CLOCK, MAX_HW_TUNER};
+ResourceItem *res_collection[ResourceTypeNum] = {planes, hw_viddec, hw_clock, hw_tuner};
 
 struct _UmmsResourceManagerPrivate {
-  gint active_plane_cnt;
   GMutex *lock;
 };
 
@@ -48,8 +55,6 @@ umms_resource_manager_set_property (GObject      *object,
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
   }
 }
-
-
 
 static void
 umms_resource_manager_dispose (GObject *object)
@@ -91,7 +96,6 @@ umms_resource_manager_init (UmmsResourceManager *self)
   priv = self->priv;
 
   priv->lock = g_mutex_new ();
-  priv->active_plane_cnt = 0;
 }
 
 static UmmsResourceManager *mngr_global = NULL;
@@ -105,103 +109,88 @@ umms_resource_manager_new (void)
   return mngr_global;
 }
 
-static Resource *
-_request_plane_resource_unlock (UmmsResourceManager *self, gint prefer_plane)
-{
-  Resource *res = NULL;
-  gint i;
-
-  //Respect the preference given by client.
-  if (prefer_plane != INVALID_RES_HANDLE) {
-    for (i=0; i<MAX_PLANE; i++) {
-      if ((planes[i].id == prefer_plane) && (planes[i].used == FALSE)) {
-        planes[i].used = TRUE;
-        goto done;
-      }
-    }
-    UMMS_DEBUG ("Prefer plane(%d) is not available", prefer_plane);
-  }
-
-  //Find the first available plane.
-  for (i=0; i<MAX_PLANE; i++) {
-    if (!planes[i].used) {
-      planes[i].used = TRUE;
-      goto done;
-    }
-  }
-  UMMS_DEBUG ("No available plane");
-  return NULL;
-
-done:
-  res = (Resource *)g_malloc (sizeof(Resource));
-  if (!res) {
-    UMMS_DEBUG ("malloc failed");
-    return NULL;
-  }
-  res->type = ResourceTypePlane;
-  res->handle = planes[i].id;
-  UMMS_DEBUG ("Return the avaliable plane(%d)", res->handle);
-  return res;
-}
-
-static void
-_release_plane_resource_unlock (UmmsResourceManager *self, Resource *res)
-{
-  gint i;
-
-  for (i=0; i<MAX_PLANE; i++) {
-    if (planes[i].id == res->handle) {
-      planes[i].used = FALSE;
-      g_free (res);
-      UMMS_DEBUG ("plane '%d' released", planes[i].id);
-      return;
-    }
-  }
-
-  UMMS_DEBUG ("Invalid plane id '%d'", res->handle);
-  return;
-}
-
 Resource *
 umms_resource_manager_request_resource (UmmsResourceManager *self, ResourceRequest *req)
 {
   UmmsResourceManagerPrivate *priv;
-  Resource *result = NULL;
+  gint i;
+  guint res_num;
+  Resource *res = NULL;
+  ResourceItem *res_array = NULL;
 
   g_return_val_if_fail (self, NULL);
   g_return_val_if_fail (req, NULL);
 
   priv = GET_PRIVATE (self);
   g_mutex_lock (priv->lock);
-  switch (req->type) {
-    case ResourceTypePlane:
-      result = _request_plane_resource_unlock (self, req->preference);
-      break;
-    default:
-      break;
+
+  res_num = limit[req->type];
+  res_array = res_collection[req->type];
+
+  //Respect the preference given by client.
+  if (req->preference != INVALID_RES_HANDLE) {
+    for (i=0; i<res_num; i++) {
+      if ((res_array[i].id == req->preference) && (res_array[i].used == FALSE)) {
+        res_array[i].used = TRUE;
+        goto found;
+      }
+    }
+    UMMS_DEBUG ("Preference (%d) is not available", req->preference);
   }
+
+  //Find the first available item.
+  for (i=0; i<res_num; i++) {
+    if (!res_array[i].used) {
+      res_array[i].used = TRUE;
+      goto found;
+    }
+  }
+
+  UMMS_DEBUG ("No available resource");
+  goto func_exit;
+
+found:
+  res = (Resource *)g_malloc (sizeof(Resource));
+  if (!res) {
+    UMMS_DEBUG ("malloc failed");
+    goto func_exit;
+  }
+  res->type = req->type;
+  res->handle = res_array[i].id;
+  UMMS_DEBUG ("resource available, type:%d, handle:%d", res->type, res->handle);
+
+func_exit:
   g_mutex_unlock (priv->lock);
-  return result;
+  return res;
 }
 
 void 
 umms_resource_manager_release_resource (UmmsResourceManager *self, Resource *res)
 {
+  gint i;
+  guint res_num;
+  ResourceItem *res_array = NULL;
   UmmsResourceManagerPrivate *priv;
 
   g_return_if_fail (self && res);
 
   priv = GET_PRIVATE (self);
-
   g_mutex_lock (priv->lock);
-  switch (res->type) {
-    case ResourceTypePlane:
-      _release_plane_resource_unlock (self, res);
-      break;
-    default:
-      break;
+  res_num = limit[res->type];
+  res_array = res_collection[res->type];
+
+  for (i=0; i<res_num; i++) {
+    if (res_array[i].id == res->handle) {
+      res_array[i].used = FALSE;
+      UMMS_DEBUG ("resouce released, type:%d, handle:%d", res->type, res_array[i].id);
+      g_free (res);
+      goto func_exit;
+    }
   }
+
+  UMMS_DEBUG ("Invalid resource handle '%d'", res->handle);
+
+func_exit:
   g_mutex_unlock (priv->lock);
+  return;
 }
-
-

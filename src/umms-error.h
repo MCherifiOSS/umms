@@ -3,15 +3,12 @@
 #include <glib.h>
 
 typedef enum {
-    UMMS_ENGINE_ERROR_NOT_LOADED,
+    UMMS_ENGINE_ERROR_NOT_LOADED = 0,
     UMMS_ENGINE_ERROR_INVALID_STATE,
-    UMMS_ENGINE_ERROR_FAILED
-}UmmsEngineError;
-
-typedef enum {
-    UMMS_RESOURCE_ERROR_NO_RESOURCE,
+    UMMS_ENGINE_ERROR_FAILED,
+    UMMS_RESOURCE_ERROR_NO_RESOURCE = 20,
     UMMS_RESOURCE_ERROR_FAILED
-}UmmsResourceError;
+}UmmsErrorCode;
 
 
 #define UMMS_ENGINE_ERROR umms_engine_error_quark()

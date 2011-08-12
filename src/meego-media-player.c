@@ -82,7 +82,7 @@ struct _MeegoMediaPlayerPrivate {
   guint    timeout_id;
 
   //Media player "snapshot", for suspend/restore operation.
-  gint position;
+  gint64   position;
 
 };
 

@@ -31,6 +31,14 @@ G_DEFINE_TYPE_WITH_CODE (EngineGst, engine_gst, G_TYPE_OBJECT,
        g_free(str);   \
        str = NULL;    \
      }
+
+#define TEARDOWN_ELEMENT(ele)                      \
+    if (ele) {                                     \
+      gst_element_set_state (ele, GST_STATE_NULL); \
+      g_object_unref (ele);                        \
+      ele = NULL;                                  \
+    }
+
 #define INVALID_PLANE_ID -1
 
 static const gchar *gst_state[] = {
@@ -101,6 +109,16 @@ struct _EngineGstPrivate {
   //resource management
   UmmsResourceManager *res_mngr;
   GList    *res_list;
+
+  gboolean resource_prepared;
+  gboolean uri_parsed;
+  GstElement *uri_parse_pipe;
+  //flags to indicate resource needed by uri, should be reset before setting a new uri.
+  gboolean has_video;
+  gint     hw_viddec;//number of HW viddec needed
+  gboolean has_audio;
+  gint     hw_auddec;//number of HW auddec needed
+  gboolean has_sub;//FIXME: what resource needed by subtitle?
 };
 
 static gboolean _query_buffering_percent (GstElement *pipe, gdouble *percent);
@@ -109,7 +127,8 @@ static gboolean _stop_pipe (MeegoMediaPlayerControl *control);
 static gboolean engine_gst_set_video_size (MeegoMediaPlayerControl *self, guint x, guint y, guint w, guint h);
 static gboolean create_xevent_handle_thread (MeegoMediaPlayerControl *self);
 static gboolean destroy_xevent_handle_thread (MeegoMediaPlayerControl *self);
-
+static gboolean parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri);
+static void release_resource (MeegoMediaPlayerControl *self);
 
 static gboolean
 engine_gst_set_uri (MeegoMediaPlayerControl *self,
@@ -128,13 +147,14 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
   if (priv->uri) {
     _stop_pipe(self);
     g_free (priv->uri);
-    priv->uri = NULL;
   }
 
-  if (priv->source) {
-    g_object_unref (priv->source);
-    priv->source = NULL;
-  }
+  priv->uri = g_strdup (uri);
+  g_object_set (priv->pipeline, "uri", uri, NULL);
+
+  //reset flags and object specific to uri.
+  TEARDOWN_ELEMENT (priv->uri_parse_pipe);
+  TEARDOWN_ELEMENT (priv->source);
 
   priv->total_bytes = -1;
   priv->duration = -1;
@@ -143,12 +163,15 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
   priv->buffer_percent = -1;
   priv->player_state = PlayerStateStopped;
   priv->pending_state = PlayerStateNull;
-  priv->uri = g_strdup (uri);
-  priv->is_live = IS_LIVE_URI(priv->uri);
 
-  g_object_set (priv->pipeline, "uri", uri, NULL);
+  priv->resource_prepared = FALSE;
+  priv->uri_parsed = FALSE;
+  priv->has_video = FALSE;
+  priv->hw_viddec = 0;
+  priv->has_audio = FALSE;
+  priv->hw_auddec = FALSE;
 
-  return TRUE;
+  return parse_uri_async(self, priv->uri);
 }
 
 static gboolean
@@ -546,7 +569,6 @@ int xerror_handler (
 
 static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable *params)
 {
-  GstElement *vsink;
   GValue *val;
   gint x, y, w, h, rx, ry;
   EngineGstPrivate *priv = GET_PRIVATE (self);
@@ -729,13 +751,67 @@ prepare_plane (MeegoMediaPlayerControl *self)
   return ret;
 }
 
-/*The timing to prepare resource is PlayerStateNull/PlayerStateStopped to PlayerStatePaused/PlayerStatePlaying.
-*/
+//both Xwindow and ReservedType0 target use ismd_vidrend_sink, so that need clock.
+#define NEED_CLOCK(target_type) \
+  ((target_type == XWindow || target_type == ReservedType0)?TRUE:FALSE)
+
+#define REQUEST_RES(self, t, p, e_msg)                                        \
+  do{                                                                         \
+    EngineGstPrivate *priv = GET_PRIVATE (self);                              \
+    ResourceRequest req = {0,};                                               \
+    Resource *res = NULL;                                                     \
+    req.type = t;                                                             \
+    req.preference = p;                                                       \
+    res = umms_resource_manager_request_resource (priv->res_mngr, &req);      \
+    if (!res) {                                                               \
+      release_resource(self);                                                 \
+      meego_media_player_control_emit_error (self,                            \
+                                             UMMS_RESOURCE_ERROR_NO_RESOURCE, \
+                                             e_msg);                          \
+      return FALSE;                                                           \
+    }                                                                         \
+    priv->res_list = g_list_append (priv->res_list, res);                     \
+    }while(0)
+
+  
 static gboolean
-prepare_resource (MeegoMediaPlayerControl *self)
+request_resource (MeegoMediaPlayerControl *self)
 {
-  //For now, only care about gdl plane.
-  return prepare_plane(self);
+  gint i;
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  g_return_val_if_fail (priv->uri_parsed, FALSE);//uri should already be parsed.
+
+  if (priv->resource_prepared)
+    return TRUE;
+  
+ /*
+  * For live source, we create and set clock to pipeline manually, 
+  * ismd audio/video sink will not create and provide a clock.
+  * So, just need one clock.
+  */
+  if (priv->is_live) {
+    REQUEST_RES(self, ResourceTypeHwClock, INVALID_RES_HANDLE, "No HW clock resource");
+  }else {
+    if (priv->has_video && NEED_CLOCK(priv->target_type)) {
+      REQUEST_RES(self, ResourceTypeHwClock, INVALID_RES_HANDLE, "No HW clock resource");
+    }
+    if (priv->has_audio) {
+      REQUEST_RES(self, ResourceTypeHwClock, INVALID_RES_HANDLE, "No HW clock resource");
+    }
+  }
+
+  for (i=0; i<priv->hw_viddec; i++) {
+    REQUEST_RES(self, ResourceTypeHwViddec, INVALID_RES_HANDLE, "No HW video decoder resource");
+  }
+
+  /*
+  for (i=0; i<priv->hw_auddec; i++) {
+    REQUEST_RES(self, ResourceTypeHwAuddec, INVALID_RES_HANDLE, "No HW video decoder resource");
+  }
+  */
+  priv->resource_prepared = TRUE;
+  return TRUE;
 }
 
 static void
@@ -750,69 +826,99 @@ release_resource (MeegoMediaPlayerControl *self)
   }
   g_list_free (priv->res_list);
   priv->res_list = NULL;
+  priv->resource_prepared = FALSE;
 
   return;
 }
 
-static gboolean
-engine_gst_play (MeegoMediaPlayerControl *self)
+//Unref returned clock after usage
+static GstClock * 
+get_hw_clock(void)
 {
+  GstClock* clock = NULL;
+  GstElement *vsink = NULL;
+
+  UMMS_DEBUG ("Begin");
+  vsink = gst_element_factory_make ("ismd_vidrend_sink", NULL);
+  if (!vsink)
+    return NULL;
+
+  clock = gst_element_provide_clock (vsink);
+  
+  if (clock)
+    g_object_ref (clock);
+
+  g_object_unref (vsink);
+  UMMS_DEBUG ("End");
+
+  return clock;
+}
+
+static gboolean
+activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
+{
+  gboolean ret;
+  PlayerState old_pending;
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
+  g_return_val_if_fail (priv->uri, FALSE);
+  g_return_val_if_fail (target_state == GST_STATE_PAUSED || target_state == GST_STATE_PLAYING, FALSE);
 
-  if (!priv->uri) {
-    UMMS_DEBUG(" Unable to set playing state - no URI set");
-    return FALSE;
+  old_pending = priv->pending_state;
+  priv->pending_state = ((target_state == GST_STATE_PAUSED) ? PlayerStatePaused : PlayerStatePlaying);
+
+  if (ret = request_resource(self)) {
+    if (target_state == GST_STATE_PLAYING) {
+      if(IS_LIVE_URI(priv->uri)) {     
+        //    ISmdGstClock *ismd_clock = NULL;
+        /* For the special case of live source.
+           Becasue our hardware decoder and sink need the special clock type and if the clock type is wrong,
+           the hardware can not work well.  In file case, the provide_clock will be called after all the elements
+           have been made and added in pause state, so the element which represent the hardware will provide the
+           right clock. But in live source case, the state change from NULL to playing is continous and the provide_clock
+           function may be called before hardware element has been made.
+           So we need to set the clock of pipeline statically here.*/
+        //    ismd_clock = g_object_new (ISMD_GST_TYPE_CLOCK, NULL); 
+        //    gst_pipeline_use_clock (GST_PIPELINE_CAST(priv->pipeline), GST_CLOCK_CAST(ismd_clock));
+        GstClock *clock = get_hw_clock ();
+        if (clock) {
+          gst_pipeline_use_clock (GST_PIPELINE_CAST(priv->pipeline), clock);
+          g_object_unref (clock);
+        } else { 
+          UMMS_DEBUG ("Can't get HW clock");
+          meego_media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, "Can't get HW clock for live source");
+          ret = FALSE;
+          goto exit;
+        }
+
+      }
+    }
+
+    if (gst_element_set_state(priv->pipeline, target_state) == GST_STATE_CHANGE_FAILURE) {
+      UMMS_DEBUG ("set pipeline to %d failed", target_state);
+      ret = FALSE;
+      goto exit;
+    }
+  } 
+
+exit:
+  if (!ret) {
+    priv->pending_state = old_pending;
   }
 
-  if (priv->player_state == PlayerStateNull || priv->player_state == PlayerStateStopped) {
-    if (!prepare_resource (self))
-      return FALSE;
-  }
-
-  if(IS_LIVE_URI(priv->uri)) {     
-//    ISmdGstClock *ismd_clock = NULL;
-    /* For the special case of live source.
-       Becasue our hardware decoder and sink need the special clock type and if the clock type is wrong,
-       the hardware can not work well.  In file case, the provide_clock will be called after all the elements
-       have been made and added in pause state, so the element which represent the hardware will provide the
-       right clock. But in live source case, the state change from NULL to playing is continous and the provide_clock
-       function may be called before hardware element has been made.
-       So we need to set the clock of pipeline statically here.*/
-//    ismd_clock = g_object_new (ISMD_GST_TYPE_CLOCK, NULL); 
-//    gst_pipeline_use_clock (GST_PIPELINE_CAST(priv->pipeline), GST_CLOCK_CAST(ismd_clock));
-  }
-
-  priv->pending_state = PlayerStatePlaying;
-  gst_element_set_state (priv->pipeline, GST_STATE_PLAYING);
-
-  return TRUE;
+  return ret;
 }
 
 static gboolean
 engine_gst_pause (MeegoMediaPlayerControl *self)
 {
-  GstStateChangeReturn ret;
-  EngineGstPrivate *priv = GET_PRIVATE (self);
-  PlayerState old_pending;
+  return activate_engine (self, GST_STATE_PAUSED);
+}
 
-
-  if (priv->player_state == PlayerStateNull || priv->player_state == PlayerStateStopped) {
-    if (!prepare_resource (self))
-      return FALSE;
-  }
-
-  old_pending = priv->pending_state;
-  priv->pending_state = PlayerStatePaused;
-
-  if (gst_element_set_state(priv->pipeline, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
-    UMMS_DEBUG ("set pipeline to paused failed");
-    priv->pending_state = old_pending;
-    return FALSE;
-  }
-
-  UMMS_DEBUG ("called");
-  return TRUE;
+static gboolean
+engine_gst_play (MeegoMediaPlayerControl *self)
+{
+  return activate_engine (self, GST_STATE_PLAYING);
 }
 
 static gboolean
@@ -997,7 +1103,6 @@ engine_gst_is_seekable (MeegoMediaPlayerControl *self, gboolean *seekable)
     }
     gst_query_unref (query);
   }
-
 
   if (priv->seekable != -1) {
     *seekable = (priv->seekable != 0);
@@ -1952,6 +2057,9 @@ bus_message_state_change_cb (GstBus     *bus,
       priv->player_state = PlayerStateStopped;
   }
 
+  if (priv->pending_state == priv->player_state)
+    priv->pending_state = PlayerStateNull;
+
   if (priv->player_state != old_player_state) {
     UMMS_DEBUG ("emit state changed, old=%d, new=%d", old_player_state, priv->player_state);
     meego_media_player_control_emit_player_state_changed (self, priv->player_state);
@@ -2034,21 +2142,32 @@ bus_sync_handler (GstBus *bus,
                   EngineGst *engine)
 {
   EngineGstPrivate *priv;
+  GstElement *vsink;
+  GError *err = NULL;
+  GstMessage *msg = NULL;
 
   if( GST_MESSAGE_TYPE( message ) != GST_MESSAGE_ELEMENT )
     return( GST_BUS_PASS );
 
-  if( ! gst_structure_has_name( message->structure, "prepare-xwindow-id" ) )
+  if( ! gst_structure_has_name( message->structure, "prepare-gdl-plane" ) )
     return( GST_BUS_PASS );
 
   g_return_val_if_fail (engine, GST_BUS_DROP);
   g_return_val_if_fail (ENGINE_IS_GST (engine), GST_BUS_DROP);
   priv = GET_PRIVATE (engine);
 
-  UMMS_DEBUG ("sync-handler received on bus: prepare-xwindow-id");
-  priv->vsink =  GST_ELEMENT(GST_MESSAGE_SRC (message));
+  UMMS_DEBUG ("sync-handler received on bus: prepare-gdl-plane");
+  vsink =  GST_ELEMENT(GST_MESSAGE_SRC (message));
 
-  meego_media_player_control_emit_request_window (engine);
+  if (!prepare_plane ((MeegoMediaPlayerControl *)engine)) {
+    //Since we are in streame thread, let the vsink to post the error message. Handle it in bus_message_error_cb().
+    err = g_error_new_literal (UMMS_RESOURCE_ERROR, UMMS_RESOURCE_ERROR_NO_RESOURCE, "Plane unavailable");
+    msg = gst_message_new_error (GST_OBJECT_CAST(priv->pipeline), err, "No resource");
+    gst_element_post_message (priv->pipeline, msg);
+    g_error_free (err);
+  }
+
+//  meego_media_player_control_emit_request_window (engine);
 
   return( GST_BUS_DROP );
 }
@@ -2126,11 +2245,11 @@ engine_gst_init (EngineGst *self)
   priv->res_mngr = umms_resource_manager_new ();
   priv->res_list = NULL;
 
-  priv->target_initialized = FALSE;
   //Setup default target.
-  priv->target_type = ReservedType0;
 #define FULL_SCREEN_RECT "0,0,0,0"
   setup_ismd_vbin (MEEGO_MEDIA_PLAYER_CONTROL(self), FULL_SCREEN_RECT, UPP_A);
+  priv->target_type = ReservedType0;
+  priv->target_initialized = TRUE;
 }
 
 EngineGst *
@@ -2165,4 +2284,179 @@ _source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data)
   _set_proxy ((MeegoMediaPlayerControl *)data);
 
   return;
+}
+
+
+#define HW_FORMAT_NUM 4
+#define HW_H264_CAPS \
+             "video/h264, " \
+           "  format = (fourcc) H264, " \
+           "  width = (int) [16,1920], " \
+           "  height = (int) [16,1088]; " \
+           "video/x-h264, " \
+           "  format = (fourcc) X264, " \
+           "  width = (int) [16,1920], " \
+           "  height = (int) [16,1088]; "
+
+
+#define HW_MPEG2_CAPS \
+             "video/mpeg, " \
+           "  format = (fourcc) {MPEG, MP2V}, " \
+           "  width = (int) [16,1920], " \
+           "  height = (int) [16,1088], " \
+           "  mpegversion = (int) [1, 2], " \
+           "  systemstream = (boolean) false, " \
+           "  ispacketized = (boolean) false; "
+
+#define HW_MPEG4_CAPS \
+             "video/mpeg, " \
+           "  mpegversion = (int) 4, " \
+           "  systemstream = (boolean) false; " \
+           "video/x-xvid;" \
+           "video/x-divx, " \
+           "  format = (fourcc) {MPEG, MP4V}, " \
+           "  width = (int) [16,1920], " \
+           "  height = (int) [16,1088], " \
+           "  divxversion = (int) [4, 5] "
+
+#define HW_VC1_CAPS \
+             "video/x-wmv, " \
+           "  wmvversion = (int)3, " \
+           "  format = (fourcc) { WMV3, WVC1 }"
+
+static GstStaticCaps hw_h264_static_caps = GST_STATIC_CAPS (HW_H264_CAPS);
+static GstStaticCaps hw_mpeg2_static_caps = GST_STATIC_CAPS (HW_MPEG2_CAPS);
+static GstStaticCaps hw_mpeg4_static_caps = GST_STATIC_CAPS (HW_MPEG4_CAPS);
+static GstStaticCaps hw_vc1_static_caps = GST_STATIC_CAPS (HW_VC1_CAPS);
+
+static GstStaticCaps *hw_static_caps[HW_FORMAT_NUM] = {&hw_h264_static_caps, 
+                                        &hw_mpeg2_static_caps, 
+                                        &hw_mpeg4_static_caps, 
+                                        &hw_vc1_static_caps};
+
+static gboolean
+autoplug_continue_cb (GstElement * element, GstPad * pad, GstCaps * caps,
+        MeegoMediaPlayerControl *control) 
+{
+  gint i;
+  gchar *name = NULL;
+  GstStructure *s = NULL;
+  GstCaps *hw_caps = NULL;
+  gboolean is_hw_vcaps = FALSE;
+  gboolean ret = TRUE;
+  EngineGstPrivate *priv = GET_PRIVATE (control);
+
+  UMMS_DEBUG ( "pad caps : %" GST_PTR_FORMAT,
+      caps);
+
+  //check software a/v caps.
+  s = gst_caps_get_structure (caps, 0);
+  name = gst_structure_get_name (s);
+
+  if (!strncmp (name, "video", 5)) {
+    priv->has_video = TRUE;
+    //check HW video caps
+    for (i=0; i<HW_FORMAT_NUM; i++) {
+      hw_caps = gst_static_caps_get (hw_static_caps[i]);
+
+      if (gst_caps_can_intersect (hw_caps, caps)) {
+        is_hw_vcaps = TRUE;
+        priv->hw_viddec++;
+
+        /* 
+         * Don't continue to autoplug this pad, 
+         * which avoids the failure of creating and plugin HW video decoder, and hence guarantees "no-more-pads"
+         * signal will be emitted.
+         * 
+         */
+        ret = FALSE;
+      }
+
+      gst_caps_unref (hw_caps);
+
+      if (is_hw_vcaps) 
+        goto hw_video_caps;
+    }
+  } else if (!strncmp (name, "audio", 5)) {
+    priv->has_audio = TRUE;
+    //FIXME: check the HW audio caps.
+  } else if (!strncmp (name, "text", 4)){
+    priv->has_sub = TRUE;
+  } else {
+    //nothing
+  }
+
+  return ret;
+
+hw_video_caps:
+  UMMS_DEBUG ("new stream with caps(%" GST_PTR_FORMAT ") needs HW video decoder resource", caps);
+  return ret;
+}
+
+static gboolean 
+uri_parsing_finished_cb (MeegoMediaPlayerControl * self)
+{
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  UMMS_DEBUG("Begin");
+
+  TEARDOWN_ELEMENT (priv->uri_parse_pipe);
+  priv->uri_parsed = TRUE;
+
+  UMMS_DEBUG("End, has_video=%d, num of hw_viddec=%d, has_audio=%d, num of hw_auddec=%d", 
+              priv->has_video, priv->hw_viddec, priv->has_audio, priv->hw_auddec);
+  return FALSE;
+}
+
+static void no_more_pads_cb (GstElement * uridecodebin, MeegoMediaPlayerControl * self) 
+{
+  UMMS_DEBUG("Begin");
+  g_idle_add (uri_parsing_finished_cb, self);
+  UMMS_DEBUG("End");
+}
+
+/* 
+ * Parse the av asset spacified by the uri.
+ *
+ * Called when set state from PlayerStateNull/PlayerStateStopped to PlayerStatePaused/PlayerStatePlaying.
+ * Through this parsing, we can get the number of streams and their format, and can determine the 
+ * resources(HW clock, HW a/v decoder) needed when playing this av asset. 
+ *
+ * Return TRUE if successfully initializeithe parsing action.
+ *        FALSE if not.
+ *
+ * Note: This is a asynchronous invoking, so, requesting resources and setting pipeline to Pause/Playing will be 
+ * done in uri_parsing_finished_cb().
+ */
+static gboolean
+parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
+{
+  GstElement *uridecodebin;
+  GstStateChangeReturn res;
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  g_return_val_if_fail (uri, FALSE);
+  g_return_val_if_fail ((!priv->uri_parse_pipe), TRUE);
+
+  priv->is_live = IS_LIVE_URI(priv->uri);
+
+  //use uridecodebin to automatically detect streams.
+  priv->uri_parse_pipe = uridecodebin = gst_element_factory_make ("uridecodebin", NULL);
+  if (!uridecodebin) {
+    return FALSE;
+  }
+
+  g_object_set (G_OBJECT(uridecodebin), "uri", priv->uri, NULL);
+
+  g_signal_connect (uridecodebin, "autoplug-continue",
+      G_CALLBACK (autoplug_continue_cb), self);
+
+  g_signal_connect (uridecodebin, "no-more-pads",
+      G_CALLBACK (no_more_pads_cb), self);
+
+  if (gst_element_set_state (uridecodebin, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
+    TEARDOWN_ELEMENT (priv->uri_parse_pipe);
+    return FALSE;
+  }
+  return TRUE;
 }

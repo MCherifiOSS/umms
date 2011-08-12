@@ -113,7 +113,7 @@ def stopped_cb():
     print "Player stopped"
 
 def error_cb(err_id, msg):
-    print "Error Domain:'%s', msg='%s'" % (error_type_name[err_id], msg)
+    print "Error Domain:'%d', msg='%s'" % (err_id, msg)
 
 def request_window_cb():
     print "Player engine request a X window"

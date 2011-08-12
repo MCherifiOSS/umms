@@ -47,22 +47,24 @@ struct _UmmsResourceManagerClass
 
 enum _ResourceType
 {
-  ResourceTypePlane = (1 << 0),
-  ResourceTypeTuner = (1 << 1),
-  ResourceTypeHwDec = (1 << 2)
+  ResourceTypePlane,
+  ResourceTypeHwViddec,
+  ResourceTypeHwClock,
+  ResourceTypeTuner,
+  ResourceTypeNum
 };
 
 #define INVALID_RES_HANDLE -1
 //Actual resource returned by resource manager.
 struct _Resource {
   ResourceType type;
-  guint        handle;
+  gint         handle;
 };
 
 //Resource requested by user.
 struct _ResourceRequest {
   ResourceType type;
-  guint        preference;//Expected resource by client (e.g. for ResourceTypePlane, it may be UPP_A). 
+  gint         preference;//Expected resource by client (e.g. for ResourceTypePlane, it may be UPP_A). 
 };
 
 
