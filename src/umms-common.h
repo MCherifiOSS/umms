@@ -37,6 +37,15 @@ typedef enum {
   BufferFormatByBytes
 }BufferFormat;
 
+typedef enum {    
+  ScaleModeInvalid = -1,
+  ScaleModeNoScale,             /*  Do nothing, just leave the output x, y as the input. */ 
+  ScaleModeFill,                /*  fill entire target, regardless of original video aspect ratio. */
+  ScaleModeKeepAspectRatio,     /*  respect the original video aspect ratio. */
+  ScaleModeFillKeepAspectRatio, /*  fill the whole screen but keep the ratio, some part of video may out of screen.*/ 
+}ScaleMode;
+
+
 #define TARGET_PARAM_KEY_RECTANGLE "rectangle"
 #define TARGET_PARAM_KEY_PlANE_ID "plane-id"
 

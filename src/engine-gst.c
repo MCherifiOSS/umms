@@ -1852,20 +1852,122 @@ engine_gst_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 
 static gboolean
 engine_gst_set_mute (MeegoMediaPlayerControl *self, gint mute) 
 {
- GstElement *pipe;
- EngineGstPrivate *priv;
+  GstElement *pipe;
+  EngineGstPrivate *priv;
 
- g_return_val_if_fail (self != NULL, FALSE);
- g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
- priv = GET_PRIVATE (self);
- pipe = priv->pipeline;
- g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
- UMMS_DEBUG ("set mute to = %d", mute);
- gst_stream_volume_set_mute (GST_STREAM_VOLUME (pipe), mute);
+  UMMS_DEBUG ("set mute to = %d", mute);
+  gst_stream_volume_set_mute (GST_STREAM_VOLUME (pipe), mute);
 
- return TRUE;
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_is_mute (MeegoMediaPlayerControl *self, gint *mute) 
+{
+  GstElement *pipe;
+  EngineGstPrivate *priv;
+  gboolean is_mute;
+
+  *mute = 0;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  is_mute = gst_stream_volume_get_mute (GST_STREAM_VOLUME (pipe));
+  UMMS_DEBUG("Get the mute %d", is_mute);
+  *mute = is_mute;
+
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode) 
+{
+  GstElement *pipe;
+  EngineGstPrivate *priv;
+  GstElement *vsink_bin;
+  GParamSpec *pspec = NULL;
+  GEnumClass *eclass = NULL;
+  gboolean ret = TRUE;
+  GValue val = { 0, };
+  GEnumValue *eval;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  /* We assume that the video-sink is just ismd_vidrend_bin, because if not
+     the scale mode is not supported yet in gst sink bins. */ 
+  g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
+  if (vsink_bin && ISMD_GST_IS_VIDREND_BIN(vsink_bin))
+  {
+    pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (vsink_bin), "scale-mode");
+    if (pspec == NULL) {
+      ret = FALSE;
+      UMMS_DEBUG("can not get the scale-mode feature");
+      goto OUT;
+    }
+
+    g_value_init (&val, pspec->value_type);
+    g_object_get_property (G_OBJECT (vsink_bin), "scale-mode", &val);
+    eclass = G_ENUM_CLASS (g_type_class_peek (G_VALUE_TYPE (&val)));
+    if (eclass == NULL) {
+      ret = FALSE;
+      goto OUT;
+    }
+
+    switch (scale_mode) {
+      case ScaleModeNoScale:
+        eval = g_enum_get_value_by_nick (eclass, "none");
+        break;
+      case ScaleModeFill:
+        eval = g_enum_get_value_by_nick (eclass, "scale2fit");
+        break;
+      case ScaleModeKeepAspectRatio:
+        eval = g_enum_get_value_by_nick (eclass, "zoom2fit");
+        break;
+      case ScaleModeFillKeepAspectRatio:
+        eval = g_enum_get_value_by_nick (eclass, "zoom2fill");
+        break;
+      default:
+        UMMS_DEBUG("Invalid scale mode: %d", scale_mode);
+        ret = FALSE;
+        goto OUT;
+    }
+
+    if (eval == NULL) {
+      ret = FALSE;
+      goto OUT;
+    }
+
+    g_value_set_enum (&val, eval->value);
+    g_object_set_property (G_OBJECT (vsink_bin), "scale-mode", &val);
+    g_value_unset (&val);
+  } else {
+    UMMS_DEBUG("Not a ismd_vidrend_bin, scale not support now!");
+    ret = FALSE;
+  }
+
+OUT:
+  if(vsink_bin)
+    gst_object_unref (vsink_bin);
+  return ret;
 }
 
 
@@ -1948,6 +2050,8 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_set_buffer_depth);
   meego_media_player_control_implement_set_mute (klass,
       engine_gst_set_mute);
+  meego_media_player_control_implement_is_mute (klass,
+      engine_gst_is_mute);
 }
 
 static void
