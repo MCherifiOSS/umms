@@ -140,6 +140,18 @@ stopped_cb (MeegoMediaPlayerControl *iface, MeegoMediaPlayer *player)
   g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_Stopped], 0);
 }
 
+static void
+suspended_cb (MeegoMediaPlayerControl *iface, MeegoMediaPlayer *player)
+{
+  g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_Suspended], 0);
+}
+
+static void
+restored_cb (MeegoMediaPlayerControl *iface, MeegoMediaPlayer *player)
+{
+  g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_Restored], 0);
+}
+
 static gboolean
 client_existence_check (MeegoMediaPlayer *player)
 {
@@ -235,6 +247,14 @@ meego_media_player_set_uri (MeegoMediaPlayer *player,
         0);
     g_signal_connect_object (player->player_control, "target-ready",
         G_CALLBACK (target_ready_cb),
+        player,
+        0);
+    g_signal_connect_object (player->player_control, "suspended",
+        G_CALLBACK (suspended_cb),
+        player,
+        0);
+    g_signal_connect_object (player->player_control, "restored",
+        G_CALLBACK (restored_cb),
         player,
         0);
   }

@@ -58,6 +58,8 @@ enum {
   SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Buffered,
   SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_PlayerStateChanged,
   SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_TargetReady,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Suspended,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Restored,
   N_MEEGO_MEDIA_PLAYER_CONTROL_SIGNALS
 };
 static guint meego_media_player_control_signals[N_MEEGO_MEDIA_PLAYER_CONTROL_SIGNALS] = {0};
@@ -1072,112 +1074,152 @@ meego_media_player_control_emit_request_window (gpointer instance)
                  0);
 }
 
+void
+meego_media_player_control_emit_suspended (gpointer instance)
+{
+  g_assert (instance != NULL);
+  g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
+  g_signal_emit (instance,
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Suspended],
+                 0);
+}
+
+void
+meego_media_player_control_emit_restored (gpointer instance)
+{
+  g_assert (instance != NULL);
+  g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
+  g_signal_emit (instance,
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Restored],
+                 0);
+}
+
 static inline void
 meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
 {
 
   meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Initialized] =
     g_signal_new ("initialized",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_EOF] =
     g_signal_new ("eof",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Error] =
     g_signal_new ("error",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  umms_marshal_VOID__UINT_STRING,
-                  G_TYPE_NONE,
-                  2,
-                  G_TYPE_UINT,
-                  G_TYPE_STRING);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        umms_marshal_VOID__UINT_STRING,
+        G_TYPE_NONE,
+        2,
+        G_TYPE_UINT,
+        G_TYPE_STRING);
 
   meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Seeked] =
     g_signal_new ("seeked",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Stopped] =
     g_signal_new ("stopped",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_RequestWindow] =
     g_signal_new ("request-window",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Buffering] =
     g_signal_new ("buffering",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Buffered] =
     g_signal_new ("buffered",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 
   meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_PlayerStateChanged] =
     g_signal_new ("player-state-changed",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__INT,
-                  G_TYPE_NONE,
-                  1,
-                  G_TYPE_INT);
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__INT,
+        G_TYPE_NONE,
+        1,
+        G_TYPE_INT);
 
   meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_TargetReady] =
     g_signal_new ("target-ready",
-                  G_OBJECT_CLASS_TYPE (klass),
-                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-                  0,
-                  NULL, NULL,
-                  g_cclosure_marshal_VOID__BOXED,
-                  G_TYPE_NONE,
-                  1, dbus_g_type_get_map("GHashTable", G_TYPE_STRING, G_TYPE_VALUE));
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__BOXED,
+        G_TYPE_NONE,
+        1, dbus_g_type_get_map("GHashTable", G_TYPE_STRING, G_TYPE_VALUE));
+
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Suspended] =
+    g_signal_new ("suspended",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
+
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Restored] =
+    g_signal_new ("restored",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 }
 
 static void

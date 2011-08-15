@@ -2059,6 +2059,8 @@ engine_gst_suspend (MeegoMediaPlayerControl *self)
     priv->pos = 0;
   }
   priv->suspended = TRUE;
+  UMMS_DEBUG ("meego_media_player_control_emit_suspended");
+  meego_media_player_control_emit_suspended (self);
   return TRUE;
 }
 
@@ -2279,6 +2281,8 @@ bus_message_state_change_cb (GstBus     *bus,
       }
       engine_gst_play(self);
       priv->suspended = FALSE;
+  UMMS_DEBUG ("meego_media_player_control_emit_restored");
+      meego_media_player_control_emit_restored (self);
     }
   } else if(new_state == GST_STATE_PLAYING) {
     priv->player_state = PlayerStatePlaying;

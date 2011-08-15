@@ -122,6 +122,12 @@ def target_ready_cb(target_infos):
     print "target's rectangle = '%s'" % target_infos["rectangle"]#Assume we are using gdl plane target
     print "target's plane-id = '%d'" % target_infos["plane-id"]
 
+def suspended_cb():
+    print "player suspended"
+
+def restored_cb():
+    print "player restored"
+
 def connect_sigs (proxy):
      print "connect signals"
      proxy.connect_to_signal("Initialized", initialized_cb)
@@ -134,6 +140,8 @@ def connect_sigs (proxy):
      proxy.connect_to_signal("Error", error_cb)
      proxy.connect_to_signal("PlayerStateChanged", player_state_changed_cb)
      proxy.connect_to_signal("TargetReady", target_ready_cb)
+     proxy.connect_to_signal("Suspended", suspended_cb)
+     proxy.connect_to_signal("Restored", restored_cb)
      return
 
 
