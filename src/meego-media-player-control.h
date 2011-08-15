@@ -193,6 +193,15 @@ typedef gboolean (*meego_media_player_control_set_scale_mode_impl) (MeegoMediaPl
 void meego_media_player_control_implement_set_scale_mode (MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_set_scale_mode_impl impl);
 
+typedef gboolean (*meego_media_player_control_suspend_impl) (MeegoMediaPlayerControl *self);
+void meego_media_player_control_implement_suspend (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_suspend_impl impl);
+
+typedef gboolean (*meego_media_player_control_restore_impl) (MeegoMediaPlayerControl *self);
+void meego_media_player_control_implement_restore (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_restore_impl impl);
+
+
 /*virtual function wrappers*/
 gboolean meego_media_player_control_set_uri (MeegoMediaPlayerControl *self, const gchar *in_uri);
 gboolean meego_media_player_control_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params);
@@ -233,6 +242,8 @@ gboolean meego_media_player_control_set_buffer_depth (MeegoMediaPlayerControl *s
 gboolean meego_media_player_control_set_mute (MeegoMediaPlayerControl *self, gint mute);
 gboolean meego_media_player_control_is_mute (MeegoMediaPlayerControl *self, gint *mute);
 gboolean meego_media_player_control_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode);
+gboolean meego_media_player_control_suspend (MeegoMediaPlayerControl *self);
+gboolean meego_media_player_control_restore (MeegoMediaPlayerControl *self);
 
 /*signal emitter*/
 void meego_media_player_control_emit_initialized (gpointer instance);

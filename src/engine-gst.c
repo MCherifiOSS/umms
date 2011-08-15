@@ -119,6 +119,12 @@ struct _EngineGstPrivate {
   gboolean has_audio;
   gint     hw_auddec;//number of HW auddec needed
   gboolean has_sub;//FIXME: what resource needed by subtitle?
+
+  //suspend/restore
+  gboolean suspended;//child state of PlayerStateStopped
+
+  //snapshot of suspended execution
+  gint64   pos;
 };
 
 static gboolean _query_buffering_percent (GstElement *pipe, gdouble *percent);
@@ -888,7 +894,7 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
           UMMS_DEBUG ("Can't get HW clock");
           meego_media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, "Can't get HW clock for live source");
           ret = FALSE;
-          goto exit;
+          goto OUT;
         }
 
       }
@@ -897,11 +903,11 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
     if (gst_element_set_state(priv->pipeline, target_state) == GST_STATE_CHANGE_FAILURE) {
       UMMS_DEBUG ("set pipeline to %d failed", target_state);
       ret = FALSE;
-      goto exit;
+      goto OUT;
     }
   } 
 
-exit:
+OUT:
   if (!ret) {
     priv->pending_state = old_pending;
   }
@@ -946,6 +952,7 @@ engine_gst_stop (MeegoMediaPlayerControl *self)
     return FALSE;
 
   priv->player_state = PlayerStateStopped;
+  priv->suspended = FALSE;
   meego_media_player_control_emit_stopped (self);
 
   return TRUE;
@@ -1117,6 +1124,7 @@ engine_gst_set_position (MeegoMediaPlayerControl *self, gint64 in_pos)
 {
   GstElement *pipe;
   EngineGstPrivate *priv;
+  gboolean ret;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
@@ -1125,15 +1133,15 @@ engine_gst_set_position (MeegoMediaPlayerControl *self, gint64 in_pos)
   pipe = priv->pipeline;
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
-  UMMS_DEBUG ("Seeking to %" GST_TIME_FORMAT, GST_TIME_ARGS (in_pos * GST_MSECOND));
 
-  gst_element_seek (pipe, 1.0,
+  ret = gst_element_seek (pipe, 1.0,
                     GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH,
                     GST_SEEK_TYPE_SET, in_pos * GST_MSECOND,
                     GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
-
-  meego_media_player_control_emit_seeked (self);
-  return TRUE;
+  UMMS_DEBUG ("Seeking to %" GST_TIME_FORMAT " %s", GST_TIME_ARGS (in_pos * GST_MSECOND), ret?"succeeded":"failed");
+  if (ret)
+    meego_media_player_control_emit_seeked (self);
+  return ret;
 }
 
 static gboolean
@@ -1179,20 +1187,10 @@ engine_gst_set_playback_rate (MeegoMediaPlayerControl *self, gdouble in_rate)
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
   UMMS_DEBUG ("set playback rate to %f ", in_rate);
-
-  fmt = GST_FORMAT_TIME;
-  if (gst_element_query_position (pipe, &fmt, &cur)) {
-    UMMS_DEBUG ("current position = %lld (ms)", cur / GST_MSECOND);
-  } else {
-    UMMS_DEBUG ("Failed to query position");
-  }
-
-  gst_element_seek (pipe, in_rate,
-                    GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH,
-                    GST_SEEK_TYPE_SET, cur,
+  return gst_element_seek (pipe, in_rate,
+                    GST_FORMAT_TIME, GST_SEEK_FLAG_NONE,
+                    GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE,
                     GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
-
-  return TRUE;
 }
 
 static gboolean
@@ -1970,6 +1968,43 @@ OUT:
   return ret;
 }
 
+static gboolean
+engine_gst_suspend (MeegoMediaPlayerControl *self)
+{
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  if (priv->suspended)
+    return TRUE;
+
+  if (priv->player_state == PlayerStatePaused || priv->player_state == PlayerStatePlaying) {
+    engine_gst_get_position (self, &priv->pos);
+    engine_gst_stop (self);
+  } else if (priv->player_state == PlayerStateStopped) {
+    priv->pos = 0;
+  }
+  priv->suspended = TRUE;
+  return TRUE;
+}
+
+//restore asynchronously. 
+//Set to pause here, and do actual retoring operation in bus_message_state_change_cb().
+static gboolean
+engine_gst_restore (MeegoMediaPlayerControl *self)
+{
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  if (priv->player_state != PlayerStateStopped || !priv->suspended) {
+    return FALSE;
+  }
+
+  return engine_gst_pause (self);
+}
 
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
@@ -2052,6 +2087,10 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_set_mute);
   meego_media_player_control_implement_is_mute (klass,
       engine_gst_is_mute);
+ meego_media_player_control_implement_suspend (klass,
+      engine_gst_suspend);
+ meego_media_player_control_implement_restore (klass,
+      engine_gst_restore);
 }
 
 static void
@@ -2137,11 +2176,12 @@ bus_message_state_change_cb (GstBus     *bus,
     GstMessage *message,
     EngineGst  *self)
 {
-  EngineGstPrivate *priv = GET_PRIVATE (self);
 
   GstState old_state, new_state;
   PlayerState old_player_state;
   gpointer src;
+  gboolean seekable;
+  EngineGstPrivate *priv = GET_PRIVATE (self);
 
   src = GST_MESSAGE_SRC (message);
   if (src != priv->pipeline)
@@ -2154,6 +2194,15 @@ bus_message_state_change_cb (GstBus     *bus,
   old_player_state = priv->player_state;
   if (new_state == GST_STATE_PAUSED) {
     priv->player_state = PlayerStatePaused;
+    if (old_player_state == PlayerStateStopped && priv->suspended) {
+      UMMS_DEBUG ("restoring suspended execution, pos = %lld", priv->pos);
+      engine_gst_is_seekable (self, &seekable);
+      if (seekable) {
+        engine_gst_set_position (self, priv->pos);
+      }
+      engine_gst_play(self);
+      priv->suspended = FALSE;
+    }
   } else if(new_state == GST_STATE_PLAYING) {
     priv->player_state = PlayerStatePlaying;
   } else {
@@ -2346,6 +2395,8 @@ engine_gst_init (EngineGst *self)
   g_object_set (priv->pipeline, "flags", flags, NULL);
 
   priv->player_state = PlayerStateNull;
+  priv->suspended = FALSE;
+  priv->pos = 0;
   priv->res_mngr = umms_resource_manager_new ();
   priv->res_list = NULL;
 

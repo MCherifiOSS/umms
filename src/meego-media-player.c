@@ -367,8 +367,7 @@ meego_media_player_set_playback_rate (MeegoMediaPlayer *player,
     GError **err)
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
-  meego_media_player_control_set_playback_rate (GET_CONTROL_IFACE (player), in_rate);
-  return TRUE;
+  return meego_media_player_control_set_playback_rate (GET_CONTROL_IFACE (player), in_rate);
 }
 
 gboolean
@@ -575,24 +574,8 @@ gboolean
 meego_media_player_suspend(MeegoMediaPlayer *player,
     GError **err)
 {
-  gint state = 0;
-  MeegoMediaPlayerControl *player_control = GET_CONTROL_IFACE (player);
-  MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
-
-  CHECK_ENGINE(player_control, FALSE, err);
-
-  UMMS_DEBUG ("Begin");
-  meego_media_player_control_get_player_state (player_control, &state);
-
-  //No resource occupation in PlayStateNull/PlayStateStopped
-  if (state == PlayerStateNull || state == PlayerStateStopped) {
-    return TRUE;
-  }
-
-  meego_media_player_control_get_position (player_control, &priv->position);
-  meego_media_player_control_stop (player_control);
-
-  UMMS_DEBUG ("End");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_suspend (GET_CONTROL_IFACE (player));
   return TRUE;
 }
 
@@ -609,34 +592,8 @@ gboolean
 meego_media_player_restore (MeegoMediaPlayer *player,
     GError **err)
 {
-  gint state = 0;
-  gboolean seekable = FALSE;
-  MeegoMediaPlayerControl *player_control = GET_CONTROL_IFACE (player);
-  MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
-
-  CHECK_ENGINE(player_control, FALSE, err);
-  
-  UMMS_DEBUG ("Begin");
-  meego_media_player_control_get_player_state (player_control, &state);
-
-  //Already in resource occupation state.
-  if (state == PlayerStatePaused || state == PlayerStatePlaying) {
-    return TRUE;
-  }
-
-  if (state == PlayerStateNull) {
-    UMMS_DEBUG ("Can't restore media player as it is in null state.");
-    return FALSE;
-  }
-
-  meego_media_player_control_is_seekable (player_control, &seekable);
-  if (seekable) {
-    meego_media_player_control_pause(player_control);
-    meego_media_player_control_set_position (player_control, priv->position);
-  }
-  meego_media_player_control_play(player_control);
-
-  UMMS_DEBUG ("End");
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_restore (GET_CONTROL_IFACE (player));
   return TRUE;
 }
 

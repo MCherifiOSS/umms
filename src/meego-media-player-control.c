@@ -42,6 +42,8 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_set_mute_impl set_mute;
   meego_media_player_control_is_mute_impl is_mute;
   meego_media_player_control_set_scale_mode_impl set_scale_mode;
+  meego_media_player_control_suspend_impl suspend;
+  meego_media_player_control_restore_impl restore;
 };
 
 enum {
@@ -241,7 +243,7 @@ meego_media_player_control_set_playback_rate (MeegoMediaPlayerControl *self,
             (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->set_playback_rate);
 
   if (impl != NULL) {
-    (impl) (self,
+    return (impl) (self,
             in_rate);
   } else {
     g_warning ("Method not implemented\n");
@@ -910,6 +912,45 @@ void meego_media_player_control_implement_set_scale_mode (MeegoMediaPlayerContro
                                                           meego_media_player_control_set_scale_mode_impl impl)
 {
   klass->set_scale_mode = impl;
+}
+
+gboolean meego_media_player_control_suspend (MeegoMediaPlayerControl *self)
+{
+  meego_media_player_control_suspend_impl impl =
+                   (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->suspend);
+
+  if (impl != NULL) {
+    (impl) (self);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_suspend (MeegoMediaPlayerControlClass *klass,
+                                                          meego_media_player_control_suspend_impl impl)
+{
+  klass->suspend = impl;
+}
+
+
+gboolean meego_media_player_control_restore (MeegoMediaPlayerControl *self)
+{
+  meego_media_player_control_restore_impl impl =
+                   (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->restore);
+
+  if (impl != NULL) {
+    (impl) (self);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_restore (MeegoMediaPlayerControlClass *klass,
+                                                          meego_media_player_control_restore_impl impl)
+{
+  klass->restore = impl;
 }
 
 void
