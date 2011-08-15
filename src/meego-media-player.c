@@ -675,6 +675,14 @@ gboolean meego_media_player_set_scale_mode (MeegoMediaPlayer *player, gint scale
   return TRUE;
 }
 
+gboolean meego_media_player_get_scale_mode (MeegoMediaPlayer *player, gint *scale_mode, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_scale_mode(GET_CONTROL_IFACE (player), scale_mode);
+  UMMS_DEBUG ("get the current scale mode is %d", *scale_mode);
+  return TRUE;
+}
+
 static void
 meego_media_player_get_property (GObject    *object,
     guint       property_id,

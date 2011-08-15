@@ -42,6 +42,7 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_set_mute_impl set_mute;
   meego_media_player_control_is_mute_impl is_mute;
   meego_media_player_control_set_scale_mode_impl set_scale_mode;
+  meego_media_player_control_get_scale_mode_impl get_scale_mode;
   meego_media_player_control_suspend_impl suspend;
   meego_media_player_control_restore_impl restore;
 };
@@ -914,6 +915,25 @@ void meego_media_player_control_implement_set_scale_mode (MeegoMediaPlayerContro
   klass->set_scale_mode = impl;
 }
 
+gboolean meego_media_player_control_get_scale_mode (MeegoMediaPlayerControl *self, gint *scale_mode)
+{
+  meego_media_player_control_get_scale_mode_impl impl =
+                   (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_scale_mode);
+
+  if (impl != NULL) {
+    (impl) (self, scale_mode);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_scale_mode (MeegoMediaPlayerControlClass *klass,
+                                                          meego_media_player_control_get_scale_mode_impl impl)
+{
+  klass->get_scale_mode = impl;
+}
+
 gboolean meego_media_player_control_suspend (MeegoMediaPlayerControl *self)
 {
   meego_media_player_control_suspend_impl impl =
@@ -933,7 +953,6 @@ void meego_media_player_control_implement_suspend (MeegoMediaPlayerControlClass 
   klass->suspend = impl;
 }
 
-
 gboolean meego_media_player_control_restore (MeegoMediaPlayerControl *self)
 {
   meego_media_player_control_restore_impl impl =
@@ -952,6 +971,8 @@ void meego_media_player_control_implement_restore (MeegoMediaPlayerControlClass 
 {
   klass->restore = impl;
 }
+
+
 
 void
 meego_media_player_control_emit_initialized (gpointer instance)
