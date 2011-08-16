@@ -1970,6 +1970,80 @@ OUT:
 }
 
 
+static gboolean
+engine_gst_get_scale_mode (MeegoMediaPlayerControl *self, gint *scale_mode)
+{
+  GstElement *pipe;
+  EngineGstPrivate *priv;
+  GstElement *vsink_bin;
+  gboolean ret = TRUE;
+  GValue val = { 0, };
+  GEnumValue *eval;
+  GParamSpec *pspec = NULL;
+  GEnumClass *eclass = NULL;
+
+  *scale_mode = ScaleModeInvalid; 
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  /* We assume that the video-sink is just ismd_vidrend_bin, because if not
+     the scale mode is not supported yet in gst sink bins. */ 
+  g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
+  if (vsink_bin) {
+    pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (vsink_bin), "scale-mode");
+    if (pspec == NULL) {
+      ret = FALSE;
+      UMMS_DEBUG("can not get the scale-mode feature");
+      goto OUT;
+    }
+
+    g_value_init (&val, pspec->value_type);
+    g_object_get_property (G_OBJECT (vsink_bin), "scale-mode", &val);
+    eclass = G_ENUM_CLASS (g_type_class_peek (G_VALUE_TYPE (&val)));
+    if (eclass == NULL) {
+      ret = FALSE;
+      goto OUT;
+    }
+
+    eval = g_enum_get_value (eclass, g_value_get_enum(&val));
+    if (eval == NULL) {
+      ret = FALSE;
+      goto OUT;
+    }
+
+    if (strcmp(eval->value_nick, "none")) {
+      *scale_mode = ScaleModeNoScale;
+      goto OUT;
+    } else if (strcmp(eval->value_nick, "scale2fit")) {
+      *scale_mode = ScaleModeFill;
+      goto OUT;
+    } else if (strcmp(eval->value_nick, "zoom2fit")) {
+      *scale_mode = ScaleModeKeepAspectRatio;
+      goto OUT;
+    } else if (strcmp(eval->value_nick, "zoom2fill")) {
+      *scale_mode = ScaleModeFillKeepAspectRatio;
+      goto OUT;
+    } else {
+      UMMS_DEBUG("Error scale mode");
+      ret = FALSE;
+    }
+  } else {
+    UMMS_DEBUG("No a vidrend_bin set, scale not support now!");
+    ret = FALSE;
+  }
+
+OUT:
+  if(vsink_bin)
+    gst_object_unref (vsink_bin);
+  return ret;
+}
+
+
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
 {
@@ -2053,6 +2127,8 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_is_mute);
   meego_media_player_control_implement_set_scale_mode (klass,
       engine_gst_set_scale_mode);
+  meego_media_player_control_implement_get_scale_mode (klass,
+      engine_gst_get_scale_mode);
 }
 
 static void

@@ -42,6 +42,7 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_set_mute_impl set_mute;
   meego_media_player_control_is_mute_impl is_mute;
   meego_media_player_control_set_scale_mode_impl set_scale_mode;
+  meego_media_player_control_get_scale_mode_impl get_scale_mode;
 };
 
 enum {
@@ -910,6 +911,25 @@ void meego_media_player_control_implement_set_scale_mode (MeegoMediaPlayerContro
                                                           meego_media_player_control_set_scale_mode_impl impl)
 {
   klass->set_scale_mode = impl;
+}
+
+gboolean meego_media_player_control_get_scale_mode (MeegoMediaPlayerControl *self, gint *scale_mode)
+{
+  meego_media_player_control_get_scale_mode_impl impl =
+                   (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_scale_mode);
+
+  if (impl != NULL) {
+    (impl) (self, scale_mode);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_scale_mode (MeegoMediaPlayerControlClass *klass,
+                                                          meego_media_player_control_get_scale_mode_impl impl)
+{
+  klass->get_scale_mode = impl;
 }
 
 void
