@@ -1915,8 +1915,7 @@ engine_gst_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode)
   /* We assume that the video-sink is just ismd_vidrend_bin, because if not
      the scale mode is not supported yet in gst sink bins. */ 
   g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
-  if (vsink_bin && ISMD_GST_IS_VIDREND_BIN(vsink_bin))
-  {
+  if (vsink_bin) {
     pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (vsink_bin), "scale-mode");
     if (pspec == NULL) {
       ret = FALSE;
@@ -1960,7 +1959,7 @@ engine_gst_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode)
     g_object_set_property (G_OBJECT (vsink_bin), "scale-mode", &val);
     g_value_unset (&val);
   } else {
-    UMMS_DEBUG("Not a ismd_vidrend_bin, scale not support now!");
+    UMMS_DEBUG("No a vidrend_bin set, scale not support now!");
     ret = FALSE;
   }
 
@@ -2052,6 +2051,8 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_set_mute);
   meego_media_player_control_implement_is_mute (klass,
       engine_gst_is_mute);
+  meego_media_player_control_implement_set_scale_mode (klass,
+      engine_gst_set_scale_mode);
 }
 
 static void
