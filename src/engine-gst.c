@@ -2301,6 +2301,49 @@ bus_message_state_change_cb (GstBus     *bus,
 }
 
 static void
+bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
+{
+  gpointer src;
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+  GstPad * src_pad = NULL;
+  GstTagList * tag_list = NULL;
+  gint size, i;
+
+  src = GST_MESSAGE_SRC (message);
+  if (src != priv->pipeline) {
+    UMMS_DEBUG("get the message from object:%p, not our pipeline, strange");
+    return;
+  }
+
+  if(message->type != GST_MESSAGE_TAG) {
+    UMMS_DEBUG("not a tag message in a registered tag signal, strange");
+    return;
+  }
+
+  gst_message_parse_tag_full (message, &src_pad, &tag_list);
+
+  /* We are interest about the codec and container format. */
+  if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
+    for (i = 0; i < size; ++i) {
+      gchar *st = NULL;        
+
+      if(gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
+        UMMS_DEBUG("Pad :%s provide the video codec named: %s", GST_PAD_NAME(src_pad), st);
+        /* store the name for later use. */
+
+
+        g_free (st);  
+      }
+    }
+  }
+
+  if(src_pad)
+    g_object_unref(src_pad);
+  gst_tag_list_free (tag_list);
+}
+
+
+static void
 bus_message_eos_cb (GstBus     *bus,
                     GstMessage *message,
                     EngineGst  *self)
@@ -2460,6 +2503,11 @@ engine_gst_init (EngineGst *self)
       self,
       0);
 
+  g_signal_connect_object (bus,
+      "message::tag",
+      G_CALLBACK (bus_message_get_tag_cb),
+      self,
+      0);
 
   gst_bus_set_sync_handler(bus, (GstBusSyncHandler) bus_sync_handler,
       self);
