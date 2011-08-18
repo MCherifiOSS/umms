@@ -2281,7 +2281,7 @@ bus_message_state_change_cb (GstBus     *bus,
       }
       engine_gst_play(self);
       priv->suspended = FALSE;
-  UMMS_DEBUG ("meego_media_player_control_emit_restored");
+      UMMS_DEBUG ("meego_media_player_control_emit_restored");
       meego_media_player_control_emit_restored (self);
     }
   } else if(new_state == GST_STATE_PLAYING) {
@@ -2299,6 +2299,84 @@ bus_message_state_change_cb (GstBus     *bus,
     meego_media_player_control_emit_player_state_changed (self, priv->player_state);
   }
 }
+
+static void
+bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
+{
+  gpointer src;
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+  GstPad * src_pad = NULL;
+  GstTagList * tag_list = NULL;
+  gint size, i;
+  guint32 bit_rate;
+  guchar * pad_name = NULL;
+  guchar * element_name = NULL;
+
+
+  src = GST_MESSAGE_SRC (message);
+  if (src != priv->pipeline) {
+    UMMS_DEBUG("get the message from object:%p, not our pipeline, strange");
+    return;
+  }
+
+  if(message->type != GST_MESSAGE_TAG) {
+    UMMS_DEBUG("not a tag message in a registered tag signal, strange");
+    return;
+  }
+
+  gst_message_parse_tag_full (message, &src_pad, &tag_list);
+  if(src_pad) {
+    pad_name = g_strdup (GST_PAD_NAME (src_pad));
+    UMMS_DEBUG("The pad name is %s", pad_name);
+  }
+
+  if(message->src) {
+    element_name = g_strdup (GST_ELEMENT_NAME (message->src));
+    UMMS_DEBUG("The element name is %s", element_name);
+  }
+
+  /* We are now interest in the codec, container format and bit rate. */
+  if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
+    for (i = 0; i < size; ++i) {
+      gchar *st = NULL;        
+
+      if(gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
+        UMMS_DEBUG("Element: %s, Pad: %s provide the video codec named: %s", element_name, pad_name, st);
+        /* store the name for later use. */
+
+
+        g_free (st);  
+      }
+    }
+  }
+
+  if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
+    for (i = 0; i < size; ++i) {
+      gchar *st = NULL;        
+
+      if(gst_tag_list_get_string_index (tag_list, GST_TAG_AUDIO_CODEC, i, &st) && st) {
+        UMMS_DEBUG("Element: %s, Pad: %s provide the audio codec named: %s", element_name, pad_name, st);
+        /* store the name for later use. */
+
+
+        g_free (st);  
+      }
+    }
+  }
+
+  if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
+    UMMS_DEBUG("Element: %s, Pad: %s provide the bitrate: %d", element_name, pad_name, bit_rate);
+  }
+
+  if(src_pad)
+    g_object_unref(src_pad);
+  gst_tag_list_free (tag_list);
+  if(pad_name)
+    g_free(pad_name);
+  if(element_name)
+    g_free(element_name);
+}
+
 
 static void
 bus_message_eos_cb (GstBus     *bus,
@@ -2460,6 +2538,11 @@ engine_gst_init (EngineGst *self)
       self,
       0);
 
+  g_signal_connect_object (bus,
+      "message::tag",
+      G_CALLBACK (bus_message_get_tag_cb),
+      self,
+      0);
 
   gst_bus_set_sync_handler(bus, (GstBusSyncHandler) bus_sync_handler,
       self);
