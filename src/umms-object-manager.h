@@ -50,6 +50,7 @@ gboolean umms_object_manager_request_media_player(UmmsObjectManager *self, gchar
 gboolean umms_object_manager_request_media_player_unattended(UmmsObjectManager *self, gdouble time_to_execution, 
         gchar **token, gchar **object_path, GError **error);
 gboolean umms_object_manager_remove_media_player(UmmsObjectManager *self, gchar *object_path, GError **error);
+GList *umms_object_manager_get_player_list (UmmsObjectManager *self);
 
 G_END_DECLS
 

@@ -10,3 +10,4 @@
 
 QUARK_FUNC(engine);
 QUARK_FUNC(resource);
+QUARK_FUNC(generic);

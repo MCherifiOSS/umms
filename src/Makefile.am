@@ -3,6 +3,19 @@ libexec_PROGRAMS = umms-server
 umms_server_CFLAGS = $(UMMS_CFLAGS)
 
 umms_server_LDADD = $(UMMS_LIBS)
+
+
+GLUE = \
+			  ./glue/umms-object-manager-glue.h \
+			  ./glue/umms-media-player-glue.h \
+			  ./glue/umms-playing-content-metadata-viewer-glue.h
+
+
+MARSHALS = \
+	umms-marshals.c umms-marshals.h
+
+GENERATED_SOURCE = $(GLUE) $(MARSHALS)
+
 umms_server_SOURCES = umms-common.h umms-server-main.c \
 					  umms-error.h umms-error.c \
                       meego-media-player.c meego-media-player.h \
@@ -10,11 +23,12 @@ umms_server_SOURCES = umms-common.h umms-server-main.c \
 				      meego-media-player-control.c meego-media-player-control.h \
 					  engine-gst.c engine-gst.h \
 					  umms-object-manager.c umms-object-manager.h \
-					  umms-marshals.c umms-marshals.h umms-debug.h \
+					  umms-debug.h \
 						param-table.c param-table.h \
 						umms-resource-manager.c umms-resource-manager.h \
-					  ./glue/umms-object-manager-glue.h \
-					  ./glue/umms-media-player-glue.h
+                                                umms-playing-content-metadata-viewer.c \
+                                                umms-playing-content-metadata-viewer.h \
+					        $(GENERATED_SOURCE)
 
 
 %.c: %.list Makefile.am
@@ -27,18 +41,13 @@ umms_server_SOURCES = umms-common.h umms-server-main.c \
 	$(AM_V_GEN)mkdir -p glue
 	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=umms_object_manager --mode=glib-server ../spec/umms-object-manager.xml >  ./glue/umms-object-manager-glue.h
 	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=meego_media_player --mode=glib-server ../spec/umms-media-player.xml > ./glue/umms-media-player-glue.h
+	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=umms_playing_content_metadata_viewer --mode=glib-server ../spec/umms-playing-content-metadata-viewer.xml > ./glue/umms-playing-content-metadata-viewer-glue.h
 
-MARSHALS = \
-	umms-marshals.c umms-marshals.h
 
 MARSHALS_LISTS = umms-marshals.list
 
 
-GLUE = \
-			  ./glue/umms-object-manager-glue.h \
-			  ./glue/umms-media-player-glue.h 
 
-BUILT_SOURCES = $(GLUE) $(MARSHALS)
 
 %.service: %.service.in ../config.log
 	$(AM_V_GEN)sed -e "s|\@dir\@|$(libexecdir)|" $< > $@
@@ -51,5 +60,5 @@ service_DATA = com.meego.UMMS.service
 confdir = /etc/dbus-1/system.d/
 dist_conf_DATA = com.meego.UMMS.conf
 
-CLEANFILES = $(BUILT_SOURCES) $(service_DATA) 
+CLEANFILES = $(GENERATED_SOURCE) $(service_DATA) 
 EXTRA_DIST = $(MARSHALS_LISTS) $(service_in_files)

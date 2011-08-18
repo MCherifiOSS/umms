@@ -37,7 +37,8 @@ method_name = (
 	"GetPlayerState",
   "SetProxy",
   "Suspend",
-  "Restore"
+  "Restore",
+  "GetPlayingContentMetadata"
 	)
 
 (
@@ -67,7 +68,8 @@ method_name = (
 	GetPlayerState,
 	SetProxy,
   Suspend,
-  Restore
+  Restore,
+  GetPlayingContentMetadata
 ) = range (len(method_name))
 
 (
@@ -90,6 +92,15 @@ method_name = (
 #define TARGET_PARAM_KEY_RECTANGLE "rectangle"
 #define TARGET_PARAM_KEY_PlANE_ID "plane-id"
 
+def print_metadata_list(metadata):
+    for i in range (0, len(metadata)):
+        print "URI : '%s'" %  metadata[i]['URI']
+        print "Title : '%s'" %  metadata[i]['Title']
+        print "Artist : '%s'" % metadata[i]['Artist']
+
+
+def metadata_updated_cb(metadata):
+    print_metadata_list(metadata)
 
 def initialized_cb():
 	print "MeidaPlayer initialized"
@@ -283,6 +294,9 @@ class CmdHandler(threading.Thread):
         	state = self.player.Suspend();
         elif mid == Restore:
         	state = self.player.Restore();
+        elif mid == GetPlayingContentMetadata:
+            metadata = metadata_viewer.GetPlayingContentMetadata();
+            print_metadata_list(metadata)
         else:
         	print "Unsupported method id '%d'" % (mid)
         	self.print_help(self);
@@ -303,11 +317,14 @@ state_name = (
 
 default_uri = "file:///root/720p.m4v"
 player_name = ""
+metadata_viewer = None
 
 if __name__ == '__main__':
 
     libummsclient.init()
     (remote_proxy, name)  = libummsclient.request_player(True, 0)
+    metadata_viewer  = libummsclient.get_metadata_viewer()
+    metadata_viewer.connect_to_signal("MetadataUpdated", metadata_updated_cb)
     
     #Request a unattended execution
     #(remote_proxy, name)  = libummsclient.request_player(False, 10)

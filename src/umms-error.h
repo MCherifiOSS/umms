@@ -7,12 +7,14 @@ typedef enum {
     UMMS_ENGINE_ERROR_INVALID_STATE,
     UMMS_ENGINE_ERROR_FAILED,
     UMMS_RESOURCE_ERROR_NO_RESOURCE = 20,
-    UMMS_RESOURCE_ERROR_FAILED
+    UMMS_RESOURCE_ERROR_FAILED,
+    UMMS_GENERIC_ERROR_CREATING_OBJ_FAILED = 30
 }UmmsErrorCode;
 
 
 #define UMMS_ENGINE_ERROR umms_engine_error_quark()
 #define UMMS_RESOURCE_ERROR umms_resource_error_quark()
+#define UMMS_GENERIC_ERROR umms_generic_error_quark()
 
 #endif /* _UMMS_ERROR_H */
 

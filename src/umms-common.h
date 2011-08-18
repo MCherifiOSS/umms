@@ -6,6 +6,10 @@
 #define UMMS_OBJECT_MANAGER_INTERFACE_NAME "com.meego.UMMS.ObjectManager.iface"
 #define MEDIA_PLAYER_INTERFACE_NAME "com.meego.UMMS.MediaPlayer"
 
+#define UMMS_PLAYING_CONTENT_METADATA_VIEWER_OBJECT_PATH "/com/meego/UMMS/PlayingContentMetadataViewer"
+#define UMMS_PLAYING_CONTENT_METADATA_VIEWER_INTERFACE_NAME "com.meego.UMMS.PlayingContentMetadataViewer"
+
+
 typedef enum {
     PlayerStateNull,
     PlayerStateStopped,

@@ -6,10 +6,12 @@ import dbus.mainloop.glib
 import dbus.glib
 
 obj_mngr = None
+metadata_viewer = None
 
 def init():
     print "Init libclient"
     global obj_mngr
+    global metadata_viewer
     if (obj_mngr != None):
         print "UMMS client lib already initialized"
         return
@@ -20,6 +22,9 @@ def init():
     obj_mngr=dbus.Interface(bus_obj, 'com.meego.UMMS.ObjectManager.iface')
     print "New obj_mngr"
 
+    bus_obj=bus.get_object('com.meego.UMMS', '/com/meego/UMMS/PlayingContentMetadataViewer')
+    metadata_viewer=dbus.Interface(bus_obj, 'com.meego.UMMS.PlayingContentMetadataViewer')
+    print "New metadata_viewer"
 
 def need_reply_cb (obj_path):
     client_monitor = get_iface (obj_path, 'com.meego.UMMS.MediaPlayer')
@@ -62,3 +67,8 @@ def remove_player(proxy):
     obj_path = proxy.object_path
     print "UMMS client lib: Removing media player '%s'" % obj_path
     obj_mngr.RemoveMediaPlayer(obj_path)
+
+def get_metadata_viewer():
+    global metadata_viewer;
+    print "Return global metadata_viewer"
+    return metadata_viewer;

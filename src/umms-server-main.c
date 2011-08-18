@@ -10,7 +10,9 @@
 #include "umms-common.h"
 #include "umms-debug.h"
 #include "umms-object-manager.h"
+#include "umms-playing-content-metadata-viewer.h"
 #include "./glue/umms-object-manager-glue.h"
+#include "./glue/umms-playing-content-metadata-viewer-glue.h"
 
 static GMainLoop *loop = NULL;
 
@@ -186,9 +188,12 @@ main (int    argc,
   }
 
   UmmsObjectManager *umms_object_manager = NULL;
-
   dbus_g_object_type_install_info (UMMS_TYPE_OBJECT_MANAGER, &dbus_glib_umms_object_manager_object_info);
   umms_object_manager = umms_object_manager_new ();
+
+  UmmsPlayingContentMetadataViewer *metadata_viewer = NULL;
+  dbus_g_object_type_install_info (UMMS_TYPE_PLAYING_CONTENT_METADATA_VIEWER, &dbus_glib_umms_playing_content_metadata_viewer_object_info);
+  metadata_viewer = umms_playing_content_metadata_viewer_new (umms_object_manager);
 
   connection = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
   if (connection == NULL) {
@@ -199,8 +204,7 @@ main (int    argc,
   }
 
   dbus_g_connection_register_g_object (connection, UMMS_OBJECT_MANAGER_OBJECT_PATH, G_OBJECT (umms_object_manager));
-
-
+  dbus_g_connection_register_g_object (connection, UMMS_PLAYING_CONTENT_METADATA_VIEWER_OBJECT_PATH, G_OBJECT (metadata_viewer));
 
   loop = g_main_loop_new (NULL, TRUE);
 #ifdef FAKE_UMMS_SIGNAL

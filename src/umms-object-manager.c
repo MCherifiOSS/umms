@@ -27,6 +27,14 @@ static void _dump_player_list (GList *players);
 static MeegoMediaPlayer *_gen_media_player (UmmsObjectManager *mngr, gboolean attended);
 static gboolean _remove_media_player (MeegoMediaPlayer *player);
 
+enum 
+{
+  SIGNAL_PLAYER_ADDED,
+  N_SIGNALS
+};
+
+static guint signals[N_SIGNALS] = {0};
+
 struct _UmmsObjectManagerPrivate {
   GList *player_list;
   gint  cur_player_id;
@@ -86,6 +94,15 @@ umms_object_manager_class_init (UmmsObjectManagerClass *klass)
   object_class->dispose = umms_object_manager_dispose;
   object_class->finalize = umms_object_manager_finalize;
 
+  signals[SIGNAL_PLAYER_ADDED] =
+    g_signal_new ("player-added",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__OBJECT,
+        G_TYPE_NONE,
+        1, MEEGO_TYPE_MEDIA_PLAYER);
 }
 
 static void
@@ -292,6 +309,7 @@ _gen_media_player (UmmsObjectManager *mngr, gboolean attended)
 
   g_free (object_path);
 
+  g_signal_emit (mngr, signals[SIGNAL_PLAYER_ADDED], 0, player);
   return player;
 
 get_connection_failed: {
@@ -334,3 +352,8 @@ _remove_media_player (MeegoMediaPlayer *player)
 }
 
 
+GList *umms_object_manager_get_player_list (UmmsObjectManager *self)
+{
+  UmmsObjectManagerPrivate *priv = GET_PRIVATE (self);
+  return priv->player_list;
+}
