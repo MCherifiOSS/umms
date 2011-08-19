@@ -69,6 +69,10 @@ static gchar *live_src_uri[] = {"mms://", "mmsh://", "rtsp://",
   ret;                                                                             \
 })
 
+#define ENGINE_GST_MAX_VIDEOCODEC_SIZE 64
+#define ENGINE_GST_MAX_AUDIOCODEC_SIZE 64
+#define ENGINE_GST_MAX_AUDIO_STREAM 3
+
 struct _EngineGstPrivate {
   GstElement *pipeline;
 
@@ -125,6 +129,11 @@ struct _EngineGstPrivate {
 
   //snapshot of suspended execution
   gint64   pos;
+
+  gchar    video_codec[ENGINE_GST_MAX_VIDEOCODEC_SIZE];
+  gchar    audio_codec[ENGINE_GST_MAX_AUDIO_STREAM][ENGINE_GST_MAX_AUDIOCODEC_SIZE];
+  gint     audio_bitrate[ENGINE_GST_MAX_AUDIO_STREAM];
+  gint     audio_codec_used;
 };
 
 static gboolean _query_buffering_percent (GstElement *pipe, gdouble *percent);
@@ -2309,9 +2318,8 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   GstTagList * tag_list = NULL;
   gint size, i;
   guint32 bit_rate;
-  guchar * pad_name = NULL;
-  guchar * element_name = NULL;
-
+  gchar * pad_name = NULL;
+  gchar * element_name = NULL;
 
   src = GST_MESSAGE_SRC (message);
   if (src != priv->pipeline) {
@@ -2337,35 +2345,86 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
 
   /* We are now interest in the codec, container format and bit rate. */
   if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
+    gchar * video_codec = NULL;
+    video_codec = g_strdup_printf("%s-->%s Video Codec: ",
+            element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+
     for (i = 0; i < size; ++i) {
       gchar *st = NULL;        
 
       if(gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
         UMMS_DEBUG("Element: %s, Pad: %s provide the video codec named: %s", element_name, pad_name, st);
-        /* store the name for later use. */
-
-
+        video_codec = g_strconcat(video_codec, st);
         g_free (st);  
       }
     }
+
+    /* store the name for later use. */
+    g_strlcpy(priv->video_codec, video_codec, ENGINE_GST_MAX_VIDEOCODEC_SIZE);
+    UMMS_DEBUG("%s", video_codec);
+
+    g_free(video_codec);
   }
 
   if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
+    gchar * audio_codec = NULL;
+    audio_codec = g_strdup_printf("%s-->%s Audio Codec: ",
+            element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+
     for (i = 0; i < size; ++i) {
       gchar *st = NULL;        
 
       if(gst_tag_list_get_string_index (tag_list, GST_TAG_AUDIO_CODEC, i, &st) && st) {
         UMMS_DEBUG("Element: %s, Pad: %s provide the audio codec named: %s", element_name, pad_name, st);
-        /* store the name for later use. */
-
-
+        audio_codec = g_strconcat(audio_codec, st);
         g_free (st);  
       }
     }
+
+    UMMS_DEBUG("%s", audio_codec);
+
+    /* need to consider the multi-channel audio case. The demux and decoder
+     * will both send this message. We prefer codec info from decoder now. Need to improve */
+    if(element_name && (g_strstr_len(element_name, strlen(element_name), "demux") ||
+                g_strstr_len(element_name, strlen(element_name), "Demux") ||
+                g_strstr_len(element_name, strlen(element_name), "DEMUX"))) {
+      if(priv->audio_codec_used < ENGINE_GST_MAX_AUDIO_STREAM) {
+        g_strlcpy(priv->audio_codec[priv->audio_codec_used], audio_codec, ENGINE_GST_MAX_AUDIOCODEC_SIZE);
+        priv->audio_codec_used++;
+      } else {
+        UMMS_DEBUG("audio_codec need to discard because too many steams");
+      }
+    } else {
+      UMMS_DEBUG("audio_codec need to discard because it not come from demux");
+    }
+
+    g_free(audio_codec);
   }
 
   if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
+    /* Again, the bitrate info may come from demux and audio decoder, we use demux now. */
     UMMS_DEBUG("Element: %s, Pad: %s provide the bitrate: %d", element_name, pad_name, bit_rate);
+    if(element_name && (g_strstr_len(element_name, strlen(element_name), "demux") ||
+                g_strstr_len(element_name, strlen(element_name), "Demux") ||
+                g_strstr_len(element_name, strlen(element_name), "DEMUX"))) {
+      gchar * audio_codec = NULL;
+      audio_codec = g_strdup_printf("%s-->%s Audio Codec: ",
+              element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+
+      /* find it in the audio codec stream. */ 
+      for(i=0; i<priv->audio_codec_used; i++) {
+        if(g_strcasecmp(priv->audio_codec[i], audio_codec))
+            break;
+      }
+
+      if(i < priv->audio_codec_used) {
+        priv->audio_bitrate[i] = bit_rate;
+        UMMS_DEBUG("we set the bitrate: %u for audio stream: %d", bit_rate, i);
+      } else {
+        UMMS_DEBUG("we can not find the stream for this bitrate: %u, set to the fist stream", bit_rate);
+        priv->audio_bitrate[0] = bit_rate;
+      }
+    }
   }
 
   if(src_pad)
