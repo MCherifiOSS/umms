@@ -69,6 +69,10 @@ static gchar *live_src_uri[] = {"mms://", "mmsh://", "rtsp://",
   ret;                                                                             \
 })
 
+#define ENGINE_GST_MAX_VIDEOCODEC_SIZE 64
+#define ENGINE_GST_MAX_AUDIOCODEC_SIZE 64
+#define ENGINE_GST_MAX_AUDIO_STREAM 3
+
 struct _EngineGstPrivate {
   GstElement *pipeline;
 
@@ -125,6 +129,13 @@ struct _EngineGstPrivate {
 
   //snapshot of suspended execution
   gint64   pos;
+
+  gchar    video_codec[ENGINE_GST_MAX_VIDEOCODEC_SIZE];
+  gint     video_bitrate;
+
+  gchar    audio_codec[ENGINE_GST_MAX_AUDIO_STREAM][ENGINE_GST_MAX_AUDIOCODEC_SIZE];
+  gint     audio_bitrate[ENGINE_GST_MAX_AUDIO_STREAM];
+  gint     audio_codec_used;
 };
 
 static gboolean _query_buffering_percent (GstElement *pipe, gdouble *percent);
@@ -176,6 +187,14 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
   priv->hw_viddec = 0;
   priv->has_audio = FALSE;
   priv->hw_auddec = FALSE;
+
+  /* New URI, so the codec info is invalid any more. */  
+  priv->audio_codec_used = 0;
+  memset(priv->video_codec, 0, ENGINE_GST_MAX_VIDEOCODEC_SIZE);
+  priv->video_bitrate = 0;
+  memset(priv->audio_codec, 0, 
+            ENGINE_GST_MAX_AUDIO_STREAM*ENGINE_GST_MAX_AUDIOCODEC_SIZE);
+  memset(priv->audio_bitrate, 0, ENGINE_GST_MAX_AUDIO_STREAM);
 
   return parse_uri_async(self, priv->uri);
 }
@@ -322,8 +341,8 @@ engine_gst_handle_xevents (MeegoMediaPlayerControl *control)
         break;
     }
   }
-
 }
+
 static gpointer
 engine_gst_event_thread (MeegoMediaPlayerControl* control)
 {
@@ -2081,6 +2100,82 @@ engine_gst_restore (MeegoMediaPlayerControl *self)
   return engine_gst_pause (self);
 }
 
+
+static gboolean
+engine_gst_get_video_codec (MeegoMediaPlayerControl *self, gchar ** video_codec)
+{
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+  
+  if(strlen(priv->video_codec)) {
+    *video_codec = g_strdup(priv->video_codec);
+  } else {
+    *video_codec = NULL;
+    UMMS_DEBUG("No video codec now!");
+  }
+
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_get_audio_codec (MeegoMediaPlayerControl *self, gchar ** audio_codec)
+{
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  int i;
+
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  if(priv->audio_codec_used) {
+    *audio_codec = g_strdup(priv->audio_codec[0]);
+
+    for(i = 1; i <priv->audio_codec_used; i++) {
+      *audio_codec = g_strconcat(*audio_codec, "\n");
+      *audio_codec = g_strconcat(*audio_codec, priv->audio_codec[i]);
+    }
+  } else {
+    *audio_codec = NULL;
+    UMMS_DEBUG("No audio codec now!");
+  }
+
+  return TRUE;
+}
+
+static gboolean
+engine_gst_get_video_bitrate (MeegoMediaPlayerControl *self, gint *bit_rate)
+{
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  int i;
+  
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+  *bit_rate= priv->video_bitrate;
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint *bit_rate)
+{
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  int i;
+  
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  if(channel >= 0 && channel < priv->audio_codec_used) {
+    *bit_rate= priv->audio_bitrate[channel];
+  } else {
+    *bit_rate = 0;
+  } 
+
+  return TRUE;
+}
+
+
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
 {
@@ -2169,7 +2264,15 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
   meego_media_player_control_implement_set_scale_mode (klass,
       engine_gst_set_scale_mode);
   meego_media_player_control_implement_get_scale_mode (klass,
-      engine_gst_get_scale_mode);
+      engine_gst_get_scale_mode);      
+  meego_media_player_control_implement_get_video_codec (klass,
+      engine_gst_get_video_codec);
+  meego_media_player_control_implement_get_audio_codec (klass,
+      engine_gst_get_audio_codec);
+  meego_media_player_control_implement_get_video_bitrate (klass,
+      engine_gst_get_video_bitrate);
+  meego_media_player_control_implement_get_audio_bitrate (klass,
+      engine_gst_get_audio_bitrate);
 }
 
 static void
@@ -2309,9 +2412,11 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   GstTagList * tag_list = NULL;
   gint size, i;
   guint32 bit_rate;
-  guchar * pad_name = NULL;
-  guchar * element_name = NULL;
-
+  gchar * pad_name = NULL;
+  gchar * element_name = NULL;
+  gchar * video_codec = NULL;
+  gchar * audio_codec = NULL;
+  int out_of_channel = 0;
 
   src = GST_MESSAGE_SRC (message);
   if (src != priv->pipeline) {
@@ -2337,42 +2442,126 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
 
   /* We are now interest in the codec, container format and bit rate. */
   if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
+    video_codec = g_strdup_printf("%s-->%s Video Codec: ",
+            element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+
     for (i = 0; i < size; ++i) {
       gchar *st = NULL;        
 
       if(gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
         UMMS_DEBUG("Element: %s, Pad: %s provide the video codec named: %s", element_name, pad_name, st);
-        /* store the name for later use. */
-
-
+        video_codec = g_strconcat(video_codec, st);
         g_free (st);  
       }
     }
+
+    /* store the name for later use. */
+    g_strlcpy(priv->video_codec, video_codec, ENGINE_GST_MAX_VIDEOCODEC_SIZE);
+    UMMS_DEBUG("%s", video_codec);
   }
 
   if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
+    audio_codec = g_strdup_printf("%s-->%s Audio Codec: ",
+            element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+
     for (i = 0; i < size; ++i) {
       gchar *st = NULL;        
 
       if(gst_tag_list_get_string_index (tag_list, GST_TAG_AUDIO_CODEC, i, &st) && st) {
         UMMS_DEBUG("Element: %s, Pad: %s provide the audio codec named: %s", element_name, pad_name, st);
-        /* store the name for later use. */
-
-
+        audio_codec = g_strconcat(audio_codec, st);
         g_free (st);  
       }
+    }
+
+    UMMS_DEBUG("%s", audio_codec);
+
+    /* need to consider the multi-channel audio case. The demux and decoder
+     * will both send this message. We prefer codec info from decoder now. Need to improve */
+    if(element_name && (g_strstr_len(element_name, strlen(element_name), "demux") ||
+                g_strstr_len(element_name, strlen(element_name), "Demux") ||
+                g_strstr_len(element_name, strlen(element_name), "DEMUX"))) {
+      if(priv->audio_codec_used < ENGINE_GST_MAX_AUDIO_STREAM) {
+        g_strlcpy(priv->audio_codec[priv->audio_codec_used], audio_codec, ENGINE_GST_MAX_AUDIOCODEC_SIZE);
+        priv->audio_codec_used++;
+      } else {
+        UMMS_DEBUG("audio_codec need to discard because too many steams");
+        out_of_channel = 1;
+      }
+    } else {
+      UMMS_DEBUG("audio_codec need to discard because it not come from demux");
     }
   }
 
   if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
+    /* Again, the bitrate info may come from demux and audio decoder, we use demux now. */
     UMMS_DEBUG("Element: %s, Pad: %s provide the bitrate: %d", element_name, pad_name, bit_rate);
+    if(element_name && (g_strstr_len(element_name, strlen(element_name), "demux") ||
+                g_strstr_len(element_name, strlen(element_name), "Demux") ||
+                g_strstr_len(element_name, strlen(element_name), "DEMUX"))) {
+      gchar * codec = NULL;
+      int have_found = 0;
+
+      /* first we check whether it is the bitrate of video. */
+      if(video_codec) { /* the bitrate sent with the video codec, easy one. */
+        have_found = 1;
+        priv->video_bitrate = bit_rate;
+        UMMS_DEBUG("we set the bitrate: %u for video", bit_rate);
+      }
+
+      if(!have_found) { /* try to compare the element and pad name. */
+        codec = g_strdup_printf("%s-->%s Video Codec: ",
+                element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+        if(g_strncasecmp(priv->video_codec, codec, strlen(codec))) {
+          have_found = 1;
+          priv->video_bitrate = bit_rate;
+          UMMS_DEBUG("we set the bitrate: %u for video", bit_rate);
+        }
+
+        g_free(codec);
+      }
+
+      /* find it in the audio codec stream. */ 
+      if(!have_found) {
+        if(audio_codec) {
+          /* the bitrate sent with the audio codec, easy one. */
+          have_found = 1;
+          if(!out_of_channel) {
+            priv->audio_bitrate[priv->audio_codec_used -1] = bit_rate;
+            UMMS_DEBUG("we set the bitrate: %u for audio stream: %d", bit_rate, priv->audio_codec_used -1);
+          } else {
+            UMMS_DEBUG("audio bitrate need to discard because too many steams");
+          }
+        }
+
+        if(!have_found) {  /* last try, use audio element and pad to index. */
+          codec = g_strdup_printf("%s-->%s Audio Codec: ",
+                  element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+
+          for(i=0; i<priv->audio_codec_used; i++) {
+            if(g_strncasecmp(priv->audio_codec[i], codec, strlen(codec)))
+              break;
+          }
+
+          have_found = 1; /* if not find, we use audio channel as defaule, so always find. */
+          if(i < priv->audio_codec_used) {
+            priv->audio_bitrate[i] = bit_rate;
+            UMMS_DEBUG("we set the bitrate: %u for audio stream: %d", bit_rate, i);
+          } else {
+            UMMS_DEBUG("we can not find the stream for this bitrate: %u, set to the fist stream", bit_rate);
+            priv->audio_bitrate[0] = bit_rate;
+          }
+
+          g_free(codec);
+        }
+      }
+    }
   }
 
-  /*URI, Title, Artist tags for "feedback current playing content metadata" requirement*/
-
-
-
-
+  if(video_codec)
+    g_free(video_codec);
+  if(audio_codec)
+    g_free(audio_codec);
   if(src_pad)
     g_object_unref(src_pad);
   gst_tag_list_free (tag_list);
@@ -2568,6 +2757,13 @@ engine_gst_init (EngineGst *self)
   priv->pos = 0;
   priv->res_mngr = umms_resource_manager_new ();
   priv->res_list = NULL;
+
+  priv->audio_codec_used = 0;
+  memset(priv->video_codec, 0, ENGINE_GST_MAX_VIDEOCODEC_SIZE);
+  priv->video_bitrate = 0;
+  memset(priv->audio_codec, 0, 
+            ENGINE_GST_MAX_AUDIO_STREAM*ENGINE_GST_MAX_AUDIOCODEC_SIZE);
+  memset(priv->audio_bitrate, 0, ENGINE_GST_MAX_AUDIO_STREAM);
 
   //Setup default target.
 #define FULL_SCREEN_RECT "0,0,0,0"

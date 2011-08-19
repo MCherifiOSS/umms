@@ -205,6 +205,21 @@ typedef gboolean (*meego_media_player_control_restore_impl) (MeegoMediaPlayerCon
 void meego_media_player_control_implement_restore (MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_restore_impl impl);
 
+typedef gboolean (*meego_media_player_control_get_video_codec_impl) (MeegoMediaPlayerControl *self, gchar ** video_codec);
+void meego_media_player_control_implement_get_video_codec (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_video_codec_impl impl);
+
+typedef gboolean (*meego_media_player_control_get_audio_codec_impl) (MeegoMediaPlayerControl *self, gchar ** audio_codec);
+void meego_media_player_control_implement_get_audio_codec (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_audio_codec_impl impl);
+
+typedef gboolean (*meego_media_player_control_get_video_bitrate_impl) (MeegoMediaPlayerControl *self, gint *bit_rate);
+void meego_media_player_control_implement_get_video_bitrate (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_video_bitrate_impl impl);
+
+typedef gboolean (*meego_media_player_control_get_audio_bitrate_impl) (MeegoMediaPlayerControl *self, gint channel, gint *bit_rate);
+void meego_media_player_control_implement_get_audio_bitrate (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_audio_bitrate_impl impl);
 
 /*virtual function wrappers*/
 gboolean meego_media_player_control_set_uri (MeegoMediaPlayerControl *self, const gchar *in_uri);
@@ -249,6 +264,10 @@ gboolean meego_media_player_control_set_scale_mode (MeegoMediaPlayerControl *sel
 gboolean meego_media_player_control_get_scale_mode (MeegoMediaPlayerControl *self, gint *scale_mode);
 gboolean meego_media_player_control_suspend (MeegoMediaPlayerControl *self);
 gboolean meego_media_player_control_restore (MeegoMediaPlayerControl *self);
+gboolean meego_media_player_control_get_video_codec (MeegoMediaPlayerControl *self, gchar **video_codec);
+gboolean meego_media_player_control_get_audio_codec (MeegoMediaPlayerControl *self, gchar **audio_codec);
+gboolean meego_media_player_control_get_video_bitrate (MeegoMediaPlayerControl *self, gint *bit_rate);
+gboolean meego_media_player_control_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint *bit_rate);
 
 /*signal emitter*/
 void meego_media_player_control_emit_initialized (gpointer instance);

@@ -47,7 +47,6 @@ umms_server_SOURCES = umms-common.h \
 											audio-manager-engine.h \
 		    			        $(GENERATED_SOURCE)
 
-
 %.c: %.list Makefile.am
 	$(AM_V_GEN)glib-genmarshal --body --prefix=umms_marshal $< > $@
 
