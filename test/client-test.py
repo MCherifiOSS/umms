@@ -38,7 +38,12 @@ method_name = (
   "SetProxy",
   "Suspend",
   "Restore",
-  "GetPlayingContentMetadata"
+  "GetPlayingContentMetadata",
+  "SetGlobalVolume",
+  "GetGlobalVolume",
+  "DisableAudioOuput",
+  "EnableAudioOuput",
+  "GetAudioOutputState"
 	)
 
 (
@@ -69,7 +74,12 @@ method_name = (
 	SetProxy,
   Suspend,
   Restore,
-  GetPlayingContentMetadata
+  GetPlayingContentMetadata,
+  SetGlobalVolume,
+  GetGlobalVolume,
+  DisableAudioOuput,
+  EnableAudioOuput,
+  GetAudioOutputState
 ) = range (len(method_name))
 
 (
@@ -191,7 +201,8 @@ class CmdHandler(threading.Thread):
         print "  q:\tto quit this program"
         print "  h:\tprint this usage"
 
-
+    def input_audio_type(self):
+        return int(raw_input ("Chose audio output type: 0:hdmi, 1:spdif, 2:i2s0, 3:i2s1 : "))
     		
     def remote_call(self, mid):
         print "Begin remote_call, method_id = '%d'" % (mid)
@@ -297,6 +308,22 @@ class CmdHandler(threading.Thread):
         elif mid == GetPlayingContentMetadata:
             metadata = metadata_viewer.GetPlayingContentMetadata();
             print_metadata_list(metadata)
+        elif mid == SetGlobalVolume:
+            volume = int(raw_input ("Input volume : "))
+            audio_manager.SetVolume(0, volume);
+        elif mid == GetGlobalVolume:
+            volume = audio_manager.GetVolume(0);
+            print "Global volume = %f" % (volume)
+        elif mid == DisableAudioOuput:
+            type = self.input_audio_type()
+            audio_manager.SetState(type, 0);
+        elif mid == EnableAudioOuput:
+            type = self.input_audio_type()
+            audio_manager.SetState(type, 1);
+        elif mid == GetAudioOutputState:
+            type = self.input_audio_type()
+            state = audio_manager.GetState(type);
+            print "audio output(%d) state = %d" % (type, state)
         else:
         	print "Unsupported method id '%d'" % (mid)
         	self.print_help(self);
@@ -318,6 +345,7 @@ state_name = (
 default_uri = "file:///root/720p.m4v"
 player_name = ""
 metadata_viewer = None
+audio_manager = None
 
 if __name__ == '__main__':
 
@@ -325,6 +353,7 @@ if __name__ == '__main__':
     (remote_proxy, name)  = libummsclient.request_player(True, 0)
     metadata_viewer  = libummsclient.get_metadata_viewer()
     metadata_viewer.connect_to_signal("MetadataUpdated", metadata_updated_cb)
+    audio_manager  = libummsclient.get_audio_manager()
     
     #Request a unattended execution
     #(remote_proxy, name)  = libummsclient.request_player(False, 10)

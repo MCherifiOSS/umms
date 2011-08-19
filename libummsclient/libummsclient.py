@@ -7,11 +7,14 @@ import dbus.glib
 
 obj_mngr = None
 metadata_viewer = None
+audio_manager = None
 
 def init():
     print "Init libclient"
     global obj_mngr
     global metadata_viewer
+    global audio_manager
+    
     if (obj_mngr != None):
         print "UMMS client lib already initialized"
         return
@@ -25,6 +28,10 @@ def init():
     bus_obj=bus.get_object('com.meego.UMMS', '/com/meego/UMMS/PlayingContentMetadataViewer')
     metadata_viewer=dbus.Interface(bus_obj, 'com.meego.UMMS.PlayingContentMetadataViewer')
     print "New metadata_viewer"
+
+    bus_obj=bus.get_object('com.meego.UMMS', '/com/meego/UMMS/AudioManager')
+    audio_manager =dbus.Interface(bus_obj, 'com.meego.UMMS.AudioManager')
+    print "New audio_manager"
 
 def need_reply_cb (obj_path):
     client_monitor = get_iface (obj_path, 'com.meego.UMMS.MediaPlayer')
@@ -72,3 +79,8 @@ def get_metadata_viewer():
     global metadata_viewer;
     print "Return global metadata_viewer"
     return metadata_viewer;
+
+def get_audio_manager():
+    global audio_manager;
+    print "Return global audio_manager"
+    return audio_manager;

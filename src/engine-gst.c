@@ -2368,6 +2368,11 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
     UMMS_DEBUG("Element: %s, Pad: %s provide the bitrate: %d", element_name, pad_name, bit_rate);
   }
 
+  /*URI, Title, Artist tags for "feedback current playing content metadata" requirement*/
+
+
+
+
   if(src_pad)
     g_object_unref(src_pad);
   gst_tag_list_free (tag_list);

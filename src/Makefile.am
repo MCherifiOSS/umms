@@ -8,27 +8,44 @@ umms_server_LDADD = $(UMMS_LIBS)
 GLUE = \
 			  ./glue/umms-object-manager-glue.h \
 			  ./glue/umms-media-player-glue.h \
-			  ./glue/umms-playing-content-metadata-viewer-glue.h
+			  ./glue/umms-playing-content-metadata-viewer-glue.h \
+			  ./glue/umms-audio-manager-glue.h
 
 
 MARSHALS = \
 	umms-marshals.c umms-marshals.h
 
 GENERATED_SOURCE = $(GLUE) $(MARSHALS)
+BUILT_SOURCES = $(GENERATED_SOURCE)
 
-umms_server_SOURCES = umms-common.h umms-server-main.c \
-					  umms-error.h umms-error.c \
-                      meego-media-player.c meego-media-player.h \
-					  meego-media-player-gstreamer.c meego-media-player-gstreamer.h \
-				      meego-media-player-control.c meego-media-player-control.h \
-					  engine-gst.c engine-gst.h \
-					  umms-object-manager.c umms-object-manager.h \
-					  umms-debug.h \
-						param-table.c param-table.h \
-						umms-resource-manager.c umms-resource-manager.h \
-                                                umms-playing-content-metadata-viewer.c \
-                                                umms-playing-content-metadata-viewer.h \
-					        $(GENERATED_SOURCE)
+umms_server_SOURCES = umms-common.h \
+					            umms-debug.h \
+					            umms-error.h \
+					          	umms-error.c \
+											umms-server-main.c \
+                      meego-media-player.c \
+					          	meego-media-player.h \
+					            meego-media-player-gstreamer.c \
+					          	meego-media-player-gstreamer.h \
+				              meego-media-player-control.c \
+					          	meego-media-player-control.h \
+					            engine-gst.c \
+					          	engine-gst.h \
+					            umms-object-manager.c \
+					          	umms-object-manager.h \
+					          	param-table.c \
+											param-table.h \
+					          	umms-resource-manager.c \
+                      umms-resource-manager.h \
+                      umms-playing-content-metadata-viewer.c \
+                      umms-playing-content-metadata-viewer.h \
+					          	umms-audio-manager.c \
+					          	umms-audio-manager.h \
+											audio-manager-interface.c \
+											audio-manager-interface.h \
+											audio-manager-engine.c \
+											audio-manager-engine.h \
+		    			        $(GENERATED_SOURCE)
 
 
 %.c: %.list Makefile.am
@@ -42,6 +59,7 @@ umms_server_SOURCES = umms-common.h umms-server-main.c \
 	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=umms_object_manager --mode=glib-server ../spec/umms-object-manager.xml >  ./glue/umms-object-manager-glue.h
 	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=meego_media_player --mode=glib-server ../spec/umms-media-player.xml > ./glue/umms-media-player-glue.h
 	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=umms_playing_content_metadata_viewer --mode=glib-server ../spec/umms-playing-content-metadata-viewer.xml > ./glue/umms-playing-content-metadata-viewer-glue.h
+	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=umms_audio_manager --mode=glib-server ../spec/umms-audio-manager.xml > ./glue/umms-audio-manager-glue.h
 
 
 MARSHALS_LISTS = umms-marshals.list

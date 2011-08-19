@@ -9,6 +9,10 @@
 #define UMMS_PLAYING_CONTENT_METADATA_VIEWER_OBJECT_PATH "/com/meego/UMMS/PlayingContentMetadataViewer"
 #define UMMS_PLAYING_CONTENT_METADATA_VIEWER_INTERFACE_NAME "com.meego.UMMS.PlayingContentMetadataViewer"
 
+#define UMMS_AUDIO_MANAGER_OBJECT_PATH "/com/meego/UMMS/AudioManager"
+#define UMMS_AUDIO_MANAGER_INTERFACE_NAME "com.meego.UMMS.AudioManger"
+
+
 
 typedef enum {
     PlayerStateNull,
@@ -49,9 +53,22 @@ typedef enum {
   ScaleModeFillKeepAspectRatio, /*  fill the whole screen but keep the ratio, some part of video may out of screen.*/ 
 }ScaleMode;
 
-
 #define TARGET_PARAM_KEY_RECTANGLE "rectangle"
 #define TARGET_PARAM_KEY_PlANE_ID "plane-id"
+
+typedef enum {
+  AUDIO_OUTPUT_TYPE_HDMI,
+  AUDIO_OUTPUT_TYPE_SPDIF,
+  AUDIO_OUTPUT_TYPE_I2S0,
+  AUDIO_OUTPUT_TYPE_I2S1,
+  AUDIO_OUTPUT_TYPE_NUM
+}AudioOutputType;
+
+enum {
+ AUDIO_OUTPUT_STATE_OFF,
+ AUDIO_OUTPUT_STATE_ON,
+ AUDIO_OUTPUT_STATE_NUM
+}AudioOutputState;
 
 #endif /* _UMMS_COMMON_H */
 
