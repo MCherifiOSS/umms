@@ -15,6 +15,7 @@ MARSHALS = \
 	umms-marshals.c umms-marshals.h
 
 GENERATED_SOURCE = $(GLUE) $(MARSHALS)
+BUILT_SOURCES = $(GENERATED_SOURCE)
 
 umms_server_SOURCES = umms-common.h umms-server-main.c \
 					  umms-error.h umms-error.c \
