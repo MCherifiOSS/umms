@@ -2281,7 +2281,7 @@ bus_message_state_change_cb (GstBus     *bus,
       }
       engine_gst_play(self);
       priv->suspended = FALSE;
-  UMMS_DEBUG ("meego_media_player_control_emit_restored");
+      UMMS_DEBUG ("meego_media_player_control_emit_restored");
       meego_media_player_control_emit_restored (self);
     }
   } else if(new_state == GST_STATE_PLAYING) {
@@ -2308,6 +2308,10 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   GstPad * src_pad = NULL;
   GstTagList * tag_list = NULL;
   gint size, i;
+  guint32 bit_rate;
+  guchar * pad_name = NULL;
+  guchar * element_name = NULL;
+
 
   src = GST_MESSAGE_SRC (message);
   if (src != priv->pipeline) {
@@ -2321,14 +2325,23 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   }
 
   gst_message_parse_tag_full (message, &src_pad, &tag_list);
+  if(src_pad) {
+    pad_name = g_strdup (GST_PAD_NAME (src_pad));
+    UMMS_DEBUG("The pad name is %s", pad_name);
+  }
 
-  /* We are interest about the codec and container format. */
+  if(message->src) {
+    element_name = g_strdup (GST_ELEMENT_NAME (message->src));
+    UMMS_DEBUG("The element name is %s", element_name);
+  }
+
+  /* We are now interest in the codec, container format and bit rate. */
   if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
     for (i = 0; i < size; ++i) {
       gchar *st = NULL;        
 
       if(gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
-        UMMS_DEBUG("Pad :%s provide the video codec named: %s", GST_PAD_NAME(src_pad), st);
+        UMMS_DEBUG("Element: %s, Pad: %s provide the video codec named: %s", element_name, pad_name, st);
         /* store the name for later use. */
 
 
@@ -2337,9 +2350,31 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
     }
   }
 
+  if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
+    for (i = 0; i < size; ++i) {
+      gchar *st = NULL;        
+
+      if(gst_tag_list_get_string_index (tag_list, GST_TAG_AUDIO_CODEC, i, &st) && st) {
+        UMMS_DEBUG("Element: %s, Pad: %s provide the audio codec named: %s", element_name, pad_name, st);
+        /* store the name for later use. */
+
+
+        g_free (st);  
+      }
+    }
+  }
+
+  if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
+    UMMS_DEBUG("Element: %s, Pad: %s provide the bitrate: %d", element_name, pad_name, bit_rate);
+  }
+
   if(src_pad)
     g_object_unref(src_pad);
   gst_tag_list_free (tag_list);
+  if(pad_name)
+    g_free(pad_name);
+  if(element_name)
+    g_free(element_name);
 }
 
 
