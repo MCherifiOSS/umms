@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<node name="/com/meego/UMMS/AudioManager">
+	<interface name="com.meego.UMMS.AudioManager">
+		<method name="SetVolume">
+      <arg name="output_type" type="i"/>
+      <arg name="volume" type="i"/>
+		</method>
+		<method name="GetVolume">
+      <arg name="output_type" type="i"/>
+      <arg name="volume" type="i" direction="out"/>
+		</method>
+		<method name="SetState">
+      <arg name="output_type" type="i"/>
+      <arg name="state" type="i"/>
+		</method>
+		<method name="GetState">
+      <arg name="output_type" type="i"/>
+      <arg name="state" type="i" direction="out"/>
+		</method>
+  </interface>
+</node>
+  
