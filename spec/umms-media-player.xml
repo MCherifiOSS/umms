@@ -180,6 +180,15 @@
 			<arg name="audio_codec" type="s" direction="out"/>
 		</method>
 
+		<method name="GetVideoBitrate">
+			<arg name="bit_rate" type="i" direction="out"/>
+		</method>
+
+		<method name="GetAudioBitrate">
+			<arg name="channel" type="i"/>
+			<arg name="bit_rate" type="i" direction="out"/>
+		</method>
+
 		<signal name="Initialized">
 		</signal>
 

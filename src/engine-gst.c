@@ -2144,6 +2144,37 @@ engine_gst_get_audio_codec (MeegoMediaPlayerControl *self, gchar ** audio_codec)
   return TRUE;
 }
 
+static gboolean
+engine_gst_get_video_bitrate (MeegoMediaPlayerControl *self, gint *bit_rate)
+{
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  int i;
+  
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+  *bit_rate= priv->video_bitrate;
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint *bit_rate)
+{
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  int i;
+  
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  if(channel >= 0 && channel < priv->audio_codec_used) {
+    *bit_rate= priv->audio_bitrate[channel];
+  } else {
+    *bit_rate = 0;
+  } 
+
+  return TRUE;
+}
+
 
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
@@ -2238,6 +2269,10 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_get_video_codec);
   meego_media_player_control_implement_get_audio_codec (klass,
       engine_gst_get_audio_codec);
+  meego_media_player_control_implement_get_video_bitrate (klass,
+      engine_gst_get_video_bitrate);
+  meego_media_player_control_implement_get_audio_bitrate (klass,
+      engine_gst_get_audio_bitrate);
 }
 
 static void
