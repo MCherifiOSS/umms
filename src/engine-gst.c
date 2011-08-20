@@ -186,6 +186,13 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
   priv->has_audio = FALSE;
   priv->hw_auddec = FALSE;
 
+  /* New URI, so the codec info is invalid any more. */  
+  priv->audio_codec_used = 0;
+  memset(priv->video_codec, 0, ENGINE_GST_MAX_VIDEOCODEC_SIZE);
+  memset(priv->audio_codec, 0, 
+            ENGINE_GST_MAX_AUDIO_STREAM*ENGINE_GST_MAX_AUDIOCODEC_SIZE);
+  memset(priv->audio_bitrate, 0, ENGINE_GST_MAX_AUDIO_STREAM);
+
   return parse_uri_async(self, priv->uri);
 }
 
@@ -2090,6 +2097,26 @@ engine_gst_restore (MeegoMediaPlayerControl *self)
   return engine_gst_pause (self);
 }
 
+
+static gboolean
+engine_gst_get_video_codec (MeegoMediaPlayerControl *self, gchar ** video_codec)
+{
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+  
+  if(strlen(priv->video_codec)) {
+    *video_codec = g_strdup(priv->video_codec);
+  } else {
+    *video_codec = NULL;
+    UMMS_DEBUG("No video codec now!");
+  }
+
+  return TRUE;
+}
+
+
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
 {
@@ -2178,7 +2205,9 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
   meego_media_player_control_implement_set_scale_mode (klass,
       engine_gst_set_scale_mode);
   meego_media_player_control_implement_get_scale_mode (klass,
-      engine_gst_get_scale_mode);
+      engine_gst_get_scale_mode);      
+  meego_media_player_control_implement_get_video_codec (klass,
+      engine_gst_get_video_codec);
 }
 
 static void
@@ -2622,6 +2651,12 @@ engine_gst_init (EngineGst *self)
   priv->pos = 0;
   priv->res_mngr = umms_resource_manager_new ();
   priv->res_list = NULL;
+
+  priv->audio_codec_used = 0;
+  memset(priv->video_codec, 0, ENGINE_GST_MAX_VIDEOCODEC_SIZE);
+  memset(priv->audio_codec, 0, 
+            ENGINE_GST_MAX_AUDIO_STREAM*ENGINE_GST_MAX_AUDIOCODEC_SIZE);
+  memset(priv->audio_bitrate, 0, ENGINE_GST_MAX_AUDIO_STREAM);
 
   //Setup default target.
 #define FULL_SCREEN_RECT "0,0,0,0"

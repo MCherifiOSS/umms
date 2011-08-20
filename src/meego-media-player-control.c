@@ -45,6 +45,7 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_get_scale_mode_impl get_scale_mode;
   meego_media_player_control_suspend_impl suspend;
   meego_media_player_control_restore_impl restore;
+  meego_media_player_control_get_video_codec_impl get_video_codec;
 };
 
 enum {
@@ -974,7 +975,25 @@ void meego_media_player_control_implement_restore (MeegoMediaPlayerControlClass 
   klass->restore = impl;
 }
 
+gboolean meego_media_player_control_get_video_codec (MeegoMediaPlayerControl *self, 
+                                                        gchar **video_codec)
+{
+  meego_media_player_control_get_video_codec_impl impl =
+                   (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_video_codec);
 
+  if (impl != NULL) {
+    (impl) (self, video_codec);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_video_codec (MeegoMediaPlayerControlClass *klass,
+                                                              meego_media_player_control_get_video_codec_impl impl)
+{
+  klass->get_video_codec = impl;
+}
 
 void
 meego_media_player_control_emit_initialized (gpointer instance)

@@ -703,6 +703,14 @@ gboolean meego_media_player_get_scale_mode (MeegoMediaPlayer *player, gint *scal
   return TRUE;
 }
 
+gboolean meego_media_player_get_video_codec (MeegoMediaPlayer *player, gchar **video_codec, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_video_codec(GET_CONTROL_IFACE (player), video_codec);
+  UMMS_DEBUG ("We get the video codec: %s", *video_codec);
+  return TRUE;
+}
+
 static void
 meego_media_player_get_property (GObject    *object,
     guint       property_id,
