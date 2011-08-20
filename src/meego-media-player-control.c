@@ -46,6 +46,7 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_suspend_impl suspend;
   meego_media_player_control_restore_impl restore;
   meego_media_player_control_get_video_codec_impl get_video_codec;
+  meego_media_player_control_get_audio_codec_impl get_audio_codec;
 };
 
 enum {
@@ -993,6 +994,26 @@ void meego_media_player_control_implement_get_video_codec (MeegoMediaPlayerContr
                                                               meego_media_player_control_get_video_codec_impl impl)
 {
   klass->get_video_codec = impl;
+}
+
+gboolean meego_media_player_control_get_audio_codec (MeegoMediaPlayerControl *self, 
+                                                        gchar **audio_codec)
+{
+  meego_media_player_control_get_audio_codec_impl impl =
+                   (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_audio_codec);
+
+  if (impl != NULL) {
+    (impl) (self, audio_codec);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_audio_codec (MeegoMediaPlayerControlClass *klass,
+                                                              meego_media_player_control_get_audio_codec_impl impl)
+{
+  klass->get_audio_codec = impl;
 }
 
 void

@@ -679,7 +679,8 @@ meego_media_player_is_mute (MeegoMediaPlayer *player, gint *mute, GError **err)
   return TRUE;
 }
 
-gboolean meego_media_player_set_scale_mode (MeegoMediaPlayer *player, gint scale_mode, GError **err)
+gboolean 
+meego_media_player_set_scale_mode (MeegoMediaPlayer *player, gint scale_mode, GError **err)
 {
   MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
   MeegoMediaPlayerControl *player_control = GET_CONTROL_IFACE (player);
@@ -695,7 +696,8 @@ gboolean meego_media_player_set_scale_mode (MeegoMediaPlayer *player, gint scale
   return TRUE;
 }
 
-gboolean meego_media_player_get_scale_mode (MeegoMediaPlayer *player, gint *scale_mode, GError **err)
+gboolean 
+meego_media_player_get_scale_mode (MeegoMediaPlayer *player, gint *scale_mode, GError **err)
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_scale_mode(GET_CONTROL_IFACE (player), scale_mode);
@@ -703,11 +705,21 @@ gboolean meego_media_player_get_scale_mode (MeegoMediaPlayer *player, gint *scal
   return TRUE;
 }
 
-gboolean meego_media_player_get_video_codec (MeegoMediaPlayer *player, gchar **video_codec, GError **err)
+gboolean 
+meego_media_player_get_video_codec (MeegoMediaPlayer *player, gchar **video_codec, GError **err)
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_video_codec(GET_CONTROL_IFACE (player), video_codec);
   UMMS_DEBUG ("We get the video codec: %s", *video_codec);
+  return TRUE;
+}
+
+gboolean 
+meego_media_player_get_audio_codec (MeegoMediaPlayer *player, gchar **audio_codec, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_audio_codec(GET_CONTROL_IFACE (player), audio_codec);
+  UMMS_DEBUG ("We get the audio codec: %s", *audio_codec);
   return TRUE;
 }
 

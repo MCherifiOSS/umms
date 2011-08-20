@@ -2117,6 +2117,31 @@ engine_gst_get_video_codec (MeegoMediaPlayerControl *self, gchar ** video_codec)
 }
 
 
+static gboolean
+engine_gst_get_audio_codec (MeegoMediaPlayerControl *self, gchar ** audio_codec)
+{
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  int i;
+
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  if(priv->audio_codec_used) {
+    *audio_codec = g_strdup(priv->audio_codec[0]);
+
+    for(i = 1; i <priv->audio_codec_used; i++) {
+      *audio_codec = g_strconcat(*audio_codec, "\n");
+      *audio_codec = g_strconcat(*audio_codec, priv->audio_codec[i]);
+    }
+  } else {
+    *audio_codec = NULL;
+    UMMS_DEBUG("No audio codec now!");
+  }
+
+  return TRUE;
+}
+
+
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
 {
@@ -2208,6 +2233,8 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_get_scale_mode);      
   meego_media_player_control_implement_get_video_codec (klass,
       engine_gst_get_video_codec);
+  meego_media_player_control_implement_get_audio_codec (klass,
+      engine_gst_get_audio_codec);
 }
 
 static void
@@ -2443,7 +2470,7 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
       /* find it in the audio codec stream. */ 
       for(i=0; i<priv->audio_codec_used; i++) {
         if(g_strcasecmp(priv->audio_codec[i], audio_codec))
-            break;
+          break;
       }
 
       if(i < priv->audio_codec_used) {

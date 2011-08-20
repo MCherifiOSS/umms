@@ -151,6 +151,35 @@
 			<arg type="i" direction="out"/>
 		</method>
 
+		<method name="SetBufferDepth">
+			<arg name="format" type="i"/>
+			<arg name="buf_val" type="x"/>
+		</method>
+
+		<method name="SetMute">
+			<arg name="mute" type="i"/>
+		</method>
+
+		<method name="IsMute">
+			<arg name="mute" type="i" direction="out"/>
+		</method>
+
+		<method name="SetScaleMode">
+			<arg name="scale_mode" type="i"/>
+		</method>
+
+		<method name="GetScaleMode">
+			<arg name="scale_mode" type="i" direction="out"/>
+		</method>
+
+		<method name="GetVideoCodec">
+			<arg name="video_codec" type="s" direction="out"/>
+		</method>
+
+		<method name="GetAudioCodec">
+			<arg name="audio_codec" type="s" direction="out"/>
+		</method>
+
 		<signal name="Initialized">
 		</signal>
 

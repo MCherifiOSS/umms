@@ -111,6 +111,7 @@ gboolean meego_media_player_is_mute (MeegoMediaPlayer *player, gint *mute, GErro
 gboolean meego_media_player_set_scale_mode (MeegoMediaPlayer *player, gint scale_mode, GError **err);
 gboolean meego_media_player_get_scale_mode (MeegoMediaPlayer *player, gint *scale_mode, GError **err);
 gboolean meego_media_player_get_video_codec (MeegoMediaPlayer *player, gchar **video_codec, GError **err);
+gboolean meego_media_player_get_audio_codec (MeegoMediaPlayer *player, gchar **audio_codec, GError **err);
 
 G_END_DECLS
 
