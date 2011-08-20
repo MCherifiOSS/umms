@@ -131,6 +131,8 @@ struct _EngineGstPrivate {
   gint64   pos;
 
   gchar    video_codec[ENGINE_GST_MAX_VIDEOCODEC_SIZE];
+  gint     video_bitrate;
+
   gchar    audio_codec[ENGINE_GST_MAX_AUDIO_STREAM][ENGINE_GST_MAX_AUDIOCODEC_SIZE];
   gint     audio_bitrate[ENGINE_GST_MAX_AUDIO_STREAM];
   gint     audio_codec_used;
@@ -189,6 +191,7 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
   /* New URI, so the codec info is invalid any more. */  
   priv->audio_codec_used = 0;
   memset(priv->video_codec, 0, ENGINE_GST_MAX_VIDEOCODEC_SIZE);
+  priv->video_bitrate = 0;
   memset(priv->audio_codec, 0, 
             ENGINE_GST_MAX_AUDIO_STREAM*ENGINE_GST_MAX_AUDIOCODEC_SIZE);
   memset(priv->audio_bitrate, 0, ENGINE_GST_MAX_AUDIO_STREAM);
@@ -338,8 +341,8 @@ engine_gst_handle_xevents (MeegoMediaPlayerControl *control)
         break;
     }
   }
-
 }
+
 static gpointer
 engine_gst_event_thread (MeegoMediaPlayerControl* control)
 {
@@ -2376,6 +2379,9 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   guint32 bit_rate;
   gchar * pad_name = NULL;
   gchar * element_name = NULL;
+  gchar * video_codec = NULL;
+  gchar * audio_codec = NULL;
+  int out_of_channel = 0;
 
   src = GST_MESSAGE_SRC (message);
   if (src != priv->pipeline) {
@@ -2401,7 +2407,6 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
 
   /* We are now interest in the codec, container format and bit rate. */
   if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
-    gchar * video_codec = NULL;
     video_codec = g_strdup_printf("%s-->%s Video Codec: ",
             element_name? element_name: "NULL", pad_name? pad_name: "NULL");
 
@@ -2418,12 +2423,9 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
     /* store the name for later use. */
     g_strlcpy(priv->video_codec, video_codec, ENGINE_GST_MAX_VIDEOCODEC_SIZE);
     UMMS_DEBUG("%s", video_codec);
-
-    g_free(video_codec);
   }
 
   if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
-    gchar * audio_codec = NULL;
     audio_codec = g_strdup_printf("%s-->%s Audio Codec: ",
             element_name? element_name: "NULL", pad_name? pad_name: "NULL");
 
@@ -2449,12 +2451,11 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
         priv->audio_codec_used++;
       } else {
         UMMS_DEBUG("audio_codec need to discard because too many steams");
+        out_of_channel = 1;
       }
     } else {
       UMMS_DEBUG("audio_codec need to discard because it not come from demux");
     }
-
-    g_free(audio_codec);
   }
 
   if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
@@ -2463,26 +2464,69 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
     if(element_name && (g_strstr_len(element_name, strlen(element_name), "demux") ||
                 g_strstr_len(element_name, strlen(element_name), "Demux") ||
                 g_strstr_len(element_name, strlen(element_name), "DEMUX"))) {
-      gchar * audio_codec = NULL;
-      audio_codec = g_strdup_printf("%s-->%s Audio Codec: ",
-              element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+      gchar * codec = NULL;
+      int have_found = 0;
 
-      /* find it in the audio codec stream. */ 
-      for(i=0; i<priv->audio_codec_used; i++) {
-        if(g_strcasecmp(priv->audio_codec[i], audio_codec))
-          break;
+      /* first we check whether it is the bitrate of video. */
+      if(video_codec) { /* the bitrate sent with the video codec, easy one. */
+        have_found = 1;
+        priv->video_bitrate = bit_rate;
+        UMMS_DEBUG("we set the bitrate: %u for video", bit_rate);
       }
 
-      if(i < priv->audio_codec_used) {
-        priv->audio_bitrate[i] = bit_rate;
-        UMMS_DEBUG("we set the bitrate: %u for audio stream: %d", bit_rate, i);
-      } else {
-        UMMS_DEBUG("we can not find the stream for this bitrate: %u, set to the fist stream", bit_rate);
-        priv->audio_bitrate[0] = bit_rate;
+      if(!have_found) { /* try to compare the element and pad name. */
+        codec = g_strdup_printf("%s-->%s Video Codec: ",
+                element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+        if(g_strncasecmp(priv->video_codec, codec, strlen(codec))) {
+          have_found = 1;
+          priv->video_bitrate = bit_rate;
+          UMMS_DEBUG("we set the bitrate: %u for video", bit_rate);
+        }
+
+        g_free(codec);
+      }
+
+      /* find it in the audio codec stream. */ 
+      if(!have_found) {
+        if(audio_codec) {
+          /* the bitrate sent with the audio codec, easy one. */
+          have_found = 1;
+          if(!out_of_channel) {
+            priv->audio_bitrate[priv->audio_codec_used -1] = bit_rate;
+            UMMS_DEBUG("we set the bitrate: %u for audio stream: %d", bit_rate, priv->audio_codec_used -1);
+          } else {
+            UMMS_DEBUG("audio bitrate need to discard because too many steams");
+          }
+        }
+
+        if(!have_found) {  /* last try, use audio element and pad to index. */
+          codec = g_strdup_printf("%s-->%s Audio Codec: ",
+                  element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+
+          for(i=0; i<priv->audio_codec_used; i++) {
+            if(g_strncasecmp(priv->audio_codec[i], codec, strlen(codec)))
+              break;
+          }
+
+          have_found = 1; /* if not find, we use audio channel as defaule, so always find. */
+          if(i < priv->audio_codec_used) {
+            priv->audio_bitrate[i] = bit_rate;
+            UMMS_DEBUG("we set the bitrate: %u for audio stream: %d", bit_rate, i);
+          } else {
+            UMMS_DEBUG("we can not find the stream for this bitrate: %u, set to the fist stream", bit_rate);
+            priv->audio_bitrate[0] = bit_rate;
+          }
+
+          g_free(codec);
+        }
       }
     }
   }
 
+  if(video_codec)
+    g_free(video_codec);
+  if(audio_codec)
+    g_free(audio_codec);
   if(src_pad)
     g_object_unref(src_pad);
   gst_tag_list_free (tag_list);
@@ -2681,6 +2725,7 @@ engine_gst_init (EngineGst *self)
 
   priv->audio_codec_used = 0;
   memset(priv->video_codec, 0, ENGINE_GST_MAX_VIDEOCODEC_SIZE);
+  priv->video_bitrate = 0;
   memset(priv->audio_codec, 0, 
             ENGINE_GST_MAX_AUDIO_STREAM*ENGINE_GST_MAX_AUDIOCODEC_SIZE);
   memset(priv->audio_bitrate, 0, ENGINE_GST_MAX_AUDIO_STREAM);
