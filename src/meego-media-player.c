@@ -706,10 +706,10 @@ meego_media_player_get_scale_mode (MeegoMediaPlayer *player, gint *scale_mode, G
 }
 
 gboolean 
-meego_media_player_get_video_codec (MeegoMediaPlayer *player, gchar **video_codec, GError **err)
+meego_media_player_get_video_codec (MeegoMediaPlayer *player, gint channel, gchar **video_codec, GError **err)
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
-  meego_media_player_control_get_video_codec(GET_CONTROL_IFACE (player), video_codec);
+  meego_media_player_control_get_video_codec(GET_CONTROL_IFACE (player), channel, video_codec);
   UMMS_DEBUG ("We get the video codec: %s", *video_codec);
   return TRUE;
 }

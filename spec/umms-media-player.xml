@@ -173,6 +173,7 @@
 		</method>
 
 		<method name="GetVideoCodec">
+			<arg name="channel" type="i"/>
 			<arg name="video_codec" type="s" direction="out"/>
 		</method>
 

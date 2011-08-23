@@ -979,13 +979,14 @@ void meego_media_player_control_implement_restore (MeegoMediaPlayerControlClass 
 }
 
 gboolean meego_media_player_control_get_video_codec (MeegoMediaPlayerControl *self, 
+                                                        gint channel,
                                                         gchar **video_codec)
 {
   meego_media_player_control_get_video_codec_impl impl =
                    (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_video_codec);
 
   if (impl != NULL) {
-    (impl) (self, video_codec);
+    (impl) (self, channel, video_codec);
   } else {
     g_warning ("Method not implemented\n");
   }
@@ -993,7 +994,7 @@ gboolean meego_media_player_control_get_video_codec (MeegoMediaPlayerControl *se
 }
 
 void meego_media_player_control_implement_get_video_codec (MeegoMediaPlayerControlClass *klass,
-                                                              meego_media_player_control_get_video_codec_impl impl)
+                                                           meego_media_player_control_get_video_codec_impl impl)
 {
   klass->get_video_codec = impl;
 }

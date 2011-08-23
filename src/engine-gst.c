@@ -2083,13 +2083,62 @@ engine_gst_restore (MeegoMediaPlayerControl *self)
 
 
 static gboolean
-engine_gst_get_video_codec (MeegoMediaPlayerControl *self, gchar ** video_codec)
+engine_gst_get_video_codec (MeegoMediaPlayerControl *self, gint channel, gchar ** video_codec)
 {
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  int tol_channel;
+  GstTagList * tag_list = NULL;
+  gint size = 0;
+  gchar * codec_name = NULL;
+  int i;
+
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
-  EngineGstPrivate *priv = GET_PRIVATE (self);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+
+  g_object_get (G_OBJECT (pipe), "n-video", &tol_channel, NULL);
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
+          tol_channel, channel);
   
+  *video_codec = NULL;
+
+  if(channel >= tol_channel || channel < 0) {
+    UMMS_DEBUG ("Invalid Channel: %d", channel);
+    return FALSE;
+  }
+
+  g_signal_emit_by_name (pipe, "get-video-tags", channel, &tag_list);
+  if(tag_list == NULL) {
+    UMMS_DEBUG ("No tags about stream: %d", channel);
+    return TRUE;
+  }
+
+  if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
+    gchar *st = NULL;        
+
+    for (i = 0; i < size; ++i) {
+      if(gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
+        UMMS_DEBUG("Channel: %d provide the video codec named: %s", channel, st);
+        if(codec_name) {
+          codec_name = g_strconcat(codec_name, st);
+        } else {
+          codec_name = g_strdup(st);
+        }
+        g_free (st);  
+      }
+    }
+
+    UMMS_DEBUG("%s", codec_name);
+  }
+
+  if(codec_name)
+    *video_codec = codec_name;
+
+  if(tag_list)
+    gst_tag_list_free (tag_list);
 
   return TRUE;
 }
