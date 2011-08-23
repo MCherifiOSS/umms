@@ -125,6 +125,9 @@ struct _EngineGstPrivate {
 
   //snapshot of suspended execution
   gint64   pos;
+
+  /* Use it to buffer the tag of the stream. */
+  GstTagList *tag_list;
 };
 
 static gboolean _query_buffering_percent (GstElement *pipe, gdouble *percent);
@@ -176,6 +179,10 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
   priv->hw_viddec = 0;
   priv->has_audio = FALSE;
   priv->hw_auddec = FALSE;
+
+  if(priv->tag_list) 
+    gst_tag_list_free(priv->tag_list);
+  priv->tag_list = NULL;
 
   return parse_uri_async(self, priv->uri);
 }
@@ -2447,6 +2454,10 @@ engine_gst_dispose (GObject *object)
     priv->disp = NULL;
   }
 
+  if(priv->tag_list) 
+    gst_tag_list_free(priv->tag_list);
+  priv->tag_list = NULL;
+
   G_OBJECT_CLASS (engine_gst_parent_class)->dispose (object);
 }
 
@@ -2558,6 +2569,9 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
     element_name = g_strdup (GST_ELEMENT_NAME (message->src));
     UMMS_DEBUG("The element name is %s", element_name);
   }
+
+  priv->tag_list = 
+      gst_tag_list_merge(priv->tag_list, tag_list, GST_TAG_MERGE_REPLACE);
 
 #if 0
   gint size, i;
@@ -2918,6 +2932,8 @@ engine_gst_init (EngineGst *self)
   priv->pos = 0;
   priv->res_mngr = umms_resource_manager_new ();
   priv->res_list = NULL;
+
+  priv->tag_list = NULL;
 
   //Setup default target.
 #define FULL_SCREEN_RECT "0,0,0,0"
