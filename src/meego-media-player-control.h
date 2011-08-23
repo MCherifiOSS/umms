@@ -223,6 +223,11 @@ typedef gboolean (*meego_media_player_control_get_audio_bitrate_impl) (MeegoMedi
 void meego_media_player_control_implement_get_audio_bitrate (MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_get_audio_bitrate_impl impl);
 
+typedef gboolean (*meego_media_player_control_get_encapsulation_impl) (MeegoMediaPlayerControl *self, 
+                                                        gchar ** encapsulation);
+void meego_media_player_control_implement_get_encapsulation (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_encapsulation_impl impl);
+
 /*virtual function wrappers*/
 gboolean meego_media_player_control_set_uri (MeegoMediaPlayerControl *self, const gchar *in_uri);
 gboolean meego_media_player_control_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params);
@@ -270,6 +275,7 @@ gboolean meego_media_player_control_get_video_codec (MeegoMediaPlayerControl *se
 gboolean meego_media_player_control_get_audio_codec (MeegoMediaPlayerControl *self, gint channel, gchar **audio_codec);
 gboolean meego_media_player_control_get_video_bitrate (MeegoMediaPlayerControl *self, gint channel, gint *bit_rate);
 gboolean meego_media_player_control_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint *bit_rate);
+gboolean meego_media_player_control_get_encapsulation(MeegoMediaPlayerControl *self, gchar ** encapsulation);
 
 /*signal emitter*/
 void meego_media_player_control_emit_initialized (gpointer instance);

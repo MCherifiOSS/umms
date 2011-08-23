@@ -741,6 +741,16 @@ meego_media_player_get_audio_bitrate (MeegoMediaPlayer *player, gint channel, gi
   return TRUE;
 }
 
+gboolean
+meego_media_player_get_encapsulation (MeegoMediaPlayer *player, gchar **encapsulation, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_encapsulation(GET_CONTROL_IFACE (player), encapsulation);
+  UMMS_DEBUG ("We get the encapsulation: %s", *encapsulation);
+  return TRUE;
+}
+
+
 static void
 meego_media_player_get_property (GObject    *object,
     guint       property_id,

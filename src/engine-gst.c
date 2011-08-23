@@ -2100,6 +2100,8 @@ engine_gst_get_video_codec (MeegoMediaPlayerControl *self, gint channel, gchar *
   gchar * codec_name = NULL;
   int i;
 
+  *video_codec = NULL;
+
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
@@ -2109,8 +2111,6 @@ engine_gst_get_video_codec (MeegoMediaPlayerControl *self, gint channel, gchar *
   g_object_get (G_OBJECT (pipe), "n-video", &tol_channel, NULL);
   UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
           tol_channel, channel);
-  
-  *video_codec = NULL;
 
   if(channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
@@ -2162,6 +2162,8 @@ engine_gst_get_audio_codec (MeegoMediaPlayerControl *self, gint channel, gchar *
   gchar * codec_name = NULL;
   int i;
 
+  *audio_codec = NULL;
+
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
@@ -2172,8 +2174,6 @@ engine_gst_get_audio_codec (MeegoMediaPlayerControl *self, gint channel, gchar *
   UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d", 
           tol_channel, channel);
   
-  *audio_codec = NULL;
-
   if(channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
@@ -2222,6 +2222,8 @@ engine_gst_get_video_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
   gint size = 0;
   guint32 bit_rate = 0;
 
+  *video_rate = 0;
+
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
@@ -2232,8 +2234,6 @@ engine_gst_get_video_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
   UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
           tol_channel, channel);
   
-  *video_rate = 0;
-
   if(channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
@@ -2247,6 +2247,9 @@ engine_gst_get_video_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
 
   if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
     UMMS_DEBUG ("bit rate for channel: %d is %d", channel, bit_rate);
+    *video_rate = bit_rate/1000;
+  } else if(gst_tag_list_get_uint(tag_list, GST_TAG_NOMINAL_BITRATE, &bit_rate) && bit_rate > 0) {
+    UMMS_DEBUG ("nominal bit rate for channel: %d is %d", channel, bit_rate);
     *video_rate = bit_rate/1000;
   } else {
     UMMS_DEBUG ("No bit rate for channel: %d", channel);
@@ -2268,6 +2271,8 @@ engine_gst_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
   GstTagList * tag_list = NULL;
   gint size = 0;
   guint32 bit_rate = 0;
+  
+  *audio_rate = 0;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
@@ -2278,8 +2283,6 @@ engine_gst_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
   g_object_get (G_OBJECT (pipe), "n-audio", &tol_channel, NULL);
   UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d", 
           tol_channel, channel);
-  
-  *audio_rate = 0;
 
   if(channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
@@ -2295,12 +2298,44 @@ engine_gst_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
   if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
     UMMS_DEBUG ("bit rate for channel: %d is %d", channel, bit_rate);
     *audio_rate = bit_rate/1000;
+  } else if(gst_tag_list_get_uint(tag_list, GST_TAG_NOMINAL_BITRATE, &bit_rate) && bit_rate > 0) {
+    UMMS_DEBUG ("nominal bit rate for channel: %d is %d", channel, bit_rate);
+    *audio_rate = bit_rate/1000;
   } else {
     UMMS_DEBUG ("No bit rate for channel: %d", channel);
   }
 
   if(tag_list)
     gst_tag_list_free (tag_list);
+
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_get_encapsulation(MeegoMediaPlayerControl *self, gchar ** encapsulation)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gchar *enca_name = NULL;
+
+  *encapsulation = NULL;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+
+  if(priv->tag_list) {
+    gst_tag_list_get_string (priv->tag_list, GST_TAG_CONTAINER_FORMAT, &enca_name);
+    if(enca_name) {
+      UMMS_DEBUG("get the container name: %s", enca_name);
+      *encapsulation = enca_name;
+    } else {
+      UMMS_DEBUG("no infomation about the container.");
+    }
+  }
 
   return TRUE;
 }
