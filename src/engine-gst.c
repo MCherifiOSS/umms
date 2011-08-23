@@ -2341,6 +2341,199 @@ engine_gst_get_encapsulation(MeegoMediaPlayerControl *self, gchar ** encapsulati
 }
 
 
+static gboolean
+engine_gst_get_audio_samplerate(MeegoMediaPlayerControl *self, gint channel, gint * sample_rate)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  int tol_channel;
+  GstCaps *caps = NULL;
+  GstPad *pad = NULL;
+  GstStructure *s = NULL;
+  gboolean ret = TRUE;
+
+  *sample_rate = 0;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  /* We get this kind of infomation from the caps of inputselector. */
+
+  g_object_get (G_OBJECT (pipe), "n-audio", &tol_channel, NULL);
+  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d", 
+          tol_channel, channel);
+
+  if(channel >= tol_channel || channel < 0) {
+    UMMS_DEBUG ("Invalid Channel: %d", channel);
+    return FALSE;
+  }
+
+  g_signal_emit_by_name (pipe, "get-audio-pad", channel, &pad);
+  if(pad == NULL) {
+    UMMS_DEBUG ("No pad of stream: %d", channel);
+    return FALSE;
+  }
+
+  caps = gst_pad_get_negotiated_caps (pad);
+  if (caps) {
+    s = gst_caps_get_structure (caps, 0);
+    ret = gst_structure_get_int (s, "rate", sample_rate);
+    gst_caps_unref (caps);
+  }
+
+  if(pad)
+    gst_object_unref (pad);
+
+  return ret;
+}
+
+
+static gboolean
+engine_gst_get_video_framerate(MeegoMediaPlayerControl *self, gint channel, 
+                               gint * frame_rate_num, gint * frame_rate_denom)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  int tol_channel;
+  GstCaps *caps = NULL;
+  GstPad *pad = NULL;
+  GstStructure *s = NULL;
+  gboolean ret = TRUE;
+
+  *frame_rate_num = 0;
+  *frame_rate_denom = 0;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  /* We get this kind of infomation from the caps of inputselector. */
+
+  g_object_get (G_OBJECT (pipe), "n-video", &tol_channel, NULL);
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
+          tol_channel, channel);
+
+  if(channel >= tol_channel || channel < 0) {
+    UMMS_DEBUG ("Invalid Channel: %d", channel);
+    return FALSE;
+  }
+
+  g_signal_emit_by_name (pipe, "get-video-pad", channel, &pad);
+  if(pad == NULL) {
+    UMMS_DEBUG ("No pad of stream: %d", channel);
+    return FALSE;
+  }
+
+  caps = gst_pad_get_negotiated_caps (pad);
+  if (caps) {
+    s = gst_caps_get_structure (caps, 0);
+    ret = gst_structure_get_fraction(s, "framerate", frame_rate_num, frame_rate_denom);
+    gst_caps_unref (caps);
+  }
+
+  if(pad)
+    gst_object_unref (pad);
+
+  return ret;
+}
+
+
+static gboolean
+engine_gst_get_video_resolution(MeegoMediaPlayerControl *self, gint channel, gint * width, gint * height)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  int tol_channel;
+  GstCaps *caps = NULL;
+  GstPad *pad = NULL;
+  GstStructure *s = NULL;
+
+  *width = 0;
+  *height = 0;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  /* We get this kind of infomation from the caps of inputselector. */
+
+  g_object_get (G_OBJECT (pipe), "n-video", &tol_channel, NULL);
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
+          tol_channel, channel);
+
+  if(channel >= tol_channel || channel < 0) {
+    UMMS_DEBUG ("Invalid Channel: %d", channel);
+    return FALSE;
+  }
+
+  g_signal_emit_by_name (pipe, "get-video-pad", channel, &pad);
+  if(pad == NULL) {
+    UMMS_DEBUG ("No pad of stream: %d", channel);
+    return FALSE;
+  }
+
+  caps = gst_pad_get_negotiated_caps (pad);
+  if (caps) {
+    s = gst_caps_get_structure (caps, 0);
+    gst_structure_get_int (s, "width", width);
+    gst_structure_get_int (s, "height", height);
+    gst_caps_unref (caps);
+  }
+
+  if(pad)
+    gst_object_unref (pad);
+
+  return TRUE;
+}
+
+
+static gboolean
+engine_gst_get_video_aspect_ratio(MeegoMediaPlayerControl *self, gint channel, 
+                                  gint * ratio_num, gint * ratio_denom)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  int tol_channel;
+  GstCaps *caps = NULL;
+  GstPad *pad = NULL;
+  GstStructure *s = NULL;
+  gboolean ret = TRUE;
+
+  *ratio_num = 0;
+  *ratio_denom = 0;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  /* We get this kind of infomation from the caps of inputselector. */
+
+  g_object_get (G_OBJECT (pipe), "n-video", &tol_channel, NULL);
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
+          tol_channel, channel);
+
+  if(channel >= tol_channel || channel < 0) {
+    UMMS_DEBUG ("Invalid Channel: %d", channel);
+    return FALSE;
+  }
+
+  g_signal_emit_by_name (pipe, "get-video-pad", channel, &pad);
+  if(pad == NULL) {
+    UMMS_DEBUG ("No pad of stream: %d", channel);
+    return FALSE;
+  }
+
+  caps = gst_pad_get_negotiated_caps (pad);
+  if (caps) {
+    s = gst_caps_get_structure (caps, 0);
+    ret = gst_structure_get_fraction(s, "pixel-aspect-ratio", ratio_num, ratio_denom);
+    gst_caps_unref (caps);
+  }
+
+  if(pad)
+    gst_object_unref (pad);
+
+  return ret;
+}
+
+
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
 {

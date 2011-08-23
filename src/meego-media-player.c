@@ -750,6 +750,14 @@ meego_media_player_get_encapsulation (MeegoMediaPlayer *player, gchar **encapsul
   return TRUE;
 }
 
+gboolean
+meego_media_player_get_audio_samplerate (MeegoMediaPlayer *player, gint channel, gint *sample_rate, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_audio_samplerate(GET_CONTROL_IFACE (player), channel, sample_rate);
+  UMMS_DEBUG ("We get the sample rate: %d", *sample_rate);
+  return TRUE;
+}
 
 static void
 meego_media_player_get_property (GObject    *object,

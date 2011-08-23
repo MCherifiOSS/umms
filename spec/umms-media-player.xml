@@ -196,6 +196,11 @@
 			<arg name="encapsulation" type="s" direction="out"/>
 		</method>
 
+		<method name="GetAudioSamplerate">
+			<arg name="channel" type="i"/>
+			<arg name="sample_rate" type="i" direction="out"/>
+		</method>
+
 		<signal name="Initialized">
 		</signal>
 

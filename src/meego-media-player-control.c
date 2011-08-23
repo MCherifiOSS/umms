@@ -50,6 +50,7 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_get_video_bitrate_impl get_video_bitrate;
   meego_media_player_control_get_audio_bitrate_impl get_audio_bitrate;
   meego_media_player_control_get_encapsulation_impl get_encapsulation;
+  meego_media_player_control_get_audio_samplerate_impl get_audio_samplerate;
 };
 
 enum {
@@ -1076,6 +1077,25 @@ void meego_media_player_control_implement_get_encapsulation (MeegoMediaPlayerCon
                                                         meego_media_player_control_get_encapsulation_impl impl)
 {
   klass->get_encapsulation = impl;
+}
+
+gboolean meego_media_player_control_get_audio_samplerate(MeegoMediaPlayerControl *self, gint channel, gint * sample_rate)
+{
+  meego_media_player_control_get_audio_samplerate_impl impl =
+                 (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_audio_samplerate);
+
+  if (impl != NULL) {
+    (impl) (self, channel, sample_rate);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_audio_samplerate (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_audio_samplerate_impl impl)
+{
+  klass->get_audio_samplerate = impl;
 }
 
 void

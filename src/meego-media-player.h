@@ -115,6 +115,7 @@ gboolean meego_media_player_get_audio_codec (MeegoMediaPlayer *player, gint chan
 gboolean meego_media_player_get_video_bitrate (MeegoMediaPlayer *player, gint channel, gint *bit_rate, GError **err);
 gboolean meego_media_player_get_audio_bitrate (MeegoMediaPlayer *player, gint channel, gint *bit_rate, GError **err);
 gboolean meego_media_player_get_encapsulation (MeegoMediaPlayer *player, gchar **encapsulation, GError **err);
+gboolean meego_media_player_get_audio_samplerate (MeegoMediaPlayer *player, gint channel, gint *sample_rate, GError **err);
 
 G_END_DECLS
 
