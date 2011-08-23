@@ -183,6 +183,7 @@
 		</method>
 
 		<method name="GetVideoBitrate">
+			<arg name="channel" type="i"/>
 			<arg name="bit_rate" type="i" direction="out"/>
 		</method>
 

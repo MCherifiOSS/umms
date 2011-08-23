@@ -2206,25 +2206,94 @@ engine_gst_get_audio_codec (MeegoMediaPlayerControl *self, gint channel, gchar *
 }
 
 static gboolean
-engine_gst_get_video_bitrate (MeegoMediaPlayerControl *self, gint *bit_rate)
+engine_gst_get_video_bitrate (MeegoMediaPlayerControl *self, gint channel, gint *video_rate)
 {
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  int tol_channel;
+  GstTagList * tag_list = NULL;
+  gint size = 0;
+  guint32 bit_rate = 0;
+
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
-  int i;
+
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+
+  g_object_get (G_OBJECT (pipe), "n-video", &tol_channel, NULL);
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
+          tol_channel, channel);
   
-  EngineGstPrivate *priv = GET_PRIVATE (self);
+  *video_rate = 0;
+
+  if(channel >= tol_channel || channel < 0) {
+    UMMS_DEBUG ("Invalid Channel: %d", channel);
+    return FALSE;
+  }
+
+  g_signal_emit_by_name (pipe, "get-video-tags", channel, &tag_list);
+  if(tag_list == NULL) {
+    UMMS_DEBUG ("No tags about stream: %d", channel);
+    return TRUE;
+  }
+
+  if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
+    UMMS_DEBUG ("bit rate for channel: %d is %d", channel, bit_rate);
+    *video_rate = bit_rate/1000;
+  } else {
+    UMMS_DEBUG ("No bit rate for channel: %d", channel);
+  }
+
+  if(tag_list)
+    gst_tag_list_free (tag_list);
+
   return TRUE;
 }
 
 
 static gboolean
-engine_gst_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint *bit_rate)
+engine_gst_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint *audio_rate)
 {
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  int tol_channel;
+  GstTagList * tag_list = NULL;
+  gint size = 0;
+  guint32 bit_rate = 0;
+
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
-  int i;
+
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+
+  g_object_get (G_OBJECT (pipe), "n-audio", &tol_channel, NULL);
+  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d", 
+          tol_channel, channel);
   
-  EngineGstPrivate *priv = GET_PRIVATE (self);
+  *audio_rate = 0;
+
+  if(channel >= tol_channel || channel < 0) {
+    UMMS_DEBUG ("Invalid Channel: %d", channel);
+    return FALSE;
+  }
+
+  g_signal_emit_by_name (pipe, "get-audio-tags", channel, &tag_list);
+  if(tag_list == NULL) {
+    UMMS_DEBUG ("No tags about stream: %d", channel);
+    return TRUE;
+  }
+
+  if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
+    UMMS_DEBUG ("bit rate for channel: %d is %d", channel, bit_rate);
+    *audio_rate = bit_rate/1000;
+  } else {
+    UMMS_DEBUG ("No bit rate for channel: %d", channel);
+  }
+
+  if(tag_list)
+    gst_tag_list_free (tag_list);
 
   return TRUE;
 }
@@ -2432,11 +2501,11 @@ bus_message_state_change_cb (GstBus     *bus,
     priv->player_state = PlayerStatePaused;
     if (old_player_state == PlayerStateStopped && priv->suspended) {
       UMMS_DEBUG ("restoring suspended execution, pos = %lld", priv->pos);
-      engine_gst_is_seekable (self, &seekable);
+      engine_gst_is_seekable (MEEGO_MEDIA_PLAYER_CONTROL(self), &seekable);
       if (seekable) {
-        engine_gst_set_position (self, priv->pos);
+        engine_gst_set_position (MEEGO_MEDIA_PLAYER_CONTROL(self), priv->pos);
       }
-      engine_gst_play(self);
+      engine_gst_play(MEEGO_MEDIA_PLAYER_CONTROL(self));
       priv->suspended = FALSE;
       UMMS_DEBUG ("meego_media_player_control_emit_restored");
       meego_media_player_control_emit_restored (self);
@@ -2944,7 +3013,7 @@ autoplug_continue_cb (GstElement * element, GstPad * pad, GstCaps * caps,
         MeegoMediaPlayerControl *control) 
 {
   gint i;
-  gchar *name = NULL;
+  const gchar *name = NULL;
   GstStructure *s = NULL;
   GstCaps *hw_caps = NULL;
   gboolean is_hw_vcaps = FALSE;
@@ -3016,7 +3085,7 @@ uri_parsing_finished_cb (MeegoMediaPlayerControl * self)
 static void no_more_pads_cb (GstElement * uridecodebin, MeegoMediaPlayerControl * self) 
 {
   UMMS_DEBUG("Begin");
-  g_idle_add (uri_parsing_finished_cb, self);
+  g_idle_add ((GSourceFunc)uri_parsing_finished_cb, self);
   UMMS_DEBUG("End");
 }
 

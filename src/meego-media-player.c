@@ -724,10 +724,10 @@ meego_media_player_get_audio_codec (MeegoMediaPlayer *player, gint channel, gcha
 }
 
 gboolean
-meego_media_player_get_video_bitrate (MeegoMediaPlayer *player, gint *bit_rate, GError **err)
+meego_media_player_get_video_bitrate (MeegoMediaPlayer *player, gint channel, gint *bit_rate, GError **err)
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
-  meego_media_player_control_get_video_bitrate(GET_CONTROL_IFACE (player), bit_rate);
+  meego_media_player_control_get_video_bitrate(GET_CONTROL_IFACE (player), channel, bit_rate);
   UMMS_DEBUG ("We get the video bitrate: %d", *bit_rate);
   return TRUE;
 }

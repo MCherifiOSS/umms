@@ -1020,13 +1020,13 @@ void meego_media_player_control_implement_get_audio_codec (MeegoMediaPlayerContr
   klass->get_audio_codec = impl;
 }
 
-gboolean meego_media_player_control_get_video_bitrate (MeegoMediaPlayerControl *self, gint *bit_rate)
+gboolean meego_media_player_control_get_video_bitrate (MeegoMediaPlayerControl *self, gint channel, gint *bit_rate)
 {
   meego_media_player_control_get_video_bitrate_impl impl =
                    (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_video_bitrate);
 
   if (impl != NULL) {
-    (impl) (self, bit_rate);
+    (impl) (self, channel, bit_rate);
   } else {
     g_warning ("Method not implemented\n");
   }
