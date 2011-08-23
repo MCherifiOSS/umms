@@ -201,6 +201,18 @@
 			<arg name="sample_rate" type="i" direction="out"/>
 		</method>
 
+		<method name="GetVideoFramerate">
+			<arg name="channel" type="i"/>
+			<arg name="frame_rate_num" type="i" direction="out"/>
+			<arg name="frame_rate_denom" type="i" direction="out"/>
+		</method>
+
+		<method name="GetVideoResolution">
+			<arg name="channel" type="i"/>
+			<arg name="width" type="i" direction="out"/>
+			<arg name="height" type="i" direction="out"/>
+		</method>
+
 		<signal name="Initialized">
 		</signal>
 

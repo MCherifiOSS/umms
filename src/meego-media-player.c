@@ -759,6 +759,27 @@ meego_media_player_get_audio_samplerate (MeegoMediaPlayer *player, gint channel,
   return TRUE;
 }
 
+gboolean
+meego_media_player_get_video_framerate (MeegoMediaPlayer *player, gint channel, 
+                                        gint * frame_rate_num, gint * frame_rate_denom, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_video_framerate(GET_CONTROL_IFACE (player), 
+                        channel, frame_rate_num, frame_rate_denom);
+  UMMS_DEBUG ("We get the sample rate: %f", *(gdouble*)frame_rate_num / *(gdouble*)frame_rate_denom);
+  return TRUE;
+}
+
+gboolean
+meego_media_player_get_video_resolution (MeegoMediaPlayer *player, gint channel, 
+                                         gint * width, gint * height, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_video_resolution(GET_CONTROL_IFACE (player), channel, width, height);
+  UMMS_DEBUG ("We get the video resolution: %d X %d", *width, *height);
+  return TRUE;
+}
+
 static void
 meego_media_player_get_property (GObject    *object,
     guint       property_id,

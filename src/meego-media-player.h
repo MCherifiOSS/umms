@@ -116,6 +116,10 @@ gboolean meego_media_player_get_video_bitrate (MeegoMediaPlayer *player, gint ch
 gboolean meego_media_player_get_audio_bitrate (MeegoMediaPlayer *player, gint channel, gint *bit_rate, GError **err);
 gboolean meego_media_player_get_encapsulation (MeegoMediaPlayer *player, gchar **encapsulation, GError **err);
 gboolean meego_media_player_get_audio_samplerate (MeegoMediaPlayer *player, gint channel, gint *sample_rate, GError **err);
+gboolean meego_media_player_get_video_framerate (MeegoMediaPlayer *player, gint channel, 
+                                        gint * frame_rate_num, gint * frame_rate_denom, GError **err);
+gboolean meego_media_player_get_video_resolution (MeegoMediaPlayer *player, gint channel, 
+                                         gint * width, gint * height, GError **err);
 
 G_END_DECLS
 

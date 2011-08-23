@@ -51,6 +51,8 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_get_audio_bitrate_impl get_audio_bitrate;
   meego_media_player_control_get_encapsulation_impl get_encapsulation;
   meego_media_player_control_get_audio_samplerate_impl get_audio_samplerate;
+  meego_media_player_control_get_video_framerate_impl get_video_framerate;
+  meego_media_player_control_get_video_resolution_impl get_video_resolution;
 };
 
 enum {
@@ -1079,7 +1081,8 @@ void meego_media_player_control_implement_get_encapsulation (MeegoMediaPlayerCon
   klass->get_encapsulation = impl;
 }
 
-gboolean meego_media_player_control_get_audio_samplerate(MeegoMediaPlayerControl *self, gint channel, gint * sample_rate)
+gboolean meego_media_player_control_get_audio_samplerate(MeegoMediaPlayerControl *self, gint channel, 
+                                                         gint * sample_rate)
 {
   meego_media_player_control_get_audio_samplerate_impl impl =
                  (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_audio_samplerate);
@@ -1092,11 +1095,52 @@ gboolean meego_media_player_control_get_audio_samplerate(MeegoMediaPlayerControl
   return TRUE;
 }
 
-void meego_media_player_control_implement_audio_samplerate (MeegoMediaPlayerControlClass *klass,
+void meego_media_player_control_implement_get_audio_samplerate (MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_get_audio_samplerate_impl impl)
 {
   klass->get_audio_samplerate = impl;
 }
+
+gboolean meego_media_player_control_get_video_framerate(MeegoMediaPlayerControl *self, gint channel,
+                                                        gint * frame_rate_num, gint * frame_rate_denom)
+{
+  meego_media_player_control_get_video_framerate_impl impl =
+                 (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_video_framerate);
+
+  if (impl != NULL) {
+    (impl) (self, channel, frame_rate_num, frame_rate_denom);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_video_framerate (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_video_framerate_impl impl)
+{
+  klass->get_video_framerate = impl;
+}
+
+gboolean meego_media_player_control_get_video_resolution(MeegoMediaPlayerControl *self, gint channel,
+                                                        gint * width, gint * height)
+{
+  meego_media_player_control_get_video_resolution_impl impl =
+                 (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_video_resolution);
+
+  if (impl != NULL) {
+    (impl) (self, channel, width, height);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_video_resolution(MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_video_resolution_impl impl)
+{
+  klass->get_video_resolution = impl;
+}
+
 
 void
 meego_media_player_control_emit_initialized (gpointer instance)
