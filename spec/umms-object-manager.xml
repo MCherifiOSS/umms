@@ -12,6 +12,6 @@
 		<method name="RemoveMediaPlayer">
 			<arg name="object_path" type="s"/>
 		</method>
-    </interface>
+	</interface>
 </node>
-  
+

@@ -2,11 +2,11 @@
 <node name="/com/meego/UMMS/PlayingContentMetadataViewer">
 	<interface name="com.meego.UMMS.PlayingContentMetadataViewer">
 		<method name="GetPlayingContentMetadata">
-      <arg name="PlayingContentMetadata" type="aa{sv}" direction="out"/>
+			<arg name="PlayingContentMetadata" type="aa{sv}" direction="out"/>
 		</method>
 		<signal name="MetadataUpdated">
-      <arg name="Metadata" type="aa{sv}"/>
+			<arg name="Metadata" type="aa{sv}"/>
 		</signal>
-  </interface>
+	</interface>
 </node>
-  
+
