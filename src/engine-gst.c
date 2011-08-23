@@ -69,10 +69,6 @@ static gchar *live_src_uri[] = {"mms://", "mmsh://", "rtsp://",
   ret;                                                                             \
 })
 
-#define ENGINE_GST_MAX_VIDEOCODEC_SIZE 64
-#define ENGINE_GST_MAX_AUDIOCODEC_SIZE 64
-#define ENGINE_GST_MAX_AUDIO_STREAM 3
-
 struct _EngineGstPrivate {
   GstElement *pipeline;
 
@@ -129,13 +125,6 @@ struct _EngineGstPrivate {
 
   //snapshot of suspended execution
   gint64   pos;
-
-  gchar    video_codec[ENGINE_GST_MAX_VIDEOCODEC_SIZE];
-  gint     video_bitrate;
-
-  gchar    audio_codec[ENGINE_GST_MAX_AUDIO_STREAM][ENGINE_GST_MAX_AUDIOCODEC_SIZE];
-  gint     audio_bitrate[ENGINE_GST_MAX_AUDIO_STREAM];
-  gint     audio_codec_used;
 };
 
 static gboolean _query_buffering_percent (GstElement *pipe, gdouble *percent);
@@ -187,14 +176,6 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
   priv->hw_viddec = 0;
   priv->has_audio = FALSE;
   priv->hw_auddec = FALSE;
-
-  /* New URI, so the codec info is invalid any more. */  
-  priv->audio_codec_used = 0;
-  memset(priv->video_codec, 0, ENGINE_GST_MAX_VIDEOCODEC_SIZE);
-  priv->video_bitrate = 0;
-  memset(priv->audio_codec, 0, 
-            ENGINE_GST_MAX_AUDIO_STREAM*ENGINE_GST_MAX_AUDIOCODEC_SIZE);
-  memset(priv->audio_bitrate, 0, ENGINE_GST_MAX_AUDIO_STREAM);
 
   return parse_uri_async(self, priv->uri);
 }
@@ -2109,12 +2090,6 @@ engine_gst_get_video_codec (MeegoMediaPlayerControl *self, gchar ** video_codec)
 
   EngineGstPrivate *priv = GET_PRIVATE (self);
   
-  if(strlen(priv->video_codec)) {
-    *video_codec = g_strdup(priv->video_codec);
-  } else {
-    *video_codec = NULL;
-    UMMS_DEBUG("No video codec now!");
-  }
 
   return TRUE;
 }
@@ -2123,19 +2098,61 @@ engine_gst_get_video_codec (MeegoMediaPlayerControl *self, gchar ** video_codec)
 static gboolean
 engine_gst_get_audio_codec (MeegoMediaPlayerControl *self, gint channel, gchar ** audio_codec)
 {
-  g_return_val_if_fail (self != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  int tol_channel;
+  GstTagList * tag_list = NULL;
+  gint size = 0;
+  gchar * codec_name = NULL;
   int i;
 
-  EngineGstPrivate *priv = GET_PRIVATE (self);
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
-  if((channel >= priv->audio_codec_used) || (channel < 0)) {
-    UMMS_DEBUG("Channel number out of range: %d", channel);
-    *audio_codec = NULL;
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+
+  g_object_get (G_OBJECT (pipe), "n-audio", &tol_channel, NULL);
+  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d", 
+          tol_channel, channel);
+  
+  *audio_codec = NULL;
+
+  if(channel >= tol_channel || channel < 0) {
+    UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
-  *audio_codec = g_strdup(priv->audio_codec[channel]);
+  g_signal_emit_by_name (pipe, "get-audio-tags", channel, &tag_list);
+  if(tag_list == NULL) {
+    UMMS_DEBUG ("No tags about stream: %d", channel);
+    return TRUE;
+  }
+
+  if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
+    gchar *st = NULL;        
+
+    for (i = 0; i < size; ++i) {
+      if(gst_tag_list_get_string_index (tag_list, GST_TAG_AUDIO_CODEC, i, &st) && st) {
+        UMMS_DEBUG("Channel: %d provide the audio codec named: %s", channel, st);
+        if(codec_name) {
+          codec_name = g_strconcat(codec_name, st);
+        } else {
+          codec_name = g_strdup(st);
+        }
+        g_free (st);  
+      }
+    }
+
+    UMMS_DEBUG("%s", codec_name);
+  }
+
+  if(codec_name)
+    *audio_codec = codec_name;
+
+  if(tag_list)
+    gst_tag_list_free (tag_list);
+
   return TRUE;
 }
 
@@ -2147,7 +2164,6 @@ engine_gst_get_video_bitrate (MeegoMediaPlayerControl *self, gint *bit_rate)
   int i;
   
   EngineGstPrivate *priv = GET_PRIVATE (self);
-  *bit_rate= priv->video_bitrate;
   return TRUE;
 }
 
@@ -2160,12 +2176,6 @@ engine_gst_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
   int i;
   
   EngineGstPrivate *priv = GET_PRIVATE (self);
-
-  if(channel >= 0 && channel < priv->audio_codec_used) {
-    *bit_rate= priv->audio_bitrate[channel];
-  } else {
-    *bit_rate = 0;
-  } 
 
   return TRUE;
 }
@@ -2405,13 +2415,9 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   EngineGstPrivate *priv = GET_PRIVATE (self);
   GstPad * src_pad = NULL;
   GstTagList * tag_list = NULL;
-  gint size, i;
   guint32 bit_rate;
   gchar * pad_name = NULL;
   gchar * element_name = NULL;
-  gchar * video_codec = NULL;
-  gchar * audio_codec = NULL;
-  int out_of_channel = 0;
 
   src = GST_MESSAGE_SRC (message);
   if (src != priv->pipeline) {
@@ -2434,6 +2440,15 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
     element_name = g_strdup (GST_ELEMENT_NAME (message->src));
     UMMS_DEBUG("The element name is %s", element_name);
   }
+
+#if 0
+  gint size, i;
+  gchar * video_codec = NULL;
+  gchar * audio_codec = NULL;
+  int out_of_channel = 0;
+  
+  /* This logic may be used when the inputselector is not included. 
+     Now we just get the video and audio codec from inputselector's pad. *
 
   /* We are now interest in the codec, container format and bit rate. */
   if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
@@ -2557,6 +2572,8 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
     g_free(video_codec);
   if(audio_codec)
     g_free(audio_codec);
+#endif
+
   if(src_pad)
     g_object_unref(src_pad);
   gst_tag_list_free (tag_list);
@@ -2564,6 +2581,7 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
     g_free(pad_name);
   if(element_name)
     g_free(element_name);
+
 }
 
 
@@ -2673,6 +2691,27 @@ bus_sync_handler (GstBus *bus,
   return( GST_BUS_DROP );
 }
 
+static void
+video_tags_changed_cb (GstElement *playbin2, gint stream_id, gpointer user_data) /* Used as tag change monitor. */
+{
+  EngineGstPrivate * priv = (EngineGstPrivate *) user_data;
+
+}
+
+static void
+audio_tags_changed_cb (GstElement *playbin2, gint stream_id, gpointer user_data) /* Used as tag change monitor. */
+{
+  EngineGstPrivate * priv = (EngineGstPrivate *) user_data;
+
+}
+
+static void
+text_tags_changed_cb (GstElement *playbin2, gint stream_id, gpointer user_data) /* Used as tag change monitor. */
+{
+  EngineGstPrivate * priv = (EngineGstPrivate *) user_data;
+
+}
+
 /* GstPlayFlags flags from playbin2 */
 typedef enum {
   GST_PLAY_FLAG_VIDEO         = (1 << 0),
@@ -2738,6 +2777,15 @@ engine_gst_init (EngineGst *self)
 
   gst_object_unref (GST_OBJECT (bus));
 
+  g_signal_connect (priv->pipeline, 
+          "video-tags-changed", G_CALLBACK (video_tags_changed_cb), priv);
+
+  g_signal_connect (priv->pipeline, 
+          "audio-tags-changed", G_CALLBACK (audio_tags_changed_cb), priv);
+
+  g_signal_connect (priv->pipeline, 
+          "text-tags-changed", G_CALLBACK (text_tags_changed_cb), priv);
+
   /*
    *Use GST_PLAY_FLAG_DOWNLOAD flag to enable Gstreamer Download buffer mode,
    *so that we can query the buffered time/bytes, and further the time rangs.
@@ -2752,13 +2800,6 @@ engine_gst_init (EngineGst *self)
   priv->pos = 0;
   priv->res_mngr = umms_resource_manager_new ();
   priv->res_list = NULL;
-
-  priv->audio_codec_used = 0;
-  memset(priv->video_codec, 0, ENGINE_GST_MAX_VIDEOCODEC_SIZE);
-  priv->video_bitrate = 0;
-  memset(priv->audio_codec, 0, 
-            ENGINE_GST_MAX_AUDIO_STREAM*ENGINE_GST_MAX_AUDIOCODEC_SIZE);
-  memset(priv->audio_bitrate, 0, ENGINE_GST_MAX_AUDIO_STREAM);
 
   //Setup default target.
 #define FULL_SCREEN_RECT "0,0,0,0"

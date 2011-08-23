@@ -830,6 +830,7 @@ meego_media_player_constructed (GObject *player)
     priv->timeout_id = g_timeout_add (CHECK_INTERVAL, (GSourceFunc)client_existence_check, player);
   }
 }
+
 static void
 meego_media_player_class_init (MeegoMediaPlayerClass *klass)
 {
