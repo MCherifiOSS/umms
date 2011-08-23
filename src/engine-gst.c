@@ -3376,6 +3376,7 @@ autoplug_continue_cb (GstElement * element, GstPad * pad, GstCaps * caps,
     }
   } else if (!strncmp (name, "audio", 5)) {
     priv->has_audio = TRUE;
+    ret = FALSE;//Exposes this pad, and hence guarantees "no-more-pads" signal will be emitted.
     //FIXME: check the HW audio caps.
   } else if (!strncmp (name, "text", 4)){
     priv->has_sub = TRUE;
