@@ -177,6 +177,7 @@
 		</method>
 
 		<method name="GetAudioCodec">
+			<arg name="channel" type="i"/>
 			<arg name="audio_codec" type="s" direction="out"/>
 		</method>
 

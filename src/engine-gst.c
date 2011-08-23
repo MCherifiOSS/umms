@@ -2121,7 +2121,7 @@ engine_gst_get_video_codec (MeegoMediaPlayerControl *self, gchar ** video_codec)
 
 
 static gboolean
-engine_gst_get_audio_codec (MeegoMediaPlayerControl *self, gchar ** audio_codec)
+engine_gst_get_audio_codec (MeegoMediaPlayerControl *self, gint channel, gchar ** audio_codec)
 {
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
@@ -2129,18 +2129,13 @@ engine_gst_get_audio_codec (MeegoMediaPlayerControl *self, gchar ** audio_codec)
 
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
-  if(priv->audio_codec_used) {
-    *audio_codec = g_strdup(priv->audio_codec[0]);
-
-    for(i = 1; i <priv->audio_codec_used; i++) {
-      *audio_codec = g_strconcat(*audio_codec, "\n");
-      *audio_codec = g_strconcat(*audio_codec, priv->audio_codec[i]);
-    }
-  } else {
+  if((channel >= priv->audio_codec_used) || (channel < 0)) {
+    UMMS_DEBUG("Channel number out of range: %d", channel);
     *audio_codec = NULL;
-    UMMS_DEBUG("No audio codec now!");
+    return FALSE;
   }
 
+  *audio_codec = g_strdup(priv->audio_codec[channel]);
   return TRUE;
 }
 

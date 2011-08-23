@@ -999,13 +999,14 @@ void meego_media_player_control_implement_get_video_codec (MeegoMediaPlayerContr
 }
 
 gboolean meego_media_player_control_get_audio_codec (MeegoMediaPlayerControl *self, 
+                                                        gint channel,
                                                         gchar **audio_codec)
 {
   meego_media_player_control_get_audio_codec_impl impl =
                    (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_audio_codec);
 
   if (impl != NULL) {
-    (impl) (self, audio_codec);
+    (impl) (self, channel, audio_codec);
   } else {
     g_warning ("Method not implemented\n");
   }

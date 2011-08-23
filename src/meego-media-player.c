@@ -715,10 +715,10 @@ meego_media_player_get_video_codec (MeegoMediaPlayer *player, gchar **video_code
 }
 
 gboolean 
-meego_media_player_get_audio_codec (MeegoMediaPlayer *player, gchar **audio_codec, GError **err)
+meego_media_player_get_audio_codec (MeegoMediaPlayer *player, gint channel, gchar **audio_codec, GError **err)
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
-  meego_media_player_control_get_audio_codec(GET_CONTROL_IFACE (player), audio_codec);
+  meego_media_player_control_get_audio_codec(GET_CONTROL_IFACE (player), channel, audio_codec);
   UMMS_DEBUG ("We get the audio codec: %s", *audio_codec);
   return TRUE;
 }
