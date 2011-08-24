@@ -110,13 +110,14 @@ def print_metadata_list(metadata):
 
 
 def metadata_updated_cb(metadata):
+    print "viewer: metadata_updated_cb"
     print_metadata_list(metadata)
 
 def initialized_cb():
 	print "MeidaPlayer initialized"
 
-def player_state_changed_cb(state):
-	print "State changed to '%s'" % state_name[state]
+def player_state_changed_cb(old_state, new_state):
+	print "State changed from '%s' to '%s'" % (state_name[old_state], state_name[new_state])
 
 def eof_cb ():
 	print "EOF...."

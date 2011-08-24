@@ -76,7 +76,6 @@ struct _EngineGstPrivate {
   gint  seekable;
 
   GstElement *source;
-  GstElement *vsink;
 
   //buffering stuff
   gboolean buffering;
@@ -107,7 +106,7 @@ struct _EngineGstPrivate {
   gchar    *proxy_pw;
 
   //resource management
-  UmmsResourceManager *res_mngr;
+  UmmsResourceManager *res_mngr;//no need to unref, since it is global singleton.
   GList    *res_list;
 
   gboolean resource_prepared;
@@ -128,6 +127,8 @@ struct _EngineGstPrivate {
 
   /* Use it to buffer the tag of the stream. */
   GstTagList *tag_list;
+  gchar *title;
+  gchar *artist;
 };
 
 static gboolean _query_buffering_percent (GstElement *pipe, gdouble *percent);
@@ -183,7 +184,11 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
   if(priv->tag_list) 
     gst_tag_list_free(priv->tag_list);
   priv->tag_list = NULL;
+  RESET_STR(priv->title);
+  RESET_STR(priv->artist);
 
+  //URI is one of metadatas whose change should be notified.
+  meego_media_player_control_emit_metadata_changed (self);
   return parse_uri_async(self, priv->uri);
 }
 
@@ -944,6 +949,7 @@ _stop_pipe (MeegoMediaPlayerControl *control)
     return FALSE;
   }
 
+
   release_resource (control);
 
   UMMS_DEBUG ("gstreamer engine stopped");
@@ -954,12 +960,18 @@ static gboolean
 engine_gst_stop (MeegoMediaPlayerControl *self)
 {
   EngineGstPrivate *priv = GET_PRIVATE (self);
+  PlayerState old_state;
 
   if (!_stop_pipe (self))
     return FALSE;
 
+  old_state = priv->player_state;
   priv->player_state = PlayerStateStopped;
   priv->suspended = FALSE;
+
+  if (old_state != priv->player_state) {
+    meego_media_player_control_emit_player_state_changed (self, old_state, priv->player_state);
+  }
   meego_media_player_control_emit_stopped (self);
 
   return TRUE;
@@ -1535,25 +1547,6 @@ engine_gst_get_buffered_time (MeegoMediaPlayerControl *self, gint64 *buffered_ti
 
   return TRUE;
 }
-
-
-static gboolean
-engine_gst_set_window_id (MeegoMediaPlayerControl *self, gdouble window_id)
-{
-  EngineGstPrivate *priv = GET_PRIVATE (self);
-
-  if (!priv->uri || !priv->vsink || !GST_IS_X_OVERLAY(priv->vsink)) {
-    UMMS_DEBUG(" Unable to set window id");
-    return FALSE;
-  }
-
-  UMMS_DEBUG ("SetWindowId called, id = %d",
-              (gint)window_id);
-
-  gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (priv->vsink), (gint) window_id );
-  return TRUE;
-}
-
 
 static gboolean
 engine_gst_get_current_video (MeegoMediaPlayerControl *self, gint *cur_video)
@@ -2581,6 +2574,8 @@ engine_gst_get_current_uri(MeegoMediaPlayerControl *self, gchar ** uri)
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
   g_object_get (G_OBJECT (pipe), "uri", &s_uri, NULL);
  
   if(!s_uri) {
@@ -2598,6 +2593,36 @@ engine_gst_get_current_uri(MeegoMediaPlayerControl *self, gchar ** uri)
   return TRUE;
 }
 
+static gboolean
+engine_gst_get_title(MeegoMediaPlayerControl *self, gchar ** title)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  priv = GET_PRIVATE (self);
+  *title = g_strdup (priv->title);
+  UMMS_DEBUG ("title = %s", *title);
+
+  return TRUE;
+}
+
+static gboolean
+engine_gst_get_artist(MeegoMediaPlayerControl *self, gchar ** artist)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  priv = GET_PRIVATE (self);
+  *artist = g_strdup (priv->artist);
+  UMMS_DEBUG ("artist = %s", *artist);
+  return TRUE;
+}
 
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
@@ -2644,8 +2669,6 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_support_fullscreen);
   meego_media_player_control_implement_is_streaming (klass,
       engine_gst_is_streaming);
-  meego_media_player_control_implement_set_window_id (klass,
-      engine_gst_set_window_id);
   meego_media_player_control_implement_get_player_state (klass,
       engine_gst_get_player_state);
   meego_media_player_control_implement_get_buffered_bytes (klass,
@@ -2710,6 +2733,10 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_get_protocol_name);
   meego_media_player_control_implement_get_current_uri (klass,
       engine_gst_get_current_uri);
+  meego_media_player_control_implement_get_title (klass,
+      engine_gst_get_title);
+  meego_media_player_control_implement_get_artist (klass,
+      engine_gst_get_artist);
 }
 
 static void
@@ -2742,15 +2769,10 @@ engine_gst_dispose (GObject *object)
   EngineGstPrivate *priv = GET_PRIVATE (object);
 
   _stop_pipe ((MeegoMediaPlayerControl *)object);
-  if (priv->source) {
-    g_object_unref (priv->source);
-    priv->source = NULL;
-  }
 
-  if (priv->pipeline) {
-    g_object_unref (priv->pipeline);
-    priv->pipeline = NULL;
-  }
+  TEARDOWN_ELEMENT (priv->source);
+  TEARDOWN_ELEMENT (priv->uri_parse_pipe);
+  TEARDOWN_ELEMENT (priv->pipeline);
 
   if (priv->target_type == XWindow) {
     unset_xwindow_target ((MeegoMediaPlayerControl *)object);
@@ -2774,6 +2796,8 @@ engine_gst_finalize (GObject *object)
   EngineGstPrivate *priv = GET_PRIVATE (object);
 
   RESET_STR(priv->uri);
+  RESET_STR(priv->title);
+  RESET_STR(priv->artist);
   RESET_STR(priv->proxy_uri);
   RESET_STR(priv->proxy_id);
   RESET_STR(priv->proxy_pw);
@@ -2840,7 +2864,7 @@ bus_message_state_change_cb (GstBus     *bus,
 
   if (priv->player_state != old_player_state) {
     UMMS_DEBUG ("emit state changed, old=%d, new=%d", old_player_state, priv->player_state);
-    meego_media_player_control_emit_player_state_changed (self, priv->player_state);
+    meego_media_player_control_emit_player_state_changed (self, old_player_state, priv->player_state);
   }
 }
 
@@ -2854,6 +2878,9 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   guint32 bit_rate;
   gchar * pad_name = NULL;
   gchar * element_name = NULL;
+  gchar * title = NULL;
+  gchar * artist = NULL;
+  gboolean metadata_changed = FALSE;
 
   src = GST_MESSAGE_SRC (message);
  
@@ -2875,6 +2902,27 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
 
   priv->tag_list = 
       gst_tag_list_merge(priv->tag_list, tag_list, GST_TAG_MERGE_REPLACE);
+
+  //cache the title
+  if(gst_tag_list_get_string_index (tag_list, GST_TAG_TITLE, 0, &title)) {
+    UMMS_DEBUG("Element: %s, provide the title: %s", element_name, title);
+    RESET_STR(priv->title); 
+    priv->title = title;
+    metadata_changed = TRUE;
+  }
+
+  //cache the artist
+  if(gst_tag_list_get_string_index (tag_list, GST_TAG_ARTIST, 0, &artist)) {
+    UMMS_DEBUG("Element: %s, provide the artist: %s", element_name, artist);
+    RESET_STR(priv->artist); 
+    priv->artist = artist;
+    metadata_changed = TRUE;
+  }
+
+  //only care about artist and title
+  if (metadata_changed) {
+    meego_media_player_control_emit_metadata_changed (self);
+  }
 
 #if 0
   gint size, i;

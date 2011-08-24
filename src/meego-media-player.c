@@ -63,6 +63,7 @@ enum {
   SIGNAL_MEDIA_PLAYER_VideoTagChanged,
   SIGNAL_MEDIA_PLAYER_AudioTagChanged,
   SIGNAL_MEDIA_PLAYER_TextTagChanged,
+  SIGNAL_MEDIA_PLAYER_MetadataChanged,
   N_MEDIA_PLAYER_SIGNALS
 };
 
@@ -121,9 +122,9 @@ buffered_cb (MeegoMediaPlayerControl *iface, MeegoMediaPlayer *player)
 }
 
 static void
-player_state_changed_cb (MeegoMediaPlayerControl *iface, gint state, MeegoMediaPlayer *player)
+player_state_changed_cb (MeegoMediaPlayerControl *iface, gint old_state, gint new_state, MeegoMediaPlayer *player)
 {
-  g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_PlayerStateChanged], 0, state);
+  g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_PlayerStateChanged], 0, old_state, new_state);
 }
 
 static void
@@ -171,6 +172,12 @@ static void
 text_tag_changed_cb (MeegoMediaPlayerControl *iface, gint channel, MeegoMediaPlayer *player)
 {
   g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_TextTagChanged], 0, channel);
+}
+
+static void
+metadata_changed_cb (MeegoMediaPlayerControl *iface, MeegoMediaPlayer *player)
+{
+  g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_MetadataChanged], 0);
 }
 
 static gboolean
@@ -288,6 +295,10 @@ meego_media_player_set_uri (MeegoMediaPlayer *player,
         0);
     g_signal_connect_object (player->player_control, "text-tag-changed",
         G_CALLBACK (text_tag_changed_cb),
+        player,
+        0);
+    g_signal_connect_object (player->player_control, "metadata-changed",
+        G_CALLBACK (metadata_changed_cb),
         player,
         0);
   }
@@ -842,6 +853,21 @@ meego_media_player_get_current_uri (MeegoMediaPlayer *player, gchar **uri, GErro
   return TRUE;
 }
 
+gboolean
+meego_media_player_get_title (MeegoMediaPlayer *player, gchar **title, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_title(GET_CONTROL_IFACE (player), title);
+  return TRUE;
+}
+
+gboolean
+meego_media_player_get_artist (MeegoMediaPlayer *player, gchar **artist, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_artist(GET_CONTROL_IFACE (player), artist);
+  return TRUE;
+}
 static void
 meego_media_player_get_property (GObject    *object,
     guint       property_id,
@@ -874,7 +900,7 @@ meego_media_player_set_property (GObject      *object,
   switch (property_id) {
     case PROP_NAME:
       tmp = g_value_get_string (value);
-      UMMS_DEBUG ("name='%p : %s'", tmp, tmp);
+      UMMS_DEBUG ("name= %s'", tmp);
       priv->name = g_value_dup_string (value);
       break;
     case PROP_ATTENDED:
@@ -1041,9 +1067,10 @@ meego_media_player_class_init (MeegoMediaPlayerClass *klass)
         G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
         0,
         NULL, NULL,
-        g_cclosure_marshal_VOID__INT,
+        umms_marshal_VOID__INT_INT,
         G_TYPE_NONE,
-        1,
+        2,
+        G_TYPE_INT,
         G_TYPE_INT);
 
   media_player_signals[SIGNAL_MEDIA_PLAYER_NeedReply] =
@@ -1138,6 +1165,16 @@ meego_media_player_class_init (MeegoMediaPlayerClass *klass)
         G_TYPE_NONE,
         1,
         G_TYPE_INT);
+
+  media_player_signals[SIGNAL_MEDIA_PLAYER_MetadataChanged] =
+    g_signal_new ("metadata-changed",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 }
 
 static void 

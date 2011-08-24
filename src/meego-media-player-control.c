@@ -56,6 +56,8 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_get_video_aspect_ratio_impl get_video_aspect_ratio;
   meego_media_player_control_get_protocol_name_impl get_protocol_name;
   meego_media_player_control_get_current_uri_impl get_current_uri;
+  meego_media_player_control_get_title_impl get_title;
+  meego_media_player_control_get_artist_impl get_artist;
 };
 
 enum {
@@ -74,6 +76,7 @@ enum {
   SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_VideoTagChanged,
   SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_AudioTagChanged,
   SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_TextTagChanged,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_MetadataChanged,
   N_MEEGO_MEDIA_PLAYER_CONTROL_SIGNALS
 };
 static guint meego_media_player_control_signals[N_MEEGO_MEDIA_PLAYER_CONTROL_SIGNALS] = {0};
@@ -1206,6 +1209,44 @@ void meego_media_player_control_implement_get_current_uri(MeegoMediaPlayerContro
   klass->get_current_uri = impl;
 }
 
+gboolean meego_media_player_control_get_title (MeegoMediaPlayerControl *self, gchar ** title)
+{
+  meego_media_player_control_get_title_impl impl =
+                 (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_title);
+
+  if (impl != NULL) {
+    (impl) (self, title);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_title(MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_title_impl impl)
+{
+  klass->get_title= impl;
+}
+
+gboolean meego_media_player_control_get_artist(MeegoMediaPlayerControl *self, gchar ** artist)
+{
+  meego_media_player_control_get_artist_impl impl =
+                 (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_artist);
+
+  if (impl != NULL) {
+    (impl) (self, artist);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_artist(MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_artist_impl impl)
+{
+  klass->get_artist = impl;
+}
+
 void
 meego_media_player_control_emit_initialized (gpointer instance)
 {
@@ -1257,13 +1298,13 @@ meego_media_player_control_emit_buffering (gpointer instance)
 }
 
 void
-meego_media_player_control_emit_player_state_changed (gpointer instance, gint player_state)
+meego_media_player_control_emit_player_state_changed (gpointer instance, gint old_state, gint new_state)
 {
   g_assert (instance != NULL);
   g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
   g_signal_emit (instance,
                  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_PlayerStateChanged],
-                 0, player_state);
+                 0, old_state, new_state);
 }
 
 void
@@ -1352,6 +1393,16 @@ meego_media_player_control_emit_text_tag_changed (gpointer instance, gint channe
   g_signal_emit (instance,
                  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_TextTagChanged],
                  0, channel);
+}
+
+void
+meego_media_player_control_emit_metadata_changed (gpointer instance)
+{
+  g_assert (instance != NULL);
+  g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
+  g_signal_emit (instance,
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_MetadataChanged],
+                 0);
 }
 
 static inline void
@@ -1446,9 +1497,10 @@ meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
         G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
         0,
         NULL, NULL,
-        g_cclosure_marshal_VOID__INT,
+        umms_marshal_VOID__INT_INT,
         G_TYPE_NONE,
-        1,
+        2,
+        G_TYPE_INT,
         G_TYPE_INT);
 
   meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_TargetReady] =
@@ -1513,6 +1565,17 @@ meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
         G_TYPE_NONE,
         1,
         G_TYPE_INT);
+
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_MetadataChanged] =
+    g_signal_new ("metadata-changed",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
+
 }
 
 static void

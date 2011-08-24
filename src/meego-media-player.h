@@ -124,6 +124,8 @@ gboolean meego_media_player_get_video_aspect_ratio (MeegoMediaPlayer *player, gi
                                          gint * ratio_num, gint * ratio_denom, GError **err);
 gboolean meego_media_player_get_protocol_name (MeegoMediaPlayer *player, gchar **protocol_name, GError **err);
 gboolean meego_media_player_get_current_uri (MeegoMediaPlayer *player, gchar **uri, GError **err);
+gboolean meego_media_player_get_title (MeegoMediaPlayer *player, gchar **title, GError **err);
+gboolean meego_media_player_get_artist (MeegoMediaPlayer *player, gchar **artist, GError **err);
 
 G_END_DECLS
 

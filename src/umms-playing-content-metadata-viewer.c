@@ -43,11 +43,40 @@ umms_playing_content_metadata_viewer_get_property (GObject    *object,
 }
 
 static void
+player_state_changed_cb(MeegoMediaPlayer *player, gint old_state, gint new_state, UmmsPlayingContentMetadataViewer *viewer)
+{
+  GPtrArray *metadata;
+
+  UMMS_DEBUG ("Begin");
+  if (((old_state <= PlayerStateStopped) && (new_state >= PlayerStateStopped)) || (old_state >= PlayerStatePaused && new_state <= PlayerStateStopped)) {
+    if (umms_playing_content_metadata_viewer_get_playing_content_metadata (viewer, &metadata, NULL)) {
+      g_signal_emit (viewer, signals[SIGNAL_METADATA_UPDATED], 0, metadata);
+    } else {
+      UMMS_DEBUG ("getting playing content matadata failed");
+    }
+  }
+  UMMS_DEBUG ("End");
+}
+
+static void
+player_metadata_changed_cb(MeegoMediaPlayer *player, UmmsPlayingContentMetadataViewer *viewer)
+{
+  GPtrArray *metadata;
+
+  UMMS_DEBUG ("Begin");
+  if (umms_playing_content_metadata_viewer_get_playing_content_metadata (viewer, &metadata, NULL)) {
+    g_signal_emit (viewer, signals[SIGNAL_METADATA_UPDATED], 0, metadata);
+  } else {
+    UMMS_DEBUG ("getting playing content matadata failed");
+  }
+  UMMS_DEBUG ("End");
+}
+
+static void
 player_added_cb(UmmsObjectManager *obj_mngr, MeegoMediaPlayer *player, UmmsPlayingContentMetadataViewer *viewer)
 {
-  UMMS_DEBUG ("Begin");
-//TODO: connect the player's metadata updated singal.
-  UMMS_DEBUG ("End");
+  g_signal_connect (player, "player-state-changed", G_CALLBACK(player_state_changed_cb), viewer);
+  g_signal_connect (player, "metadata-changed", G_CALLBACK(player_metadata_changed_cb), viewer);
 }
 
 static void
@@ -61,7 +90,6 @@ umms_playing_content_metadata_viewer_set_property (GObject      *object,
   switch (property_id) {
     case PROP_OBJECT_MANAGER:
       {
-        GList *players;
         priv->obj_mngr = g_value_get_object (value);
         g_object_ref (priv->obj_mngr);
         g_signal_connect (priv->obj_mngr, "player-added", G_CALLBACK(player_added_cb), object);
@@ -138,64 +166,6 @@ umms_playing_content_metadata_viewer_new (UmmsObjectManager *obj_mngr)
   return g_object_new (UMMS_TYPE_PLAYING_CONTENT_METADATA_VIEWER, "umms-object-manager", obj_mngr, NULL);
 }
 
-//TODO: connect this callback to MediaPlayer signal.
-static void
-_metadata_updated_cb (MeegoMediaPlayer *player, UmmsPlayingContentMetadataViewer *self)
-{
-  GPtrArray *metadata;
-  if (umms_playing_content_metadata_viewer_get_playing_content_metadata (self, &metadata, NULL))
-    g_signal_emit (self, signals[SIGNAL_METADATA_UPDATED], 0, metadata);
-  else
-    UMMS_DEBUG ("getting content metadata failed");
-}
-
-#if 1
-//just for testing, remove it when the actual function accomplished
-gboolean 
-umms_playing_content_metadata_viewer_get_playing_content_metadata (UmmsPlayingContentMetadataViewer *self, GPtrArray **metadata, GError **err)
-{
-#define NUM_TABLE 0
-  GHashTable *ht;
-  GValue *val;
-  gint i;
-
-  UMMS_DEBUG ("Begin");
-  *metadata = g_ptr_array_new ();
-  if (!*metadata) {
-    g_assert (err == NULL || *err == NULL);
-    if (err != NULL)
-      g_set_error (err, UMMS_GENERIC_ERROR, UMMS_GENERIC_ERROR_CREATING_OBJ_FAILED, "Creating GPtrArray metadata failed");
-    return FALSE;
-  }
-
-  for (i=0; i<NUM_TABLE; i++) {
-      /*TODO:
-        1. get tags of URI, Title, Artist.
-        2. Fill the metadata.
-        */
-      ht = g_hash_table_new (NULL, NULL);
-
-      val = g_new0(GValue, 1);
-      g_value_init (val, G_TYPE_STRING);
-      g_value_set_string (val, "uri");//set URI
-      g_hash_table_insert (ht, "URI", val);
-
-      val = g_new0(GValue, 1);
-      g_value_init (val, G_TYPE_STRING);
-      g_value_set_string (val, "title");//set Title
-      g_hash_table_insert (ht, "Title", val);
-
-      val = g_new0(GValue, 1);
-      g_value_init (val, G_TYPE_STRING);
-      g_value_set_string (val, "artist");//set Artist
-      g_hash_table_insert (ht, "Artist", val);
-
-      g_ptr_array_add (*metadata, ht);
-  }
-  UMMS_DEBUG ("End");
-  return TRUE;
-}
-#else
 gboolean 
 umms_playing_content_metadata_viewer_get_playing_content_metadata (UmmsPlayingContentMetadataViewer *self, GPtrArray **metadata, GError **err)
 {
@@ -204,9 +174,11 @@ umms_playing_content_metadata_viewer_get_playing_content_metadata (UmmsPlayingCo
   gint i, state;
   GList *players, *item;
   MeegoMediaPlayer *player;
+  gchar *uri = NULL;
+  gchar *title = NULL;
+  gchar *artist = NULL;
   UmmsPlayingContentMetadataViewerPrivate *priv = GET_PRIVATE (self);
 
-  UMMS_DEBUG ("Begin");
   *metadata = g_ptr_array_new ();
   if (!*metadata) {
     g_assert (err == NULL || *err == NULL);
@@ -223,35 +195,37 @@ umms_playing_content_metadata_viewer_get_playing_content_metadata (UmmsPlayingCo
     meego_media_player_get_player_state (player,  &state, NULL);
 
     if (state == PlayerStatePlaying || state == PlayerStatePaused) {
-      /*TODO:
-        1. get tags of URI, Title, Artist.
-        2. Fill the metadata.
-        */
+      /*
+       * 1. get tags of URI, Title, Artist.
+       * 2. Fill the metadata.
+       */
+      meego_media_player_get_current_uri (player, &uri, NULL);
+      meego_media_player_get_title (player, &title, NULL);
+      meego_media_player_get_artist (player, &artist, NULL);
+
       ht = g_hash_table_new (NULL, NULL);
 
       val = g_new0(GValue, 1);
       g_value_init (val, G_TYPE_STRING);
-      g_value_set_string (val, "");//set URI
+      g_value_set_string (val, uri);
       g_hash_table_insert (ht, "URI", val);
 
       val = g_new0(GValue, 1);
       g_value_init (val, G_TYPE_STRING);
-      g_value_set_string (val, "");//set Title
+      g_value_set_string (val, title);
       g_hash_table_insert (ht, "Title", val);
 
       val = g_new0(GValue, 1);
       g_value_init (val, G_TYPE_STRING);
-      g_value_set_string (val, "");//set Artist
+      g_value_set_string (val, artist);
       g_hash_table_insert (ht, "Artist", val);
 
       g_ptr_array_add (*metadata, ht);
     }
   }
-  UMMS_DEBUG ("End");
 
   return TRUE;
 }
-#endif
 
 
 

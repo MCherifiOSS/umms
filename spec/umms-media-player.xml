@@ -258,7 +258,8 @@
 		</signal>
 
 		<signal name="PlayerStateChanged">
-			<arg type="i"/>
+			<arg name="old_state" type="i"/>
+			<arg name="new_state" type="i"/>
 		</signal>
 
 		<signal name="NeedReply">

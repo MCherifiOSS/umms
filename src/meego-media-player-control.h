@@ -256,6 +256,14 @@ typedef gboolean (*meego_media_player_control_get_current_uri_impl) (MeegoMediaP
 void meego_media_player_control_implement_get_current_uri(MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_get_current_uri_impl impl);
 
+typedef gboolean (*meego_media_player_control_get_title_impl) (MeegoMediaPlayerControl *self, gchar ** uri);
+void meego_media_player_control_implement_get_title(MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_title_impl impl);
+
+typedef gboolean (*meego_media_player_control_get_artist_impl) (MeegoMediaPlayerControl *self, gchar ** uri);
+void meego_media_player_control_implement_get_artist(MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_artist_impl impl);
+
 /*virtual function wrappers*/
 gboolean meego_media_player_control_set_uri (MeegoMediaPlayerControl *self, const gchar *in_uri);
 gboolean meego_media_player_control_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params);
@@ -312,6 +320,9 @@ gboolean meego_media_player_control_get_video_resolution(MeegoMediaPlayerControl
 gboolean meego_media_player_control_get_video_aspect_ratio(MeegoMediaPlayerControl *self,
                                                     gint channel, gint * ratio_num, gint * ratio_denom);
 gboolean meego_media_player_control_get_protocol_name(MeegoMediaPlayerControl *self, gchar ** prot_name);
+gboolean meego_media_player_control_get_current_uri (MeegoMediaPlayerControl *self, gchar ** uri);
+gboolean meego_media_player_control_get_title(MeegoMediaPlayerControl *self, gchar ** title);
+gboolean meego_media_player_control_get_artist(MeegoMediaPlayerControl *self, gchar ** artist);
 
 /*signal emitter*/
 void meego_media_player_control_emit_initialized (gpointer instance);
@@ -322,8 +333,12 @@ void meego_media_player_control_emit_stopped (gpointer instance);
 void meego_media_player_control_emit_request_window (gpointer instance);
 void meego_media_player_control_emit_buffering (gpointer instance);
 void meego_media_player_control_emit_buffered (gpointer instance);
-void meego_media_player_control_emit_player_state_changed (gpointer instance, gint cur_state);
+void meego_media_player_control_emit_player_state_changed (gpointer instance, gint old_state, gint cur_state);
 void meego_media_player_control_emit_target_ready(gpointer instance, GHashTable *infos);
+void meego_media_player_control_emit_video_tag_changed (gpointer instance, gint channel);
+void meego_media_player_control_emit_audio_tag_changed (gpointer instance, gint channel);
+void meego_media_player_control_emit_text_tag_changed (gpointer instance, gint channel);
+void meego_media_player_control_emit_metadata_changed(gpointer instance);
 
 G_END_DECLS
 #endif
