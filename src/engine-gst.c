@@ -2856,11 +2856,7 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   gchar * element_name = NULL;
 
   src = GST_MESSAGE_SRC (message);
-  if (src != priv->pipeline) {
-    UMMS_DEBUG("get the message from object:%p, not our pipeline, strange");
-    return;
-  }
-
+ 
   if(message->type != GST_MESSAGE_TAG) {
     UMMS_DEBUG("not a tag message in a registered tag signal, strange");
     return;

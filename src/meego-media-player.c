@@ -1105,6 +1105,39 @@ meego_media_player_class_init (MeegoMediaPlayerClass *klass)
         g_cclosure_marshal_VOID__VOID,
         G_TYPE_NONE,
         0);
+
+  media_player_signals[SIGNAL_MEDIA_PLAYER_VideoTagChanged] =
+    g_signal_new ("video-tag-changed",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__INT,
+        G_TYPE_NONE,
+        1,
+        G_TYPE_INT);
+
+  media_player_signals[SIGNAL_MEDIA_PLAYER_AudioTagChanged] =
+    g_signal_new ("audio-tag-changed",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__INT,
+        G_TYPE_NONE,
+        1,
+        G_TYPE_INT);
+
+  media_player_signals[SIGNAL_MEDIA_PLAYER_TextTagChanged] =
+    g_signal_new ("text-tag-changed",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__INT,
+        G_TYPE_NONE,
+        1,
+        G_TYPE_INT);
 }
 
 static void 
