@@ -219,6 +219,10 @@
 			<arg name="ratio_denom" type="i" direction="out"/>
 		</method>
 
+		<method name="GetEncapsulation">
+			<arg name="protocol_name" type="s" direction="out"/>
+		</method>
+
 		<signal name="Initialized">
 		</signal>
 

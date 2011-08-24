@@ -248,6 +248,10 @@ typedef gboolean (*meego_media_player_control_get_video_aspect_ratio_impl) (Meeg
 void meego_media_player_control_implement_get_video_aspect_ratio(MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_get_video_aspect_ratio_impl impl);
 
+typedef gboolean (*meego_media_player_control_get_protocol_name_impl) (MeegoMediaPlayerControl *self, gchar ** prot_name);
+void meego_media_player_control_implement_get_protocol_name(MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_protocol_name_impl impl);
+
 /*virtual function wrappers*/
 gboolean meego_media_player_control_set_uri (MeegoMediaPlayerControl *self, const gchar *in_uri);
 gboolean meego_media_player_control_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params);
@@ -303,6 +307,7 @@ gboolean meego_media_player_control_get_video_resolution(MeegoMediaPlayerControl
                                                         gint * width, gint * height);
 gboolean meego_media_player_control_get_video_aspect_ratio(MeegoMediaPlayerControl *self,
                                                     gint channel, gint * ratio_num, gint * ratio_denom);
+gboolean meego_media_player_control_get_protocol_name(MeegoMediaPlayerControl *self, gchar ** prot_name);
 
 /*signal emitter*/
 void meego_media_player_control_emit_initialized (gpointer instance);

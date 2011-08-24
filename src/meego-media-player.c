@@ -791,6 +791,15 @@ meego_media_player_get_video_aspect_ratio (MeegoMediaPlayer *player, gint channe
   return TRUE;
 }
 
+gboolean
+meego_media_player_get_get_protocol_name (MeegoMediaPlayer *player, gchar **protocol_name, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_protocol_name(GET_CONTROL_IFACE (player), protocol_name);
+  UMMS_DEBUG ("We get the protocol name: %s", protocol_name);
+  return TRUE;
+}
+
 static void
 meego_media_player_get_property (GObject    *object,
     guint       property_id,
