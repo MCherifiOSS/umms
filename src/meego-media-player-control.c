@@ -55,6 +55,7 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_get_video_resolution_impl get_video_resolution;
   meego_media_player_control_get_video_aspect_ratio_impl get_video_aspect_ratio;
   meego_media_player_control_get_protocol_name_impl get_protocol_name;
+  meego_media_player_control_get_current_uri_impl get_current_uri;
 };
 
 enum {
@@ -1181,6 +1182,25 @@ void meego_media_player_control_implement_get_protocol_name(MeegoMediaPlayerCont
                                                     meego_media_player_control_get_protocol_name_impl impl)
 {
   klass->get_protocol_name = impl;
+}
+
+gboolean meego_media_player_control_get_current_uri(MeegoMediaPlayerControl *self, gchar ** uri)
+{
+  meego_media_player_control_get_current_uri_impl impl =
+                 (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_current_uri);
+
+  if (impl != NULL) {
+    (impl) (self, uri);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_current_uri(MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_current_uri_impl impl)
+{
+  klass->get_current_uri = impl;
 }
 
 void

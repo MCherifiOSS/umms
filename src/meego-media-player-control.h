@@ -252,6 +252,10 @@ typedef gboolean (*meego_media_player_control_get_protocol_name_impl) (MeegoMedi
 void meego_media_player_control_implement_get_protocol_name(MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_get_protocol_name_impl impl);
 
+typedef gboolean (*meego_media_player_control_get_current_uri_impl) (MeegoMediaPlayerControl *self, gchar ** uri);
+void meego_media_player_control_implement_get_current_uri(MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_current_uri_impl impl);
+
 /*virtual function wrappers*/
 gboolean meego_media_player_control_set_uri (MeegoMediaPlayerControl *self, const gchar *in_uri);
 gboolean meego_media_player_control_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params);

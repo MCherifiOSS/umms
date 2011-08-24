@@ -792,11 +792,20 @@ meego_media_player_get_video_aspect_ratio (MeegoMediaPlayer *player, gint channe
 }
 
 gboolean
-meego_media_player_get_get_protocol_name (MeegoMediaPlayer *player, gchar **protocol_name, GError **err)
+meego_media_player_get_protocol_name (MeegoMediaPlayer *player, gchar **protocol_name, GError **err)
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_protocol_name(GET_CONTROL_IFACE (player), protocol_name);
   UMMS_DEBUG ("We get the protocol name: %s", protocol_name);
+  return TRUE;
+}
+
+gboolean
+meego_media_player_get_current_uri (MeegoMediaPlayer *player, gchar **uri, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_current_uri(GET_CONTROL_IFACE (player), uri);
+  UMMS_DEBUG ("We get the uri: %s", uri);
   return TRUE;
 }
 

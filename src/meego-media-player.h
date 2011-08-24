@@ -122,7 +122,8 @@ gboolean meego_media_player_get_video_resolution (MeegoMediaPlayer *player, gint
                                          gint * width, gint * height, GError **err);
 gboolean meego_media_player_get_video_aspect_ratio (MeegoMediaPlayer *player, gint channel, 
                                          gint * ratio_num, gint * ratio_denom, GError **err);
-gboolean meego_media_player_get_get_protocol_name (MeegoMediaPlayer *player, gchar **protocol_name, GError **err);
+gboolean meego_media_player_get_protocol_name (MeegoMediaPlayer *player, gchar **protocol_name, GError **err);
+gboolean meego_media_player_get_current_uri (MeegoMediaPlayer *player, gchar **uri, GError **err);
 
 G_END_DECLS
 

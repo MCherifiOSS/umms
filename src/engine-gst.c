@@ -2533,6 +2533,7 @@ engine_gst_get_video_aspect_ratio(MeegoMediaPlayerControl *self, gint channel,
   return ret;
 }
 
+
 static gboolean
 engine_gst_get_protocol_name(MeegoMediaPlayerControl *self, gchar ** prot_name)
 {
@@ -2566,6 +2567,37 @@ engine_gst_get_protocol_name(MeegoMediaPlayerControl *self, gchar ** prot_name)
   g_free(uri);
   return TRUE;
 }
+
+
+static gboolean
+engine_gst_get_current_uri(MeegoMediaPlayerControl *self, gchar ** uri)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gchar * s_uri = NULL;
+  
+  *uri = NULL;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  g_object_get (G_OBJECT (pipe), "uri", &s_uri, NULL);
+ 
+  if(!s_uri) {
+    UMMS_DEBUG("Pipe %"GST_PTR_FORMAT" has no uri now!", pipe);
+    return FALSE;
+  }
+
+  if(!gst_uri_is_valid(s_uri)) {
+    UMMS_DEBUG("uri: %s  is invalid", s_uri);
+    g_free(s_uri);
+    return FALSE;
+  }
+
+  *uri = s_uri;
+  return TRUE;
+}
+
 
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
@@ -2676,6 +2708,8 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_get_video_aspect_ratio);
   meego_media_player_control_implement_get_protocol_name (klass,
       engine_gst_get_protocol_name);
+  meego_media_player_control_implement_get_current_uri (klass,
+      engine_gst_get_current_uri);
 }
 
 static void
