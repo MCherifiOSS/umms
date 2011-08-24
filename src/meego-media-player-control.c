@@ -53,6 +53,7 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_get_audio_samplerate_impl get_audio_samplerate;
   meego_media_player_control_get_video_framerate_impl get_video_framerate;
   meego_media_player_control_get_video_resolution_impl get_video_resolution;
+  meego_media_player_control_get_video_aspect_ratio_impl get_video_aspect_ratio;
 };
 
 enum {
@@ -1141,6 +1142,26 @@ void meego_media_player_control_implement_get_video_resolution(MeegoMediaPlayerC
   klass->get_video_resolution = impl;
 }
 
+
+gboolean meego_media_player_control_get_video_aspect_ratio(MeegoMediaPlayerControl *self,
+                                                    gint channel, gint * ratio_num, gint * ratio_denom)
+{
+  meego_media_player_control_get_video_aspect_ratio_impl impl =
+                 (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_video_aspect_ratio);
+
+  if (impl != NULL) {
+    (impl) (self, channel, ratio_num, ratio_denom);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_video_aspect_ratio(MeegoMediaPlayerControlClass *klass,
+                                                    meego_media_player_control_get_video_aspect_ratio_impl impl)
+{
+  klass->get_video_aspect_ratio = impl;
+}
 
 void
 meego_media_player_control_emit_initialized (gpointer instance)

@@ -780,6 +780,17 @@ meego_media_player_get_video_resolution (MeegoMediaPlayer *player, gint channel,
   return TRUE;
 }
 
+gboolean
+meego_media_player_get_video_aspect_ratio (MeegoMediaPlayer *player, gint channel, 
+                                           gint * ratio_num, gint * ratio_denom, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_video_aspect_ratio(GET_CONTROL_IFACE (player),
+          channel, ratio_num, ratio_denom);
+  UMMS_DEBUG ("We get the video aspect ratio: %d : %d", *ratio_num, *ratio_denom);
+  return TRUE;
+}
+
 static void
 meego_media_player_get_property (GObject    *object,
     guint       property_id,

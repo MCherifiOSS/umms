@@ -213,6 +213,12 @@
 			<arg name="height" type="i" direction="out"/>
 		</method>
 
+		<method name="GetVideoAspectRatio">
+			<arg name="channel" type="i"/>
+			<arg name="ratio_num" type="i" direction="out"/>
+			<arg name="ratio_denom" type="i" direction="out"/>
+		</method>
+
 		<signal name="Initialized">
 		</signal>
 

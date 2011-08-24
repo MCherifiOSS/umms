@@ -2639,6 +2639,8 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_get_video_framerate);
   meego_media_player_control_implement_get_video_resolution (klass,
       engine_gst_get_video_resolution);
+  meego_media_player_control_implement_get_video_aspect_ratio (klass,
+      engine_gst_get_video_aspect_ratio);
 }
 
 static void

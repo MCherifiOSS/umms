@@ -120,6 +120,8 @@ gboolean meego_media_player_get_video_framerate (MeegoMediaPlayer *player, gint 
                                         gint * frame_rate_num, gint * frame_rate_denom, GError **err);
 gboolean meego_media_player_get_video_resolution (MeegoMediaPlayer *player, gint channel, 
                                          gint * width, gint * height, GError **err);
+gboolean meego_media_player_get_video_aspect_ratio (MeegoMediaPlayer *player, gint channel, 
+                                         gint * ratio_num, gint * ratio_denom, GError **err);
 
 G_END_DECLS
 

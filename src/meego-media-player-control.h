@@ -238,10 +238,15 @@ typedef gboolean (*meego_media_player_control_get_video_framerate_impl) (MeegoMe
 void meego_media_player_control_implement_get_video_framerate (MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_get_video_framerate_impl impl);
 
-typedef gboolean (*meego_media_player_control_get_video_resolution_impl) (MeegoMediaPlayerControl *self, 
+typedef gboolean (*meego_media_player_control_get_video_resolution_impl) (MeegoMediaPlayerControl *self,
                                                         gint channel, gint * width, gint * height);
 void meego_media_player_control_implement_get_video_resolution(MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_get_video_resolution_impl impl);
+
+typedef gboolean (*meego_media_player_control_get_video_aspect_ratio_impl) (MeegoMediaPlayerControl *self,
+                                                        gint channel, gint * ratio_num, gint * ratio_denom);
+void meego_media_player_control_implement_get_video_aspect_ratio(MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_video_aspect_ratio_impl impl);
 
 /*virtual function wrappers*/
 gboolean meego_media_player_control_set_uri (MeegoMediaPlayerControl *self, const gchar *in_uri);
@@ -296,6 +301,8 @@ gboolean meego_media_player_control_get_video_framerate(MeegoMediaPlayerControl 
                                                         gint * frame_rate_num, gint * frame_rate_denom);
 gboolean meego_media_player_control_get_video_resolution(MeegoMediaPlayerControl *self, gint channel,
                                                         gint * width, gint * height);
+gboolean meego_media_player_control_get_video_aspect_ratio(MeegoMediaPlayerControl *self,
+                                                    gint channel, gint * ratio_num, gint * ratio_denom);
 
 /*signal emitter*/
 void meego_media_player_control_emit_initialized (gpointer instance);
