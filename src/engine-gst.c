@@ -3133,22 +3133,22 @@ bus_sync_handler (GstBus *bus,
 static void
 video_tags_changed_cb (GstElement *playbin2, gint stream_id, gpointer user_data) /* Used as tag change monitor. */
 {
-  EngineGstPrivate * priv = (EngineGstPrivate *) user_data;
-
+  EngineGst * priv = (EngineGst *) user_data;
+  meego_media_player_control_emit_video_tag_changed(priv, stream_id);
 }
 
 static void
 audio_tags_changed_cb (GstElement *playbin2, gint stream_id, gpointer user_data) /* Used as tag change monitor. */
 {
-  EngineGstPrivate * priv = (EngineGstPrivate *) user_data;
-
+  EngineGst * priv = (EngineGst *) user_data;
+  meego_media_player_control_emit_audio_tag_changed(priv, stream_id);
 }
 
 static void
 text_tags_changed_cb (GstElement *playbin2, gint stream_id, gpointer user_data) /* Used as tag change monitor. */
 {
-  EngineGstPrivate * priv = (EngineGstPrivate *) user_data;
-
+  EngineGst * priv = (EngineGst *) user_data;
+  meego_media_player_control_emit_text_tag_changed(priv, stream_id);
 }
 
 /* GstPlayFlags flags from playbin2 */
@@ -3217,13 +3217,13 @@ engine_gst_init (EngineGst *self)
   gst_object_unref (GST_OBJECT (bus));
 
   g_signal_connect (priv->pipeline, 
-          "video-tags-changed", G_CALLBACK (video_tags_changed_cb), priv);
+          "video-tags-changed", G_CALLBACK (video_tags_changed_cb), self);
 
   g_signal_connect (priv->pipeline, 
-          "audio-tags-changed", G_CALLBACK (audio_tags_changed_cb), priv);
+          "audio-tags-changed", G_CALLBACK (audio_tags_changed_cb), self);
 
   g_signal_connect (priv->pipeline, 
-          "text-tags-changed", G_CALLBACK (text_tags_changed_cb), priv);
+          "text-tags-changed", G_CALLBACK (text_tags_changed_cb), self);
 
   /*
    *Use GST_PLAY_FLAG_DOWNLOAD flag to enable Gstreamer Download buffer mode,

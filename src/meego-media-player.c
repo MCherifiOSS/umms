@@ -60,6 +60,9 @@ enum {
   SIGNAL_MEDIA_PLAYER_Suspended,
   SIGNAL_MEDIA_PLAYER_Restored,
   SIGNAL_MEDIA_PLAYER_NoResource,
+  SIGNAL_MEDIA_PLAYER_VideoTagChanged,
+  SIGNAL_MEDIA_PLAYER_AudioTagChanged,
+  SIGNAL_MEDIA_PLAYER_TextTagChanged,
   N_MEDIA_PLAYER_SIGNALS
 };
 
@@ -150,6 +153,24 @@ static void
 restored_cb (MeegoMediaPlayerControl *iface, MeegoMediaPlayer *player)
 {
   g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_Restored], 0);
+}
+
+static void
+video_tag_changed_cb (MeegoMediaPlayerControl *iface, gint channel, MeegoMediaPlayer *player)
+{
+  g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_VideoTagChanged], 0, channel);
+}
+
+static void
+audio_tag_changed_cb (MeegoMediaPlayerControl *iface, gint channel, MeegoMediaPlayer *player)
+{
+  g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_AudioTagChanged], 0, channel);
+}
+
+static void
+text_tag_changed_cb (MeegoMediaPlayerControl *iface, gint channel, MeegoMediaPlayer *player)
+{
+  g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_TextTagChanged], 0, channel);
 }
 
 static gboolean
@@ -255,6 +276,18 @@ meego_media_player_set_uri (MeegoMediaPlayer *player,
         0);
     g_signal_connect_object (player->player_control, "restored",
         G_CALLBACK (restored_cb),
+        player,
+        0);
+    g_signal_connect_object (player->player_control, "video-tag-changed",
+        G_CALLBACK (video_tag_changed_cb),
+        player,
+        0);
+    g_signal_connect_object (player->player_control, "audio-tag-changed",
+        G_CALLBACK (audio_tag_changed_cb),
+        player,
+        0);
+    g_signal_connect_object (player->player_control, "text-tag-changed",
+        G_CALLBACK (text_tag_changed_cb),
         player,
         0);
   }

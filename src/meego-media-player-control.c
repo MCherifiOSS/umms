@@ -71,6 +71,9 @@ enum {
   SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_TargetReady,
   SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Suspended,
   SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_Restored,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_VideoTagChanged,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_AudioTagChanged,
+  SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_TextTagChanged,
   N_MEEGO_MEDIA_PLAYER_CONTROL_SIGNALS
 };
 static guint meego_media_player_control_signals[N_MEEGO_MEDIA_PLAYER_CONTROL_SIGNALS] = {0};
@@ -1321,6 +1324,36 @@ meego_media_player_control_emit_restored (gpointer instance)
                  0);
 }
 
+void
+meego_media_player_control_emit_video_tag_changed (gpointer instance, gint channel)
+{
+  g_assert (instance != NULL);
+  g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
+  g_signal_emit (instance,
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_VideoTagChanged],
+                 0, channel);
+}
+
+void
+meego_media_player_control_emit_audio_tag_changed (gpointer instance, gint channel)
+{
+  g_assert (instance != NULL);
+  g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
+  g_signal_emit (instance,
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_AudioTagChanged],
+                 0, channel);
+}
+
+void
+meego_media_player_control_emit_text_tag_changed (gpointer instance, gint channel)
+{
+  g_assert (instance != NULL);
+  g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, MEEGO_TYPE_MEDIA_PLAYER_CONTROL));
+  g_signal_emit (instance,
+                 meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_TextTagChanged],
+                 0, channel);
+}
+
 static inline void
 meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
 {
@@ -1447,6 +1480,39 @@ meego_media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
         g_cclosure_marshal_VOID__VOID,
         G_TYPE_NONE,
         0);
+
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_VideoTagChanged] =
+    g_signal_new ("video-tag-changed",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__INT,
+        G_TYPE_NONE,
+        1,
+        G_TYPE_INT);
+   
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_AudioTagChanged] =
+    g_signal_new ("audio-tag-changed",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__INT,
+        G_TYPE_NONE,
+        1,
+        G_TYPE_INT);
+
+  meego_media_player_control_signals[SIGNAL_MEEGO_MEDIA_PLAYER_CONTROL_TextTagChanged] =
+    g_signal_new ("text-tag-changed",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__INT,
+        G_TYPE_NONE,
+        1,
+        G_TYPE_INT);
 }
 
 static void

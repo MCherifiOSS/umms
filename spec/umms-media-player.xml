@@ -277,6 +277,17 @@
 		<signal name="NoResource">
 		</signal>
 
+		<signal name="VideoTagChanged">
+			<arg type="i"/>
+		</signal>
+
+		<signal name="AudioTagChanged">
+			<arg type="i"/>
+		</signal>
+
+		<signal name="TextTagChanged">
+			<arg type="i"/>
+		</signal>
 	</interface>
 
 </node>
