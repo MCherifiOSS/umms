@@ -11,75 +11,95 @@ sys.path.append("../libummsclient")
 import libummsclient
 
 method_name = (
-	"SetUri",
-  "SetTarget",
-	"Play",
-	"Pause",
-	"Stop",
-	"SetPosition",
-	"GetPosition",#5
-	"SetPlaybackRate",
-	"GetPlaybackRate",
-	"SetVolume",
-	"GetVolume",
-	"SetWindowId",#10
-	"SetVideoSize",
-	"GetVideoSize",
-	"GetBufferedTime",
-	"GetBufferedBytes",
-	"GetMediaSizeTime",#15
-	"GetMediaSizeBytes",
-	"HasVideo",
-	"HasAudio",
-	"IsStreaming",
-	"IsSeekable",#20
-	"SupportFullscreen",
-	"GetPlayerState",
-  "SetProxy",
-  "Suspend",
-  "Restore",
-  "GetPlayingContentMetadata",
-  "SetGlobalVolume",
-  "GetGlobalVolume",
-  "DisableAudioOuput",
-  "EnableAudioOuput",
-  "GetAudioOutputState"
-	)
+    "SetUri",
+    "SetTarget",
+    "Play",
+    "Pause",
+    "Stop",
+    "SetPosition",
+    "GetPosition",#5
+    "SetPlaybackRate",
+    "GetPlaybackRate",
+    "SetVolume",
+    "GetVolume",
+    "SetWindowId",#10
+    "SetVideoSize",
+    "GetVideoSize",
+    "GetBufferedTime",
+    "GetBufferedBytes",
+    "GetMediaSizeTime",#15
+    "GetMediaSizeBytes",
+    "HasVideo",
+    "HasAudio",
+    "IsStreaming",
+    "IsSeekable",#20
+    "SupportFullscreen",
+    "GetPlayerState",
+    "SetProxy",
+    "Suspend",
+    "Restore",
+    "GetPlayingContentMetadata",
+    "SetGlobalVolume",
+    "GetGlobalVolume",
+    "DisableAudioOuput",
+    "EnableAudioOuput",
+    "GetAudioOutputState",#31
+    "GetCurrentVideo",
+    "GetCurrentAudio",
+    "SetCurrentVideo",
+    "SetCurrentAudio",
+    "GetVideoNum",
+    "GetAudioNum",
+    "SetSubtitleUri",
+    "SetCurrentSubtitle",
+    "GetCurrentSubtitle",#40
+    "GetVideoCodec"
+)
 
 (
-	SetUri,
-  SetTarget,
-	Play,
-	Pause,
-	Stop,
-	SetPosition,
-	GetPosition,
-	SetPlaybackRate,
-	GetPlaybackRate,
-	SetVolume,
-	GetVolume,
-	SetWindowId,
-	SetVideoSize,
-	GetVideoSize,
-	GetBufferedTime,
-	GetBufferedBytes,
-	GetMediaSizeTime,
-	GetMediaSizeBytes,
-	HasVideo,
-	HasAudio,
-	IsStreaming,
-	IsSeekable,
-	SupportFullscreen,
-	GetPlayerState,
-	SetProxy,
-  Suspend,
-  Restore,
-  GetPlayingContentMetadata,
-  SetGlobalVolume,
-  GetGlobalVolume,
-  DisableAudioOuput,
-  EnableAudioOuput,
-  GetAudioOutputState
+    SetUri,
+    SetTarget,
+    Play,
+    Pause,
+    Stop,
+    SetPosition,
+    GetPosition,
+    SetPlaybackRate,
+    GetPlaybackRate,
+    SetVolume,
+    GetVolume,
+    SetWindowId,
+    SetVideoSize,
+    GetVideoSize,
+    GetBufferedTime,
+    GetBufferedBytes,
+    GetMediaSizeTime,
+    GetMediaSizeBytes,
+    HasVideo,
+    HasAudio,
+    IsStreaming,
+    IsSeekable,
+    SupportFullscreen,
+    GetPlayerState,
+    SetProxy,
+    Suspend,
+    Restore,
+    GetPlayingContentMetadata,
+    SetGlobalVolume,
+    GetGlobalVolume,
+    DisableAudioOuput,
+    EnableAudioOuput,
+    GetAudioOutputState,
+    GetCurrentVideo,
+    GetCurrentAudio,
+    SetCurrentVideo,
+    SetCurrentAudio,
+    GetVideoNum,
+    GetAudioNum,
+    SetSubtitleUri,
+    SetCurrentSubtitle,
+    GetCurrentSubtitle,
+    GetVideoCodec
 ) = range (len(method_name))
 
 (
@@ -94,9 +114,9 @@ method_name = (
 
 #CE4100 specific
 (
-  UPP_A,
-  UPP_B,
-  UPP_C
+    UPP_A,
+    UPP_B,
+    UPP_C
 ) = range (4, 7)
 
 #define TARGET_PARAM_KEY_RECTANGLE "rectangle"
@@ -306,6 +326,44 @@ class CmdHandler(threading.Thread):
         	state = self.player.Suspend();
         elif mid == Restore:
         	state = self.player.Restore();
+
+        elif mid == GetCurrentVideo:
+            print self.player.GetCurrentVideo();
+
+        elif mid == GetCurrentAudio:
+            print self.player.GetCurrentAudio();
+
+        elif mid == SetCurrentVideo:
+            num = int(raw_input ("Input video number to set:\n"))
+            self.player.SetCurrentVideo(num);
+       
+        elif mid == SetCurrentAudio:
+            num = int(raw_input ("Input audio number to set:\n"))
+            self.player.SetCurrentAudio(num);
+
+        elif mid == GetVideoNum:
+            print self.player.GetVideoNum();
+        elif mid == GetAudioNum:
+            print self.player.GetAudioNum();
+	
+        elif mid == SetSubtitleUri:
+            uri = raw_input("Input the Subtitle, 'd' for default: '%s'\n" % (default_sub))
+            print "uri for subtitle :'%s'" % (uri)
+            if uri == "d":
+                self.player.SetUri(default_sub)
+            else :
+                self.player.SetUri(uri)
+	
+        elif mid == SetCurrentSubtitle:
+            sub == raw_input("Input your expect subtitle, '%d'\n")
+            self.player.SetCurrentSubtitle(sub);
+
+        elif mid == GetCurrentSubtitle:
+        	print self.player.GetCurrentSubtitle();
+
+        elif mid == GetVideoCodec:
+        	print self.player.GetVideoCodec(0);
+	
         elif mid == GetPlayingContentMetadata:
             metadata = metadata_viewer.GetPlayingContentMetadata();
             print_metadata_list(metadata)
@@ -326,24 +384,28 @@ class CmdHandler(threading.Thread):
             state = audio_manager.GetState(type);
             print "audio output(%d) state = %d" % (type, state)
         else:
-        	print "Unsupported method id '%d'" % (mid)
-        	self.print_help(self);
+            print "Unsupported method id '%d'" % (mid)
+            self.print_help(self);
         return True
 
 error_type_name = (
-    	"ErrorTypeEngine",
-    	"NumOfErrorType"
-	)
+    "ErrorTypeEngine",
+    "NumOfErrorType"
+)
 
 state_name = (
-	"PlayerStateNull",
-	"PlayerStateStopped",
-	"PlayerStatePaused",
-	"PlayerStatePlaying"
+    "PlayerStateNull",
+    "PlayerStateStopped",
+    "PlayerStatePaused",
+    "PlayerStatePlaying"
 )
 
 
-default_uri = "file:///root/720p.m4v"
+default_uri = "file:///root/rpmbuild/Ocean_eleven.mkv"
+#default_uri = "file:///root/p.mkv"
+default_sub = ""
+#"file://root/text-subtitle.srt"
+#default_uri = "file:///root/multi.mkv"
 player_name = ""
 metadata_viewer = None
 audio_manager = None
