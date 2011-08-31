@@ -37,12 +37,12 @@ static gboolean meego_media_player_gstreamer_load_engine (MeegoMediaPlayer *play
     ret = FALSE; //TODO:implement TV Engine other place and create TV engine here.
     UMMS_DEBUG ("not support dvb:// source type, tv engine not implemented");
   } else {
-    if (priv->engine_type == MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_GST) {
+    if (player->player_control) {
       //we already loaded gstreamer engine.
       UMMS_DEBUG ("gstreamer engine alrady loaded");
       *new_engine = FALSE;
       ret = TRUE;
-    } else if (priv->engine_type == MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_INVALID) {
+    } else {
       UMMS_DEBUG ("load gstreamer engine");
       player->player_control = (MeegoMediaPlayerControl*)engine_gst_new();
       if (player->player_control) {
@@ -52,9 +52,6 @@ static gboolean meego_media_player_gstreamer_load_engine (MeegoMediaPlayer *play
       } else {
         ret = FALSE;
       }
-    } else {
-      //TODO:
-      //tv engine had been loaded, destroy it and load gstreamer engine.
     }
   }
 

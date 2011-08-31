@@ -92,6 +92,9 @@ struct _MeegoMediaPlayerPrivate {
 };
 
 static void
+connect_signals(MeegoMediaPlayer *player, MeegoMediaPlayerControl *control);
+
+static void
 request_window_cb (MeegoMediaPlayerControl *iface, MeegoMediaPlayer *player)
 {
   g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_RequestWindow], 0);
@@ -237,70 +240,7 @@ meego_media_player_set_uri (MeegoMediaPlayer *player,
   }
 
   if (new_engine) {
-    g_signal_connect_object (player->player_control, "request-window",
-        G_CALLBACK (request_window_cb),
-        player,
-        0);
-    g_signal_connect_object (player->player_control, "eof",
-        G_CALLBACK (eof_cb),
-        player,
-        0);
-    g_signal_connect_object (player->player_control, "error",
-        G_CALLBACK (error_cb),
-        player,
-        0);
-
-    g_signal_connect_object (player->player_control, "seeked",
-        G_CALLBACK (seeked_cb),
-        player,
-        0);
-
-    g_signal_connect_object (player->player_control, "stopped",
-        G_CALLBACK (stopped_cb),
-        player,
-        0);
-
-    g_signal_connect_object (player->player_control, "buffering",
-        G_CALLBACK (buffering_cb),
-        player,
-        0);
-
-    g_signal_connect_object (player->player_control, "buffered",
-        G_CALLBACK (buffered_cb),
-        player,
-        0);
-    g_signal_connect_object (player->player_control, "player-state-changed",
-        G_CALLBACK (player_state_changed_cb),
-        player,
-        0);
-    g_signal_connect_object (player->player_control, "target-ready",
-        G_CALLBACK (target_ready_cb),
-        player,
-        0);
-    g_signal_connect_object (player->player_control, "suspended",
-        G_CALLBACK (suspended_cb),
-        player,
-        0);
-    g_signal_connect_object (player->player_control, "restored",
-        G_CALLBACK (restored_cb),
-        player,
-        0);
-    g_signal_connect_object (player->player_control, "video-tag-changed",
-        G_CALLBACK (video_tag_changed_cb),
-        player,
-        0);
-    g_signal_connect_object (player->player_control, "audio-tag-changed",
-        G_CALLBACK (audio_tag_changed_cb),
-        player,
-        0);
-    g_signal_connect_object (player->player_control, "text-tag-changed",
-        G_CALLBACK (text_tag_changed_cb),
-        player,
-        0);
-    g_signal_connect_object (player->player_control, "metadata-changed",
-        G_CALLBACK (metadata_changed_cb),
-        player,
-        0);
+    connect_signals (player, player->player_control);
   }
 
   /* Set all the cached property. */
@@ -1193,8 +1133,8 @@ meego_media_player_init (MeegoMediaPlayer *player)
 {
   player->priv = PLAYER_PRIVATE (player);
   player->priv->uri = NULL;
-  player->player_control = NULL;
-
+  player->player_control = (MeegoMediaPlayerControl *)engine_gst_new ();
+  connect_signals(player, player->player_control); 
   meego_media_player_set_default_params (player);
 }
 
@@ -1205,3 +1145,73 @@ meego_media_player_new (void)
 {
   return g_object_new (MEEGO_TYPE_MEDIA_PLAYER, NULL);
 }
+
+static void
+connect_signals(MeegoMediaPlayer *player, MeegoMediaPlayerControl *control)
+{
+  g_signal_connect_object (control, "request-window",
+      G_CALLBACK (request_window_cb),
+      player,
+      0);
+  g_signal_connect_object (control, "eof",
+      G_CALLBACK (eof_cb),
+      player,
+      0);
+  g_signal_connect_object (control, "error",
+      G_CALLBACK (error_cb),
+      player,
+      0);
+
+  g_signal_connect_object (control, "seeked",
+      G_CALLBACK (seeked_cb),
+      player,
+      0);
+
+  g_signal_connect_object (control, "stopped",
+      G_CALLBACK (stopped_cb),
+      player,
+      0);
+
+  g_signal_connect_object (control, "buffering",
+      G_CALLBACK (buffering_cb),
+      player,
+      0);
+
+  g_signal_connect_object (control, "buffered",
+      G_CALLBACK (buffered_cb),
+      player,
+      0);
+  g_signal_connect_object (control, "player-state-changed",
+      G_CALLBACK (player_state_changed_cb),
+      player,
+      0);
+  g_signal_connect_object (control, "target-ready",
+      G_CALLBACK (target_ready_cb),
+      player,
+      0);
+  g_signal_connect_object (control, "suspended",
+      G_CALLBACK (suspended_cb),
+      player,
+      0);
+  g_signal_connect_object (control, "restored",
+      G_CALLBACK (restored_cb),
+      player,
+      0);
+  g_signal_connect_object (control, "video-tag-changed",
+      G_CALLBACK (video_tag_changed_cb),
+      player,
+      0);
+  g_signal_connect_object (control, "audio-tag-changed",
+      G_CALLBACK (audio_tag_changed_cb),
+      player,
+      0);
+  g_signal_connect_object (control, "text-tag-changed",
+      G_CALLBACK (text_tag_changed_cb),
+      player,
+      0);
+  g_signal_connect_object (control, "metadata-changed",
+      G_CALLBACK (metadata_changed_cb),
+      player,
+      0);
+}
+
