@@ -886,6 +886,10 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
   old_pending = priv->pending_state;
   priv->pending_state = ((target_state == GST_STATE_PAUSED) ? PlayerStatePaused : PlayerStatePlaying);
 
+  if (!priv->uri_parsed) {
+    goto uri_not_parsed;
+  }
+
   if (ret = request_resource(self)) {
     if (target_state == GST_STATE_PLAYING) {
       if (IS_LIVE_URI(priv->uri)) {
@@ -920,11 +924,14 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
     }
   }
 
+uri_not_parsed:
+  UMMS_DEBUG ("uri parsing not finished");
+  return FALSE;
+
 OUT:
   if (!ret) {
     priv->pending_state = old_pending;
   }
-
   return ret;
 }
 
@@ -3441,6 +3448,7 @@ static gboolean
 uri_parsing_finished_cb (MeegoMediaPlayerControl * self)
 {
   EngineGstPrivate *priv = GET_PRIVATE (self);
+  GstState target;
 
   UMMS_DEBUG("Begin");
 
@@ -3449,6 +3457,12 @@ uri_parsing_finished_cb (MeegoMediaPlayerControl * self)
 
   UMMS_DEBUG("End, has_video=%d, num of hw_viddec=%d, has_audio=%d, num of hw_auddec=%d",
              priv->has_video, priv->hw_viddec, priv->has_audio, priv->hw_auddec);
+
+  if (priv->pending_state >= PlayerStatePaused) {
+    target = (priv->pending_state == PlayerStatePaused) ? (GST_STATE_PAUSED) : (GST_STATE_PLAYING);
+    activate_engine (self, target);
+  }
+
   return FALSE;
 }
 
