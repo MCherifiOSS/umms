@@ -6,9 +6,9 @@
 static void
 val_release (gpointer data)
 {
-    GValue *val = (GValue *)data;
-    g_value_unset(val);
-    g_free (val);
+  GValue *val = (GValue *)data;
+  g_value_unset(val);
+  g_free (val);
 }
 
 void param_table_release (GHashTable *param)
@@ -16,8 +16,8 @@ void param_table_release (GHashTable *param)
   g_return_if_fail (param);
   g_hash_table_destroy (param);
 }
-  
-GHashTable * 
+
+GHashTable *
 param_table_create (const gchar* key1, ...)
 {
   GPtrArray   *key_array;
@@ -26,7 +26,7 @@ param_table_create (const gchar* key1, ...)
   const gchar *key;
   GValue      *val;
   GType       valtype;
-  const char  *collect_err; 
+  const char  *collect_err;
   va_list     args;
   gint        i;
 
@@ -35,16 +35,15 @@ param_table_create (const gchar* key1, ...)
   va_start (args, key1);
 
   key = key1;
-  while (key != NULL) 
-  { 
-    valtype = va_arg (args, GType); 
+  while (key != NULL) {
+    valtype = va_arg (args, GType);
     val = g_new0(GValue, 1);
-    g_value_init (val, valtype); 
-    collect_err = NULL; 
-    G_VALUE_COLLECT (val, args, G_VALUE_NOCOPY_CONTENTS, &collect_err); 
+    g_value_init (val, valtype);
+    collect_err = NULL;
+    G_VALUE_COLLECT (val, args, G_VALUE_NOCOPY_CONTENTS, &collect_err);
     g_hash_table_insert(params, (gpointer)key, val);
-    key = va_arg (args, gpointer); 
-  } 
+    key = va_arg (args, gpointer);
+  }
 
   va_end (args);
 

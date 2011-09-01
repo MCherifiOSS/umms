@@ -13,17 +13,15 @@ G_DEFINE_TYPE (UmmsPlayingContentMetadataViewer, umms_playing_content_metadata_v
 #define GET_PRIVATE(o) ((UmmsPlayingContentMetadataViewer *)o)->priv
 
 struct _UmmsPlayingContentMetadataViewerPrivate {
-  UmmsObjectManager *obj_mngr; 
+  UmmsObjectManager *obj_mngr;
 };
 
 /* props */
-enum
-{
+enum {
   PROP_OBJECT_MANAGER = 1
 };
 
-enum
-{
+enum {
   SIGNAL_METADATA_UPDATED,
   N_SIGNALS
 };
@@ -88,13 +86,12 @@ umms_playing_content_metadata_viewer_set_property (GObject      *object,
   UmmsPlayingContentMetadataViewerPrivate *priv = GET_PRIVATE(object);
 
   switch (property_id) {
-    case PROP_OBJECT_MANAGER:
-      {
-        priv->obj_mngr = g_value_get_object (value);
-        g_object_ref (priv->obj_mngr);
-        g_signal_connect (priv->obj_mngr, "player-added", G_CALLBACK(player_added_cb), object);
-        break;
-      }
+    case PROP_OBJECT_MANAGER: {
+      priv->obj_mngr = g_value_get_object (value);
+      g_object_ref (priv->obj_mngr);
+      g_signal_connect (priv->obj_mngr, "player-added", G_CALLBACK(player_added_cb), object);
+      break;
+    }
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
   }
@@ -117,7 +114,7 @@ umms_playing_content_metadata_viewer_finalize (GObject *object)
   G_OBJECT_CLASS (umms_playing_content_metadata_viewer_parent_class)->finalize (object);
 }
 
-static GType 
+static GType
 get_metadata_type ()
 {
   return dbus_g_type_get_map ("GHashTable", G_TYPE_STRING, G_TYPE_VALUE);
@@ -137,18 +134,18 @@ umms_playing_content_metadata_viewer_class_init (UmmsPlayingContentMetadataViewe
 
   g_object_class_install_property (object_class, PROP_OBJECT_MANAGER,
       g_param_spec_object ("umms-object-manager", "UMMS object manager",
-        "UMMS object manager provides access to all MediaPlayer object",
-        UMMS_TYPE_OBJECT_MANAGER, G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
+          "UMMS object manager provides access to all MediaPlayer object",
+          UMMS_TYPE_OBJECT_MANAGER, G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
   signals[SIGNAL_METADATA_UPDATED] =
     g_signal_new ("metadata-updated",
-        G_OBJECT_CLASS_TYPE (klass),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL,
-        g_cclosure_marshal_VOID__BOXED,
-        G_TYPE_NONE,
-        1, dbus_g_type_get_collection("GPtrArray", get_metadata_type()));
+                  G_OBJECT_CLASS_TYPE (klass),
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL, NULL,
+                  g_cclosure_marshal_VOID__BOXED,
+                  G_TYPE_NONE,
+                  1, dbus_g_type_get_collection("GPtrArray", get_metadata_type()));
 }
 
 static void
@@ -166,7 +163,7 @@ umms_playing_content_metadata_viewer_new (UmmsObjectManager *obj_mngr)
   return g_object_new (UMMS_TYPE_PLAYING_CONTENT_METADATA_VIEWER, "umms-object-manager", obj_mngr, NULL);
 }
 
-gboolean 
+gboolean
 umms_playing_content_metadata_viewer_get_playing_content_metadata (UmmsPlayingContentMetadataViewer *self, GPtrArray **metadata, GError **err)
 {
   GHashTable *ht;
@@ -188,7 +185,7 @@ umms_playing_content_metadata_viewer_get_playing_content_metadata (UmmsPlayingCo
   }
 
   players = umms_object_manager_get_player_list (priv->obj_mngr);
-  for (i=0; i<g_list_length(players); i++) {
+  for (i = 0; i < g_list_length(players); i++) {
 
     item = g_list_nth (players, i);
     player = MEEGO_MEDIA_PLAYER (item->data);

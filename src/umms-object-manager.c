@@ -27,8 +27,7 @@ static void _dump_player_list (GList *players);
 static MeegoMediaPlayer *_gen_media_player (UmmsObjectManager *mngr, gboolean attended);
 static gboolean _remove_media_player (MeegoMediaPlayer *player);
 
-enum 
-{
+enum {
   SIGNAL_PLAYER_ADDED,
   N_SIGNALS
 };
@@ -96,13 +95,13 @@ umms_object_manager_class_init (UmmsObjectManagerClass *klass)
 
   signals[SIGNAL_PLAYER_ADDED] =
     g_signal_new ("player-added",
-        G_OBJECT_CLASS_TYPE (klass),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL,
-        g_cclosure_marshal_VOID__OBJECT,
-        G_TYPE_NONE,
-        1, MEEGO_TYPE_MEDIA_PLAYER);
+                  G_OBJECT_CLASS_TYPE (klass),
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL, NULL,
+                  g_cclosure_marshal_VOID__OBJECT,
+                  G_TYPE_NONE,
+                  1, MEEGO_TYPE_MEDIA_PLAYER);
 }
 
 static void

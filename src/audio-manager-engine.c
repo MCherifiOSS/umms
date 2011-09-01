@@ -36,12 +36,12 @@ G_DEFINE_TYPE_WITH_CODE (AudioManagerEngine, audio_manager_engine, G_TYPE_OBJECT
   do {                                    \
     vol = CLAMP (vol, 0, 100);            \
     ismd_volume = vol/VOLUME_STEP;        \
-  }while (0)                              
+  }while (0)
 
 #define TO_APP_VOLUME(ismd_volume, vol)   \
   do {                                    \
     vol = round(ismd_volume*VOLUME_STEP);        \
-  }while(0)                
+  }while(0)
 
 struct _AudioManagerEnginePrivate {
   GstElement *asink;
@@ -120,7 +120,7 @@ audio_manager_engine_set_state (AudioManagerInterface *self, gint type, gint sta
     default:
       break;
   }
-  g_object_set (asink, output_type, state, NULL); 
+  g_object_set (asink, output_type, state, NULL);
   return TRUE;
 }
 
@@ -137,7 +137,7 @@ audio_manager_engine_get_state (AudioManagerInterface *self, gint type, gint *st
   g_return_val_if_fail (AUDIO_IS_MANAGER_INTERFACE(self), FALSE);
 
   priv = GET_PRIVATE (self);
-  asink= priv->asink;
+  asink = priv->asink;
   g_return_val_if_fail (GST_IS_ELEMENT (asink), FALSE);
 
   UMMS_DEBUG ("invoked");
@@ -157,8 +157,8 @@ audio_manager_engine_get_state (AudioManagerInterface *self, gint type, gint *st
     default:
       break;
   }
-  g_object_get (asink, output_type, &state_tmp, NULL); 
-  *state = (state_tmp == 0)?(AUDIO_OUTPUT_STATE_OFF):(AUDIO_OUTPUT_STATE_ON);
+  g_object_get (asink, output_type, &state_tmp, NULL);
+  *state = (state_tmp == 0) ? (AUDIO_OUTPUT_STATE_OFF) : (AUDIO_OUTPUT_STATE_ON);
   UMMS_DEBUG (" type = %d, mode = %d", type, state_tmp);
   return TRUE;
 }
@@ -249,13 +249,13 @@ audio_manager_engine_init (AudioManagerEngine *self)
   if ((ret = gst_element_set_state (priv->asink, GST_STATE_READY)) == GST_STATE_CHANGE_FAILURE) {
     UMMS_DEBUG ("Setting ismd_audio_sink to playing failed");
     goto FAILED;
-  } 
+  }
   UMMS_DEBUG ("gst_element_set_state to asink,  ret = %d", ret);
 
   //Should immediately return.
   ret = gst_element_get_state (priv->asink, &state, NULL, 0);
   UMMS_DEBUG ("get audio sink state = %d, ret = %d", state, ret);
-  switch (ret){
+  switch (ret) {
     case GST_STATE_CHANGE_FAILURE:
       UMMS_DEBUG ("ismd_audio_sink failed to go playing");
       goto FAILED;
@@ -264,7 +264,7 @@ audio_manager_engine_init (AudioManagerEngine *self)
       UMMS_DEBUG ("Setting ismd_audio_sink to playing succeed");
       return;
       break;
-     default:
+    default:
       UMMS_DEBUG ("Should not reach here, strange!");
       goto FAILED;
       break;

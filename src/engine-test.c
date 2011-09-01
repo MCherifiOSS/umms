@@ -245,43 +245,43 @@ void request_window_cb(MeegoMediaPlayerControl *player, gpointer user_data)
 static void
 connect_sigs(MeegoMediaPlayerControl *player)
 {
-    UMMS_DEBUG ("called");
-    g_signal_connect_object (player, "request-window",
-            G_CALLBACK (request_window_cb),
-            player,
-            0);
-    g_signal_connect_object (player, "eof",
-            G_CALLBACK (eof_cb),
-            player,
-            0);
-    g_signal_connect_object (player, "error",
-            G_CALLBACK (error_cb),
-            player,
-            0);
+  UMMS_DEBUG ("called");
+  g_signal_connect_object (player, "request-window",
+      G_CALLBACK (request_window_cb),
+      player,
+      0);
+  g_signal_connect_object (player, "eof",
+      G_CALLBACK (eof_cb),
+      player,
+      0);
+  g_signal_connect_object (player, "error",
+      G_CALLBACK (error_cb),
+      player,
+      0);
 
-    g_signal_connect_object (player, "seeked",
-            G_CALLBACK (seeked_cb),
-            player,
-            0);
+  g_signal_connect_object (player, "seeked",
+      G_CALLBACK (seeked_cb),
+      player,
+      0);
 
-    g_signal_connect_object (player, "stopped",
-            G_CALLBACK (stopped_cb),
-            player,
-            0);
+  g_signal_connect_object (player, "stopped",
+      G_CALLBACK (stopped_cb),
+      player,
+      0);
 
-    g_signal_connect_object (player, "buffering",
-            G_CALLBACK (begin_buffering_cb),
-            player,
-            0);
+  g_signal_connect_object (player, "buffering",
+      G_CALLBACK (begin_buffering_cb),
+      player,
+      0);
 
-    g_signal_connect_object (player, "buffered",
-            G_CALLBACK (buffered_cb),
-            player,
-            0);
-    g_signal_connect_object (player, "player-state-changed",
-            G_CALLBACK (player_state_changed_cb),
-            player,
-            0);
+  g_signal_connect_object (player, "buffered",
+      G_CALLBACK (buffered_cb),
+      player,
+      0);
+  g_signal_connect_object (player, "player-state-changed",
+      G_CALLBACK (player_state_changed_cb),
+      player,
+      0);
 }
 
 

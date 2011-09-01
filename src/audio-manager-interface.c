@@ -51,7 +51,7 @@ audio_manager_interface_set_volume (AudioManagerInterface *self,
 }
 
 void audio_manager_interface_implement_set_volume (AudioManagerInterfaceClass *klass,
-                                                   audio_manager_interface_set_volume_impl impl)
+    audio_manager_interface_set_volume_impl impl)
 {
   klass->set_volume = impl;
 }
@@ -72,7 +72,7 @@ audio_manager_interface_get_volume (AudioManagerInterface *self,
 }
 
 void audio_manager_interface_implement_get_volume (AudioManagerInterfaceClass *klass,
-                                                   audio_manager_interface_get_volume_impl impl)
+    audio_manager_interface_get_volume_impl impl)
 {
   klass->get_volume = impl;
 }
@@ -93,7 +93,7 @@ audio_manager_interface_set_state (AudioManagerInterface *self,
 }
 
 void audio_manager_interface_implement_set_state (AudioManagerInterfaceClass *klass,
-                                                   audio_manager_interface_set_state_impl impl)
+    audio_manager_interface_set_state_impl impl)
 {
   klass->set_state = impl;
 }
@@ -114,7 +114,7 @@ audio_manager_interface_get_state (AudioManagerInterface *self,
 }
 
 void audio_manager_interface_implement_get_state (AudioManagerInterfaceClass *klass,
-                                                   audio_manager_interface_get_state_impl impl)
+    audio_manager_interface_get_state_impl impl)
 {
   klass->get_state = impl;
 }

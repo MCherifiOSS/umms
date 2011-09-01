@@ -14,17 +14,17 @@ G_DEFINE_TYPE (UmmsResourceManager, umms_resource_manager, G_TYPE_OBJECT)
 #define MAX_HW_CLOCK 5
 #define MAX_HW_TUNER 1
 
-typedef struct _ResourceItem{
+typedef struct _ResourceItem {
   gint     id;
   gboolean used;
-}ResourceItem;
+} ResourceItem;
 
-static ResourceItem planes[MAX_PLANE] = {{UPP_A, FALSE},{UPP_B, FALSE}};
-static ResourceItem hw_viddec[MAX_HW_VIDDEC] = {{1, FALSE},{2, FALSE}};
-static ResourceItem hw_clock[MAX_HW_CLOCK] = {{1, FALSE},{2, FALSE},{3, FALSE},{4, FALSE},{5, FALSE}};
+static ResourceItem planes[MAX_PLANE] = {{UPP_A, FALSE}, {UPP_B, FALSE}};
+static ResourceItem hw_viddec[MAX_HW_VIDDEC] = {{1, FALSE}, {2, FALSE}};
+static ResourceItem hw_clock[MAX_HW_CLOCK] = {{1, FALSE}, {2, FALSE}, {3, FALSE}, {4, FALSE}, {5, FALSE}};
 static ResourceItem hw_tuner[MAX_HW_TUNER] = {{1, FALSE}};
 
-//The sequence must follow the enum _ResourceType definition. 
+//The sequence must follow the enum _ResourceType definition.
 guint limit[ResourceTypeNum] = {MAX_PLANE, MAX_HW_VIDDEC, MAX_HW_CLOCK, MAX_HW_TUNER};
 ResourceItem *res_collection[ResourceTypeNum] = {planes, hw_viddec, hw_clock, hw_tuner};
 
@@ -129,7 +129,7 @@ umms_resource_manager_request_resource (UmmsResourceManager *self, ResourceReque
 
   //Respect the preference given by client.
   if (req->preference != INVALID_RES_HANDLE) {
-    for (i=0; i<res_num; i++) {
+    for (i = 0; i < res_num; i++) {
       if ((res_array[i].id == req->preference) && (res_array[i].used == FALSE)) {
         res_array[i].used = TRUE;
         goto found;
@@ -139,7 +139,7 @@ umms_resource_manager_request_resource (UmmsResourceManager *self, ResourceReque
   }
 
   //Find the first available item.
-  for (i=0; i<res_num; i++) {
+  for (i = 0; i < res_num; i++) {
     if (!res_array[i].used) {
       res_array[i].used = TRUE;
       goto found;
@@ -164,7 +164,7 @@ func_exit:
   return res;
 }
 
-void 
+void
 umms_resource_manager_release_resource (UmmsResourceManager *self, Resource *res)
 {
   gint i;
@@ -179,7 +179,7 @@ umms_resource_manager_release_resource (UmmsResourceManager *self, Resource *res
   res_num = limit[res->type];
   res_array = res_collection[res->type];
 
-  for (i=0; i<res_num; i++) {
+  for (i = 0; i < res_num; i++) {
     if (res_array[i].id == res->handle) {
       res_array[i].used = FALSE;
       UMMS_DEBUG ("resouce released, type:%d, handle:%d", res->type, res_array[i].id);

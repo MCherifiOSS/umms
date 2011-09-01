@@ -53,7 +53,8 @@ static const gchar *gst_state[] = {
 /* list of URIs that we consider to be live source. */
 static gchar *live_src_uri[] = {"mms://", "mmsh://", "rtsp://",
     "mmsu://", "mmst://", "fd://", "myth://", "ssh://", "ftp://", "sftp://",
-    NULL};
+    NULL
+                               };
 
 #define IS_LIVE_URI(uri)                                                           \
 ({                                                                                 \
@@ -99,7 +100,7 @@ struct _EngineGstPrivate {
   Display  *disp;
   GThread  *event_thread;
   gboolean event_thread_running;
-  
+
   //http proxy
   gchar    *proxy_uri;
   gchar    *proxy_id;
@@ -181,7 +182,7 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
   priv->has_audio = FALSE;
   priv->hw_auddec = FALSE;
 
-  if(priv->tag_list) 
+  if (priv->tag_list)
     gst_tag_list_free(priv->tag_list);
   priv->tag_list = NULL;
   RESET_STR(priv->title);
@@ -212,13 +213,13 @@ get_video_rectangle (MeegoMediaPlayerControl *self, gint *ax, gint *ay, gint *w,
     return FALSE;
   }
 
-  (void) XTranslateCoordinates (priv->disp, priv->app_win_id, app_win_attr.root, 
+  (void) XTranslateCoordinates (priv->disp, priv->app_win_id, app_win_attr.root,
       -app_win_attr.border_width,
       -app_win_attr.border_width,
       &app_x, &app_y, &junkwin);
   UMMS_DEBUG ("app window app_absolute_x = %d, app_absolute_y = %d", app_x, app_y);
 
-  (void) XTranslateCoordinates (priv->disp, priv->video_win_id, video_win_attr.root, 
+  (void) XTranslateCoordinates (priv->disp, priv->video_win_id, video_win_attr.root,
       -video_win_attr.border_width,
       -video_win_attr.border_width,
       ax, ay, &junkwin);
@@ -242,7 +243,7 @@ cutout (MeegoMediaPlayerControl *self, gint x, gint y, gint w, gint h)
   gint status;
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
-  property = XInternAtom (priv->disp,"_MUTTER_HINTS",0);
+  property = XInternAtom (priv->disp, "_MUTTER_HINTS", 0);
   if (!property) {
     UMMS_DEBUG ("XInternAtom failed");
     return FALSE;
@@ -259,7 +260,7 @@ cutout (MeegoMediaPlayerControl *self, gint x, gint y, gint w, gint h)
 }
 
 
-static Window 
+static Window
 get_app_win (MeegoMediaPlayerControl *self, Window win)
 {
 
@@ -271,7 +272,7 @@ get_app_win (MeegoMediaPlayerControl *self, Window win)
   Display *dpy = priv->disp;
 
   if (!XQueryTree(dpy, win, &root_win, &parent_win, &child_list,
-        &num_children)) {
+                  &num_children)) {
     UMMS_DEBUG("Can't query window(%lx)'s parent.", win);
     return 0;
   }
@@ -283,7 +284,7 @@ get_app_win (MeegoMediaPlayerControl *self, Window win)
   }
 
   if (!XQueryTree(dpy, parent_win, &root_win, &grandparent_win, &child_list,
-        &num_children)) {
+                  &num_children)) {
     UMMS_DEBUG("Can't query window(%lx)'s grandparent.", win);
     return 0;
   }
@@ -315,14 +316,14 @@ static void
 engine_gst_handle_xevents (MeegoMediaPlayerControl *control)
 {
   XEvent e;
-  gint x,y,w,h,rx,ry;
+  gint x, y, w, h, rx, ry;
   EngineGstPrivate *priv = GET_PRIVATE (control);
 
   g_return_if_fail (control);
 
   /* Handle Expose */
   while (XCheckWindowEvent (priv->disp,
-          priv->app_win_id, StructureNotifyMask, &e)) {
+         priv->app_win_id, StructureNotifyMask, &e)) {
     switch (e.type) {
       case ConfigureNotify:
         get_video_rectangle (control, &x, &y, &w, &h, &rx, &ry);
@@ -364,10 +365,10 @@ create_xevent_handle_thread (MeegoMediaPlayerControl *self)
 
   UMMS_DEBUG ("Begin");
   if (!priv->event_thread) {
-      /* Setup our event listening thread */
-      UMMS_DEBUG ("run xevent thread");
-      priv->event_thread_running = TRUE;
-      priv->event_thread = g_thread_create (
+    /* Setup our event listening thread */
+    UMMS_DEBUG ("run xevent thread");
+    priv->event_thread_running = TRUE;
+    priv->event_thread = g_thread_create (
           (GThreadFunc) engine_gst_event_thread, self, TRUE, NULL);
   }
   return TRUE;
@@ -380,9 +381,9 @@ destroy_xevent_handle_thread (MeegoMediaPlayerControl *self)
 
   UMMS_DEBUG ("Begin");
   if (priv->event_thread) {
-      priv->event_thread_running = FALSE;
-      g_thread_join (priv->event_thread);
-      priv->event_thread = NULL;
+    priv->event_thread_running = FALSE;
+    g_thread_join (priv->event_thread);
+    priv->event_thread = NULL;
   }
   UMMS_DEBUG ("End");
   return TRUE;
@@ -429,7 +430,7 @@ static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTabl
     plane = g_value_get_int (val);
     UMMS_DEBUG ("gdl plane = '%d'", plane);
   }
-  
+
   return setup_ismd_vbin (self, rect, plane);
 }
 
@@ -461,7 +462,7 @@ static Window get_top_level_win (MeegoMediaPlayerControl *self, Window sub_win)
 
   cur_win = sub_win;
   while (!done) {
-    if (!XQueryTree(disp, cur_win, &root_win, &parent_win, &child_list,&num_children)) {
+    if (!XQueryTree(disp, cur_win, &root_win, &parent_win, &child_list, &num_children)) {
       UMMS_DEBUG ("Can't query window tree.");
       return 0;
     }
@@ -469,7 +470,7 @@ static Window get_top_level_win (MeegoMediaPlayerControl *self, Window sub_win)
     UMMS_DEBUG ("cur_win(%lx), parent_win(%lx)", cur_win, parent_win);
     if (child_list) XFree((char *)child_list);
 
-    if (!FROM_THE_SAME_PROC(cur_win, parent_win)){
+    if (!FROM_THE_SAME_PROC(cur_win, parent_win)) {
       UMMS_DEBUG ("Got the top-level window(%lx)", cur_win);
       top_win = cur_win;
       done = TRUE;
@@ -498,9 +499,9 @@ static gboolean setup_datacopy_target (MeegoMediaPlayerControl *self, GHashTable
 }
 
 static int x_print_error(
-    Display *dpy,
-    XErrorEvent *event,
-    FILE *fp)
+  Display *dpy,
+  XErrorEvent *event,
+  FILE *fp)
 {
   char buffer[BUFSIZ];
   char mesg[BUFSIZ];
@@ -536,15 +537,15 @@ static int x_print_error(
     }
 
   } else if ((event->error_code == BadWindow) ||
-      (event->error_code == BadPixmap) ||
-      (event->error_code == BadCursor) ||
-      (event->error_code == BadFont) ||
-      (event->error_code == BadDrawable) ||
-      (event->error_code == BadColor) ||
-      (event->error_code == BadGC) ||
-      (event->error_code == BadIDChoice) ||
-      (event->error_code == BadValue) ||
-      (event->error_code == BadAtom)) {
+             (event->error_code == BadPixmap) ||
+             (event->error_code == BadCursor) ||
+             (event->error_code == BadFont) ||
+             (event->error_code == BadDrawable) ||
+             (event->error_code == BadColor) ||
+             (event->error_code == BadGC) ||
+             (event->error_code == BadIDChoice) ||
+             (event->error_code == BadValue) ||
+             (event->error_code == BadAtom)) {
     if (event->error_code == BadValue)
       XGetErrorDatabaseText(dpy, mtype, "Value", "Value 0x%x",
           mesg, BUFSIZ);
@@ -571,14 +572,14 @@ static int x_print_error(
 
 //Mostly the same as default handler, but not exit process.
 int xerror_handler (
-	Display *dpy,
-	XErrorEvent *event)
+  Display *dpy,
+  XErrorEvent *event)
 {
-    return x_print_error (dpy, event, stderr);
+  return x_print_error (dpy, event, stderr);
 }
 
 
-/* 
+/*
  * 1. Calculate top-level window according to video window.
  * 2. Cutout video window geometry according to its relative position to top-level window.
  * 3. Setup underlying ismd_vidrend_bin element.
@@ -631,7 +632,7 @@ static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable 
 
   //Monitor top-level window's structure change event.
   XSelectInput (priv->disp, priv->app_win_id,
-      StructureNotifyMask);
+                StructureNotifyMask);
   create_xevent_handle_thread (self);
 
   priv->target_type = XWindow;
@@ -649,7 +650,7 @@ unset_target (MeegoMediaPlayerControl *self)
     return TRUE;
 
   /*
-   *For DataCopy and ReservedType0, gstreamer will handle the video-sink element elegantly. 
+   *For DataCopy and ReservedType0, gstreamer will handle the video-sink element elegantly.
    *Nothing need to do here.
    */
   switch (priv->target_type) {
@@ -681,7 +682,7 @@ engine_gst_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *par
 
   /*
    * Set target can only happen at Null or Stopped. Two reasons:
-   * 1. Gstreamer don't support switching sink on the fly. 
+   * 1. Gstreamer don't support switching sink on the fly.
    * 2. PlayerStateNull/PlayerStateStopped means all target related resources have been released.
    *    It is more convenience for resource management implementing.
    */
@@ -728,7 +729,7 @@ engine_gst_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *par
   return ret;
 }
 
-static gboolean 
+static gboolean
 prepare_plane (MeegoMediaPlayerControl *self)
 {
   GstElement *vsink_bin;
@@ -759,7 +760,7 @@ prepare_plane (MeegoMediaPlayerControl *self)
       g_object_set (G_OBJECT(vsink_bin), "gdl-plane", res->handle, NULL);
       UMMS_DEBUG ("Plane changed '%d'==>'%d'", plane,  res->handle);
     } else {
-      //Do nothing;  
+      //Do nothing;
     }
 
     priv->res_list = g_list_append (priv->res_list, res);
@@ -791,7 +792,7 @@ prepare_plane (MeegoMediaPlayerControl *self)
     priv->res_list = g_list_append (priv->res_list, res);                     \
     }while(0)
 
-  
+
 static gboolean
 request_resource (MeegoMediaPlayerControl *self)
 {
@@ -802,15 +803,15 @@ request_resource (MeegoMediaPlayerControl *self)
 
   if (priv->resource_prepared)
     return TRUE;
-  
- /*
-  * For live source, we create and set clock to pipeline manually, 
-  * ismd audio/video sink will not create and provide a clock.
-  * So, just need one clock.
-  */
+
+  /*
+   * For live source, we create and set clock to pipeline manually,
+   * ismd audio/video sink will not create and provide a clock.
+   * So, just need one clock.
+   */
   if (priv->is_live) {
     REQUEST_RES(self, ResourceTypeHwClock, INVALID_RES_HANDLE, "No HW clock resource");
-  }else {
+  } else {
     if (priv->has_video && NEED_CLOCK(priv->target_type)) {
       REQUEST_RES(self, ResourceTypeHwClock, INVALID_RES_HANDLE, "No HW clock resource");
     }
@@ -819,7 +820,7 @@ request_resource (MeegoMediaPlayerControl *self)
     }
   }
 
-  for (i=0; i<priv->hw_viddec; i++) {
+  for (i = 0; i < priv->hw_viddec; i++) {
     REQUEST_RES(self, ResourceTypeHwViddec, INVALID_RES_HANDLE, "No HW video decoder resource");
   }
 
@@ -850,7 +851,7 @@ release_resource (MeegoMediaPlayerControl *self)
 }
 
 //Unref returned clock after usage
-static GstClock * 
+static GstClock *
 get_hw_clock(void)
 {
   GstClock* clock = NULL;
@@ -862,7 +863,7 @@ get_hw_clock(void)
     return NULL;
 
   clock = gst_element_provide_clock (vsink);
-  
+
   if (clock)
     g_object_ref (clock);
 
@@ -887,7 +888,7 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
 
   if (ret = request_resource(self)) {
     if (target_state == GST_STATE_PLAYING) {
-      if(IS_LIVE_URI(priv->uri)) {     
+      if (IS_LIVE_URI(priv->uri)) {
         //    ISmdGstClock *ismd_clock = NULL;
         /* For the special case of live source.
            Becasue our hardware decoder and sink need the special clock type and if the clock type is wrong,
@@ -896,13 +897,13 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
            right clock. But in live source case, the state change from NULL to playing is continous and the provide_clock
            function may be called before hardware element has been made.
            So we need to set the clock of pipeline statically here.*/
-        //    ismd_clock = g_object_new (ISMD_GST_TYPE_CLOCK, NULL); 
+        //    ismd_clock = g_object_new (ISMD_GST_TYPE_CLOCK, NULL);
         //    gst_pipeline_use_clock (GST_PIPELINE_CAST(priv->pipeline), GST_CLOCK_CAST(ismd_clock));
         GstClock *clock = get_hw_clock ();
         if (clock) {
           gst_pipeline_use_clock (GST_PIPELINE_CAST(priv->pipeline), clock);
           g_object_unref (clock);
-        } else { 
+        } else {
           UMMS_DEBUG ("Can't get HW clock");
           meego_media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, "Can't get HW clock for live source");
           ret = FALSE;
@@ -917,7 +918,7 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
       ret = FALSE;
       goto OUT;
     }
-  } 
+  }
 
 OUT:
   if (!ret) {
@@ -992,7 +993,7 @@ _is_ismd_vidrend_bin (GstElement * element, gpointer user_data)
 
   //ugly solution, check by element metadata will be better
   ele_name = gst_element_get_name (element);
-  if(g_strrstr(ele_name, "ismdgstvidrendbin") != NULL || g_strrstr(ele_name, "ismd_vidrend_bin") != NULL)
+  if (g_strrstr(ele_name, "ismdgstvidrendbin") != NULL || g_strrstr(ele_name, "ismd_vidrend_bin") != NULL)
     ret = 0;
 
   g_free (ele_name);
@@ -1154,10 +1155,10 @@ engine_gst_set_position (MeegoMediaPlayerControl *self, gint64 in_pos)
 
 
   ret = gst_element_seek (pipe, 1.0,
-                    GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH,
-                    GST_SEEK_TYPE_SET, in_pos * GST_MSECOND,
-                    GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
-  UMMS_DEBUG ("Seeking to %" GST_TIME_FORMAT " %s", GST_TIME_ARGS (in_pos * GST_MSECOND), ret?"succeeded":"failed");
+        GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH,
+        GST_SEEK_TYPE_SET, in_pos * GST_MSECOND,
+        GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
+  UMMS_DEBUG ("Seeking to %" GST_TIME_FORMAT " %s", GST_TIME_ARGS (in_pos * GST_MSECOND), ret ? "succeeded" : "failed");
   if (ret)
     meego_media_player_control_emit_seeked (self);
   return ret;
@@ -1207,9 +1208,9 @@ engine_gst_set_playback_rate (MeegoMediaPlayerControl *self, gdouble in_rate)
 
   UMMS_DEBUG ("set playback rate to %f ", in_rate);
   return gst_element_seek (pipe, in_rate,
-                    GST_FORMAT_TIME, GST_SEEK_FLAG_NONE,
-                    GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE,
-                    GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
+         GST_FORMAT_TIME, GST_SEEK_FLAG_NONE,
+         GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE,
+         GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
 }
 
 static gboolean
@@ -1569,7 +1570,7 @@ engine_gst_get_current_video (MeegoMediaPlayerControl *self, gint *cur_video)
 }
 
 
-static gboolean 
+static gboolean
 engine_gst_get_current_audio (MeegoMediaPlayerControl *self, gint *cur_audio)
 {
   EngineGstPrivate *priv = NULL;
@@ -1590,7 +1591,7 @@ engine_gst_get_current_audio (MeegoMediaPlayerControl *self, gint *cur_audio)
 }
 
 
-static gboolean 
+static gboolean
 engine_gst_set_current_video (MeegoMediaPlayerControl *self, gint cur_video)
 {
   EngineGstPrivate *priv = NULL;
@@ -1606,7 +1607,7 @@ engine_gst_set_current_video (MeegoMediaPlayerControl *self, gint cur_video)
      we need to get the total number and check valid for cur_video ourselves.*/
   g_object_get (G_OBJECT (pipe), "n-video", &n_video, NULL);
   UMMS_DEBUG ("The total video numeber is %d, we want to set to %d", n_video, cur_video);
-  if((cur_video < 0) || (cur_video >= n_video)) {
+  if ((cur_video < 0) || (cur_video >= n_video)) {
     UMMS_DEBUG ("The video we want to set is %d, invalid one.", cur_video);
     return FALSE;
   }
@@ -1633,7 +1634,7 @@ engine_gst_set_current_audio (MeegoMediaPlayerControl *self, gint cur_audio)
      we need to get the total number and check valid for cur_audio ourselves.*/
   g_object_get (G_OBJECT (pipe), "n-audio", &n_audio, NULL);
   UMMS_DEBUG ("The total audio numeber is %d, we want to set to %d", n_audio, cur_audio);
-  if((cur_audio< 0) || (cur_audio >= n_audio)) {
+  if ((cur_audio < 0) || (cur_audio >= n_audio)) {
     UMMS_DEBUG ("The audio we want to set is %d, invalid one.", cur_audio);
     return FALSE;
   }
@@ -1708,11 +1709,11 @@ engine_gst_set_subtitle_uri (MeegoMediaPlayerControl *self, gchar *sub_uri)
     UMMS_DEBUG ("Unable to make the ismd_subrend_bin");
   }
 
-  /* It seems that the subtitle URI need to set before activate the group, and 
+  /* It seems that the subtitle URI need to set before activate the group, and
      can not dynamic change it of current group when playing.
      So calling this API when stream is playing may have no effect. */
   g_object_set (G_OBJECT (pipe), "suburi", sub_uri, NULL);
-  
+
   return TRUE;
 }
 
@@ -1775,7 +1776,7 @@ engine_gst_set_current_subtitle (MeegoMediaPlayerControl *self, gint cur_sub)
      we need to get the total number and check valid for cur_sub ourselves.*/
   g_object_get (G_OBJECT (pipe), "n-text", &n_sub, NULL);
   UMMS_DEBUG ("The total subtitle numeber is %d, we want to set to %d", n_sub, cur_sub);
-  if((cur_sub < 0) || (cur_sub >= n_sub)) {
+  if ((cur_sub < 0) || (cur_sub >= n_sub)) {
     UMMS_DEBUG ("The subtitle we want to set is %d, invalid one.", cur_sub);
     return FALSE;
   }
@@ -1817,7 +1818,7 @@ engine_gst_set_proxy (MeegoMediaPlayerControl *self, GHashTable *params)
 
 
 static gboolean
-engine_gst_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 buf_val) 
+engine_gst_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 buf_val)
 {
   EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
@@ -1827,15 +1828,15 @@ engine_gst_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 
   pipe = priv->pipeline;
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
-  if(buf_val < 0) {
+  if (buf_val < 0) {
     UMMS_DEBUG("The buffer depth value is %lld, invalid one", buf_val);
     return FALSE;
   }
 
-  if(format == BufferFormatByTime) {
+  if (format == BufferFormatByTime) {
     g_object_set (G_OBJECT (pipe), "buffer-duration", buf_val, NULL);
     UMMS_DEBUG("Set the buffer-duration to %lld", buf_val);
-  } else if(format == BufferFormatByBytes) {
+  } else if (format == BufferFormatByBytes) {
     g_object_set (G_OBJECT (pipe), "buffer-size", buf_val, NULL);
     UMMS_DEBUG("Set the buffer-size to %lld", buf_val);
   } else {
@@ -1848,7 +1849,7 @@ engine_gst_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 
 
 
 static gboolean
-engine_gst_set_mute (MeegoMediaPlayerControl *self, gint mute) 
+engine_gst_set_mute (MeegoMediaPlayerControl *self, gint mute)
 {
   GstElement *pipe;
   EngineGstPrivate *priv;
@@ -1868,7 +1869,7 @@ engine_gst_set_mute (MeegoMediaPlayerControl *self, gint mute)
 
 
 static gboolean
-engine_gst_is_mute (MeegoMediaPlayerControl *self, gint *mute) 
+engine_gst_is_mute (MeegoMediaPlayerControl *self, gint *mute)
 {
   GstElement *pipe;
   EngineGstPrivate *priv;
@@ -1892,7 +1893,7 @@ engine_gst_is_mute (MeegoMediaPlayerControl *self, gint *mute)
 
 
 static gboolean
-engine_gst_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode) 
+engine_gst_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode)
 {
   GstElement *pipe;
   EngineGstPrivate *priv;
@@ -1911,7 +1912,7 @@ engine_gst_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode)
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
   /* We assume that the video-sink is just ismd_vidrend_bin, because if not
-     the scale mode is not supported yet in gst sink bins. */ 
+     the scale mode is not supported yet in gst sink bins. */
   g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
   if (vsink_bin) {
     pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (vsink_bin), "scale-mode");
@@ -1962,7 +1963,7 @@ engine_gst_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode)
   }
 
 OUT:
-  if(vsink_bin)
+  if (vsink_bin)
     gst_object_unref (vsink_bin);
   return ret;
 }
@@ -1980,7 +1981,7 @@ engine_gst_get_scale_mode (MeegoMediaPlayerControl *self, gint *scale_mode)
   GParamSpec *pspec = NULL;
   GEnumClass *eclass = NULL;
 
-  *scale_mode = ScaleModeInvalid; 
+  *scale_mode = ScaleModeInvalid;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
@@ -1990,7 +1991,7 @@ engine_gst_get_scale_mode (MeegoMediaPlayerControl *self, gint *scale_mode)
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
   /* We assume that the video-sink is just ismd_vidrend_bin, because if not
-     the scale mode is not supported yet in gst sink bins. */ 
+     the scale mode is not supported yet in gst sink bins. */
   g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
   if (vsink_bin) {
     pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (vsink_bin), "scale-mode");
@@ -2036,7 +2037,7 @@ engine_gst_get_scale_mode (MeegoMediaPlayerControl *self, gint *scale_mode)
   }
 
 OUT:
-  if(vsink_bin)
+  if (vsink_bin)
     gst_object_unref (vsink_bin);
   return ret;
 }
@@ -2064,7 +2065,7 @@ engine_gst_suspend (MeegoMediaPlayerControl *self)
   return TRUE;
 }
 
-//restore asynchronously. 
+//restore asynchronously.
 //Set to pause here, and do actual retoring operation in bus_message_state_change_cb().
 static gboolean
 engine_gst_restore (MeegoMediaPlayerControl *self)
@@ -2102,42 +2103,42 @@ engine_gst_get_video_codec (MeegoMediaPlayerControl *self, gint channel, gchar *
   pipe = priv->pipeline;
 
   g_object_get (G_OBJECT (pipe), "n-video", &tol_channel, NULL);
-  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d",
+              tol_channel, channel);
 
-  if(channel >= tol_channel || channel < 0) {
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipe, "get-video-tags", channel, &tag_list);
-  if(tag_list == NULL) {
+  if (tag_list == NULL) {
     UMMS_DEBUG ("No tags about stream: %d", channel);
     return TRUE;
   }
 
-  if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
-    gchar *st = NULL;        
+  if (size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
+    gchar *st = NULL;
 
     for (i = 0; i < size; ++i) {
-      if(gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
+      if (gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
         UMMS_DEBUG("Channel: %d provide the video codec named: %s", channel, st);
-        if(codec_name) {
+        if (codec_name) {
           codec_name = g_strconcat(codec_name, st);
         } else {
           codec_name = g_strdup(st);
         }
-        g_free (st);  
+        g_free (st);
       }
     }
 
     UMMS_DEBUG("%s", codec_name);
   }
 
-  if(codec_name)
+  if (codec_name)
     *video_codec = codec_name;
 
-  if(tag_list)
+  if (tag_list)
     gst_tag_list_free (tag_list);
 
   return TRUE;
@@ -2164,42 +2165,42 @@ engine_gst_get_audio_codec (MeegoMediaPlayerControl *self, gint channel, gchar *
   pipe = priv->pipeline;
 
   g_object_get (G_OBJECT (pipe), "n-audio", &tol_channel, NULL);
-  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
-  
-  if(channel >= tol_channel || channel < 0) {
+  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d",
+              tol_channel, channel);
+
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipe, "get-audio-tags", channel, &tag_list);
-  if(tag_list == NULL) {
+  if (tag_list == NULL) {
     UMMS_DEBUG ("No tags about stream: %d", channel);
     return TRUE;
   }
 
-  if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
-    gchar *st = NULL;        
+  if (size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
+    gchar *st = NULL;
 
     for (i = 0; i < size; ++i) {
-      if(gst_tag_list_get_string_index (tag_list, GST_TAG_AUDIO_CODEC, i, &st) && st) {
+      if (gst_tag_list_get_string_index (tag_list, GST_TAG_AUDIO_CODEC, i, &st) && st) {
         UMMS_DEBUG("Channel: %d provide the audio codec named: %s", channel, st);
-        if(codec_name) {
+        if (codec_name) {
           codec_name = g_strconcat(codec_name, st);
         } else {
           codec_name = g_strdup(st);
         }
-        g_free (st);  
+        g_free (st);
       }
     }
 
     UMMS_DEBUG("%s", codec_name);
   }
 
-  if(codec_name)
+  if (codec_name)
     *audio_codec = codec_name;
 
-  if(tag_list)
+  if (tag_list)
     gst_tag_list_free (tag_list);
 
   return TRUE;
@@ -2224,31 +2225,31 @@ engine_gst_get_video_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
   pipe = priv->pipeline;
 
   g_object_get (G_OBJECT (pipe), "n-video", &tol_channel, NULL);
-  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
-  
-  if(channel >= tol_channel || channel < 0) {
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d",
+              tol_channel, channel);
+
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipe, "get-video-tags", channel, &tag_list);
-  if(tag_list == NULL) {
+  if (tag_list == NULL) {
     UMMS_DEBUG ("No tags about stream: %d", channel);
     return TRUE;
   }
 
-  if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
+  if (gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
     UMMS_DEBUG ("bit rate for channel: %d is %d", channel, bit_rate);
-    *video_rate = bit_rate/1000;
-  } else if(gst_tag_list_get_uint(tag_list, GST_TAG_NOMINAL_BITRATE, &bit_rate) && bit_rate > 0) {
+    *video_rate = bit_rate / 1000;
+  } else if (gst_tag_list_get_uint(tag_list, GST_TAG_NOMINAL_BITRATE, &bit_rate) && bit_rate > 0) {
     UMMS_DEBUG ("nominal bit rate for channel: %d is %d", channel, bit_rate);
-    *video_rate = bit_rate/1000;
+    *video_rate = bit_rate / 1000;
   } else {
     UMMS_DEBUG ("No bit rate for channel: %d", channel);
   }
 
-  if(tag_list)
+  if (tag_list)
     gst_tag_list_free (tag_list);
 
   return TRUE;
@@ -2264,7 +2265,7 @@ engine_gst_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
   GstTagList * tag_list = NULL;
   gint size = 0;
   guint32 bit_rate = 0;
-  
+
   *audio_rate = 0;
 
   g_return_val_if_fail (self != NULL, FALSE);
@@ -2274,31 +2275,31 @@ engine_gst_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
   pipe = priv->pipeline;
 
   g_object_get (G_OBJECT (pipe), "n-audio", &tol_channel, NULL);
-  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
+  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d",
+              tol_channel, channel);
 
-  if(channel >= tol_channel || channel < 0) {
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipe, "get-audio-tags", channel, &tag_list);
-  if(tag_list == NULL) {
+  if (tag_list == NULL) {
     UMMS_DEBUG ("No tags about stream: %d", channel);
     return TRUE;
   }
 
-  if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
+  if (gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
     UMMS_DEBUG ("bit rate for channel: %d is %d", channel, bit_rate);
-    *audio_rate = bit_rate/1000;
-  } else if(gst_tag_list_get_uint(tag_list, GST_TAG_NOMINAL_BITRATE, &bit_rate) && bit_rate > 0) {
+    *audio_rate = bit_rate / 1000;
+  } else if (gst_tag_list_get_uint(tag_list, GST_TAG_NOMINAL_BITRATE, &bit_rate) && bit_rate > 0) {
     UMMS_DEBUG ("nominal bit rate for channel: %d is %d", channel, bit_rate);
-    *audio_rate = bit_rate/1000;
+    *audio_rate = bit_rate / 1000;
   } else {
     UMMS_DEBUG ("No bit rate for channel: %d", channel);
   }
 
-  if(tag_list)
+  if (tag_list)
     gst_tag_list_free (tag_list);
 
   return TRUE;
@@ -2320,9 +2321,9 @@ engine_gst_get_encapsulation(MeegoMediaPlayerControl *self, gchar ** encapsulati
   priv = GET_PRIVATE (self);
   pipe = priv->pipeline;
 
-  if(priv->tag_list) {
+  if (priv->tag_list) {
     gst_tag_list_get_string (priv->tag_list, GST_TAG_CONTAINER_FORMAT, &enca_name);
-    if(enca_name) {
+    if (enca_name) {
       UMMS_DEBUG("get the container name: %s", enca_name);
       *encapsulation = enca_name;
     } else {
@@ -2353,16 +2354,16 @@ engine_gst_get_audio_samplerate(MeegoMediaPlayerControl *self, gint channel, gin
   /* We get this kind of infomation from the caps of inputselector. */
 
   g_object_get (G_OBJECT (pipe), "n-audio", &tol_channel, NULL);
-  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
+  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d",
+              tol_channel, channel);
 
-  if(channel >= tol_channel || channel < 0) {
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipe, "get-audio-pad", channel, &pad);
-  if(pad == NULL) {
+  if (pad == NULL) {
     UMMS_DEBUG ("No pad of stream: %d", channel);
     return FALSE;
   }
@@ -2374,7 +2375,7 @@ engine_gst_get_audio_samplerate(MeegoMediaPlayerControl *self, gint channel, gin
     gst_caps_unref (caps);
   }
 
-  if(pad)
+  if (pad)
     gst_object_unref (pad);
 
   return ret;
@@ -2382,8 +2383,8 @@ engine_gst_get_audio_samplerate(MeegoMediaPlayerControl *self, gint channel, gin
 
 
 static gboolean
-engine_gst_get_video_framerate(MeegoMediaPlayerControl *self, gint channel, 
-                               gint * frame_rate_num, gint * frame_rate_denom)
+engine_gst_get_video_framerate(MeegoMediaPlayerControl *self, gint channel,
+    gint * frame_rate_num, gint * frame_rate_denom)
 {
   EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
@@ -2402,16 +2403,16 @@ engine_gst_get_video_framerate(MeegoMediaPlayerControl *self, gint channel,
   /* We get this kind of infomation from the caps of inputselector. */
 
   g_object_get (G_OBJECT (pipe), "n-video", &tol_channel, NULL);
-  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d",
+              tol_channel, channel);
 
-  if(channel >= tol_channel || channel < 0) {
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipe, "get-video-pad", channel, &pad);
-  if(pad == NULL) {
+  if (pad == NULL) {
     UMMS_DEBUG ("No pad of stream: %d", channel);
     return FALSE;
   }
@@ -2423,7 +2424,7 @@ engine_gst_get_video_framerate(MeegoMediaPlayerControl *self, gint channel,
     gst_caps_unref (caps);
   }
 
-  if(pad)
+  if (pad)
     gst_object_unref (pad);
 
   return ret;
@@ -2449,16 +2450,16 @@ engine_gst_get_video_resolution(MeegoMediaPlayerControl *self, gint channel, gin
   /* We get this kind of infomation from the caps of inputselector. */
 
   g_object_get (G_OBJECT (pipe), "n-video", &tol_channel, NULL);
-  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d",
+              tol_channel, channel);
 
-  if(channel >= tol_channel || channel < 0) {
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipe, "get-video-pad", channel, &pad);
-  if(pad == NULL) {
+  if (pad == NULL) {
     UMMS_DEBUG ("No pad of stream: %d", channel);
     return FALSE;
   }
@@ -2471,7 +2472,7 @@ engine_gst_get_video_resolution(MeegoMediaPlayerControl *self, gint channel, gin
     gst_caps_unref (caps);
   }
 
-  if(pad)
+  if (pad)
     gst_object_unref (pad);
 
   return TRUE;
@@ -2479,8 +2480,8 @@ engine_gst_get_video_resolution(MeegoMediaPlayerControl *self, gint channel, gin
 
 
 static gboolean
-engine_gst_get_video_aspect_ratio(MeegoMediaPlayerControl *self, gint channel, 
-                                  gint * ratio_num, gint * ratio_denom)
+engine_gst_get_video_aspect_ratio(MeegoMediaPlayerControl *self, gint channel,
+    gint * ratio_num, gint * ratio_denom)
 {
   EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
@@ -2499,16 +2500,16 @@ engine_gst_get_video_aspect_ratio(MeegoMediaPlayerControl *self, gint channel,
   /* We get this kind of infomation from the caps of inputselector. */
 
   g_object_get (G_OBJECT (pipe), "n-video", &tol_channel, NULL);
-  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d",
+              tol_channel, channel);
 
-  if(channel >= tol_channel || channel < 0) {
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipe, "get-video-pad", channel, &pad);
-  if(pad == NULL) {
+  if (pad == NULL) {
     UMMS_DEBUG ("No pad of stream: %d", channel);
     return FALSE;
   }
@@ -2520,7 +2521,7 @@ engine_gst_get_video_aspect_ratio(MeegoMediaPlayerControl *self, gint channel,
     gst_caps_unref (caps);
   }
 
-  if(pad)
+  if (pad)
     gst_object_unref (pad);
 
   return ret;
@@ -2533,20 +2534,20 @@ engine_gst_get_protocol_name(MeegoMediaPlayerControl *self, gchar ** prot_name)
   EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
   gchar * uri = NULL;
-  
+
   *prot_name = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   g_object_get (G_OBJECT (pipe), "uri", &uri, NULL);
- 
-  if(!uri) {
+
+  if (!uri) {
     UMMS_DEBUG("Pipe %"GST_PTR_FORMAT" has no uri now!", pipe);
     return FALSE;
   }
-  
-  if(!gst_uri_is_valid(uri)) {
+
+  if (!gst_uri_is_valid(uri)) {
     UMMS_DEBUG("uri: %s  is invalid", uri);
     g_free(uri);
     return FALSE;
@@ -2556,7 +2557,7 @@ engine_gst_get_protocol_name(MeegoMediaPlayerControl *self, gchar ** prot_name)
 
   *prot_name = gst_uri_get_protocol(uri);
   UMMS_DEBUG("Get the protocol name is %s", *prot_name);
-  
+
   g_free(uri);
   return TRUE;
 }
@@ -2568,7 +2569,7 @@ engine_gst_get_current_uri(MeegoMediaPlayerControl *self, gchar ** uri)
   EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
   gchar * s_uri = NULL;
-  
+
   *uri = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
@@ -2577,13 +2578,13 @@ engine_gst_get_current_uri(MeegoMediaPlayerControl *self, gchar ** uri)
   priv = GET_PRIVATE (self);
   pipe = priv->pipeline;
   g_object_get (G_OBJECT (pipe), "uri", &s_uri, NULL);
- 
-  if(!s_uri) {
+
+  if (!s_uri) {
     UMMS_DEBUG("Pipe %"GST_PTR_FORMAT" has no uri now!", pipe);
     return FALSE;
   }
 
-  if(!gst_uri_is_valid(s_uri)) {
+  if (!gst_uri_is_valid(s_uri)) {
     UMMS_DEBUG("uri: %s  is invalid", s_uri);
     g_free(s_uri);
     return FALSE;
@@ -2598,7 +2599,7 @@ engine_gst_get_title(MeegoMediaPlayerControl *self, gchar ** title)
 {
   EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
-  
+
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
@@ -2614,7 +2615,7 @@ engine_gst_get_artist(MeegoMediaPlayerControl *self, gchar ** artist)
 {
   EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
-  
+
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
@@ -2710,7 +2711,7 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
   meego_media_player_control_implement_set_scale_mode (klass,
       engine_gst_set_scale_mode);
   meego_media_player_control_implement_get_scale_mode (klass,
-      engine_gst_get_scale_mode);      
+      engine_gst_get_scale_mode);
   meego_media_player_control_implement_get_video_codec (klass,
       engine_gst_get_video_codec);
   meego_media_player_control_implement_get_audio_codec (klass,
@@ -2783,7 +2784,7 @@ engine_gst_dispose (GObject *object)
     priv->disp = NULL;
   }
 
-  if(priv->tag_list) 
+  if (priv->tag_list)
     gst_tag_list_free(priv->tag_list);
   priv->tag_list = NULL;
 
@@ -2852,7 +2853,7 @@ bus_message_state_change_cb (GstBus     *bus,
       UMMS_DEBUG ("meego_media_player_control_emit_restored");
       meego_media_player_control_emit_restored (self);
     }
-  } else if(new_state == GST_STATE_PLAYING) {
+  } else if (new_state == GST_STATE_PLAYING) {
     priv->player_state = PlayerStatePlaying;
   } else {
     if (new_state < old_state)//down state change to GST_STATE_READY
@@ -2883,38 +2884,38 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   gboolean metadata_changed = FALSE;
 
   src = GST_MESSAGE_SRC (message);
- 
-  if(message->type != GST_MESSAGE_TAG) {
+
+  if (message->type != GST_MESSAGE_TAG) {
     UMMS_DEBUG("not a tag message in a registered tag signal, strange");
     return;
   }
 
   gst_message_parse_tag_full (message, &src_pad, &tag_list);
-  if(src_pad) {
+  if (src_pad) {
     pad_name = g_strdup (GST_PAD_NAME (src_pad));
     UMMS_DEBUG("The pad name is %s", pad_name);
   }
 
-  if(message->src) {
+  if (message->src) {
     element_name = g_strdup (GST_ELEMENT_NAME (message->src));
     UMMS_DEBUG("The element name is %s", element_name);
   }
 
-  priv->tag_list = 
-      gst_tag_list_merge(priv->tag_list, tag_list, GST_TAG_MERGE_REPLACE);
+  priv->tag_list =
+    gst_tag_list_merge(priv->tag_list, tag_list, GST_TAG_MERGE_REPLACE);
 
   //cache the title
-  if(gst_tag_list_get_string_index (tag_list, GST_TAG_TITLE, 0, &title)) {
+  if (gst_tag_list_get_string_index (tag_list, GST_TAG_TITLE, 0, &title)) {
     UMMS_DEBUG("Element: %s, provide the title: %s", element_name, title);
-    RESET_STR(priv->title); 
+    RESET_STR(priv->title);
     priv->title = title;
     metadata_changed = TRUE;
   }
 
   //cache the artist
-  if(gst_tag_list_get_string_index (tag_list, GST_TAG_ARTIST, 0, &artist)) {
+  if (gst_tag_list_get_string_index (tag_list, GST_TAG_ARTIST, 0, &artist)) {
     UMMS_DEBUG("Element: %s, provide the artist: %s", element_name, artist);
-    RESET_STR(priv->artist); 
+    RESET_STR(priv->artist);
     priv->artist = artist;
     metadata_changed = TRUE;
   }
@@ -2929,22 +2930,22 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   gchar * video_codec = NULL;
   gchar * audio_codec = NULL;
   int out_of_channel = 0;
-  
-  /* This logic may be used when the inputselector is not included. 
+
+  /* This logic may be used when the inputselector is not included.
      Now we just get the video and audio codec from inputselector's pad. *
 
   /* We are now interest in the codec, container format and bit rate. */
-  if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
+  if (size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
     video_codec = g_strdup_printf("%s-->%s Video Codec: ",
-            element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+                  element_name ? element_name : "NULL", pad_name ? pad_name : "NULL");
 
     for (i = 0; i < size; ++i) {
-      gchar *st = NULL;        
+      gchar *st = NULL;
 
-      if(gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
+      if (gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
         UMMS_DEBUG("Element: %s, Pad: %s provide the video codec named: %s", element_name, pad_name, st);
         video_codec = g_strconcat(video_codec, st);
-        g_free (st);  
+        g_free (st);
       }
     }
 
@@ -2953,17 +2954,17 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
     UMMS_DEBUG("%s", video_codec);
   }
 
-  if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
+  if (size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
     audio_codec = g_strdup_printf("%s-->%s Audio Codec: ",
-            element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+                  element_name ? element_name : "NULL", pad_name ? pad_name : "NULL");
 
     for (i = 0; i < size; ++i) {
-      gchar *st = NULL;        
+      gchar *st = NULL;
 
-      if(gst_tag_list_get_string_index (tag_list, GST_TAG_AUDIO_CODEC, i, &st) && st) {
+      if (gst_tag_list_get_string_index (tag_list, GST_TAG_AUDIO_CODEC, i, &st) && st) {
         UMMS_DEBUG("Element: %s, Pad: %s provide the audio codec named: %s", element_name, pad_name, st);
         audio_codec = g_strconcat(audio_codec, st);
-        g_free (st);  
+        g_free (st);
       }
     }
 
@@ -2971,10 +2972,10 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
 
     /* need to consider the multi-channel audio case. The demux and decoder
      * will both send this message. We prefer codec info from decoder now. Need to improve */
-    if(element_name && (g_strstr_len(element_name, strlen(element_name), "demux") ||
-                g_strstr_len(element_name, strlen(element_name), "Demux") ||
-                g_strstr_len(element_name, strlen(element_name), "DEMUX"))) {
-      if(priv->audio_codec_used < ENGINE_GST_MAX_AUDIO_STREAM) {
+    if (element_name && (g_strstr_len(element_name, strlen(element_name), "demux") ||
+         g_strstr_len(element_name, strlen(element_name), "Demux") ||
+         g_strstr_len(element_name, strlen(element_name), "DEMUX"))) {
+      if (priv->audio_codec_used < ENGINE_GST_MAX_AUDIO_STREAM) {
         g_strlcpy(priv->audio_codec[priv->audio_codec_used], audio_codec, ENGINE_GST_MAX_AUDIOCODEC_SIZE);
         priv->audio_codec_used++;
       } else {
@@ -2986,26 +2987,26 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
     }
   }
 
-  if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
+  if (gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
     /* Again, the bitrate info may come from demux and audio decoder, we use demux now. */
     UMMS_DEBUG("Element: %s, Pad: %s provide the bitrate: %d", element_name, pad_name, bit_rate);
-    if(element_name && (g_strstr_len(element_name, strlen(element_name), "demux") ||
-                g_strstr_len(element_name, strlen(element_name), "Demux") ||
-                g_strstr_len(element_name, strlen(element_name), "DEMUX"))) {
+    if (element_name && (g_strstr_len(element_name, strlen(element_name), "demux") ||
+         g_strstr_len(element_name, strlen(element_name), "Demux") ||
+         g_strstr_len(element_name, strlen(element_name), "DEMUX"))) {
       gchar * codec = NULL;
       int have_found = 0;
 
       /* first we check whether it is the bitrate of video. */
-      if(video_codec) { /* the bitrate sent with the video codec, easy one. */
+      if (video_codec) { /* the bitrate sent with the video codec, easy one. */
         have_found = 1;
         priv->video_bitrate = bit_rate;
         UMMS_DEBUG("we set the bitrate: %u for video", bit_rate);
       }
 
-      if(!have_found) { /* try to compare the element and pad name. */
+      if (!have_found) { /* try to compare the element and pad name. */
         codec = g_strdup_printf("%s-->%s Video Codec: ",
-                element_name? element_name: "NULL", pad_name? pad_name: "NULL");
-        if(g_strncasecmp(priv->video_codec, codec, strlen(codec))) {
+                element_name ? element_name : "NULL", pad_name ? pad_name : "NULL");
+        if (g_strncasecmp(priv->video_codec, codec, strlen(codec))) {
           have_found = 1;
           priv->video_bitrate = bit_rate;
           UMMS_DEBUG("we set the bitrate: %u for video", bit_rate);
@@ -3014,30 +3015,30 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
         g_free(codec);
       }
 
-      /* find it in the audio codec stream. */ 
-      if(!have_found) {
-        if(audio_codec) {
+      /* find it in the audio codec stream. */
+      if (!have_found) {
+        if (audio_codec) {
           /* the bitrate sent with the audio codec, easy one. */
           have_found = 1;
-          if(!out_of_channel) {
+          if (!out_of_channel) {
             priv->audio_bitrate[priv->audio_codec_used -1] = bit_rate;
-            UMMS_DEBUG("we set the bitrate: %u for audio stream: %d", bit_rate, priv->audio_codec_used -1);
+            UMMS_DEBUG("we set the bitrate: %u for audio stream: %d", bit_rate, priv->audio_codec_used - 1);
           } else {
             UMMS_DEBUG("audio bitrate need to discard because too many steams");
           }
         }
 
-        if(!have_found) {  /* last try, use audio element and pad to index. */
+        if (!have_found) { /* last try, use audio element and pad to index. */
           codec = g_strdup_printf("%s-->%s Audio Codec: ",
-                  element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+                  element_name ? element_name : "NULL", pad_name ? pad_name : "NULL");
 
-          for(i=0; i<priv->audio_codec_used; i++) {
-            if(g_strncasecmp(priv->audio_codec[i], codec, strlen(codec)))
+          for (i = 0; i < priv->audio_codec_used; i++) {
+            if (g_strncasecmp(priv->audio_codec[i], codec, strlen(codec)))
               break;
           }
 
           have_found = 1; /* if not find, we use audio channel as defaule, so always find. */
-          if(i < priv->audio_codec_used) {
+          if (i < priv->audio_codec_used) {
             priv->audio_bitrate[i] = bit_rate;
             UMMS_DEBUG("we set the bitrate: %u for audio stream: %d", bit_rate, i);
           } else {
@@ -3051,18 +3052,18 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
     }
   }
 
-  if(video_codec)
+  if (video_codec)
     g_free(video_codec);
-  if(audio_codec)
+  if (audio_codec)
     g_free(audio_codec);
 #endif
 
-  if(src_pad)
+  if (src_pad)
     g_object_unref(src_pad);
   gst_tag_list_free (tag_list);
-  if(pad_name)
+  if (pad_name)
     g_free(pad_name);
-  if(element_name)
+  if (element_name)
     g_free(element_name);
 
 }
@@ -3148,10 +3149,10 @@ bus_sync_handler (GstBus *bus,
   GError *err = NULL;
   GstMessage *msg = NULL;
 
-  if( GST_MESSAGE_TYPE( message ) != GST_MESSAGE_ELEMENT )
+  if ( GST_MESSAGE_TYPE( message ) != GST_MESSAGE_ELEMENT )
     return( GST_BUS_PASS );
 
-  if( ! gst_structure_has_name( message->structure, "prepare-gdl-plane" ) )
+  if ( ! gst_structure_has_name( message->structure, "prepare-gdl-plane" ) )
     return( GST_BUS_PASS );
 
   g_return_val_if_fail (engine, GST_BUS_DROP);
@@ -3260,14 +3261,14 @@ engine_gst_init (EngineGst *self)
 
   gst_object_unref (GST_OBJECT (bus));
 
-  g_signal_connect (priv->pipeline, 
-          "video-tags-changed", G_CALLBACK (video_tags_changed_cb), self);
+  g_signal_connect (priv->pipeline,
+                    "video-tags-changed", G_CALLBACK (video_tags_changed_cb), self);
 
-  g_signal_connect (priv->pipeline, 
-          "audio-tags-changed", G_CALLBACK (audio_tags_changed_cb), self);
+  g_signal_connect (priv->pipeline,
+                    "audio-tags-changed", G_CALLBACK (audio_tags_changed_cb), self);
 
-  g_signal_connect (priv->pipeline, 
-          "text-tags-changed", G_CALLBACK (text_tags_changed_cb), self);
+  g_signal_connect (priv->pipeline,
+                    "text-tags-changed", G_CALLBACK (text_tags_changed_cb), self);
 
   /*
    *Use GST_PLAY_FLAG_DOWNLOAD flag to enable Gstreamer Download buffer mode,
@@ -3309,8 +3310,8 @@ _set_proxy (MeegoMediaPlayerControl *self)
 
   UMMS_DEBUG ("Setting proxy. proxy=%s, id=%s, pw=%s", priv->proxy_uri, priv->proxy_id, priv->proxy_pw);
   g_object_set (priv->source, "proxy", priv->proxy_uri,
-                              "proxy-id", priv->proxy_id,
-                              "proxy-pw", priv->proxy_pw, NULL);
+                "proxy-id", priv->proxy_id,
+                "proxy-pw", priv->proxy_pw, NULL);
 }
 
 static void
@@ -3370,14 +3371,15 @@ static GstStaticCaps hw_mpeg2_static_caps = GST_STATIC_CAPS (HW_MPEG2_CAPS);
 static GstStaticCaps hw_mpeg4_static_caps = GST_STATIC_CAPS (HW_MPEG4_CAPS);
 static GstStaticCaps hw_vc1_static_caps = GST_STATIC_CAPS (HW_VC1_CAPS);
 
-static GstStaticCaps *hw_static_caps[HW_FORMAT_NUM] = {&hw_h264_static_caps, 
-                                        &hw_mpeg2_static_caps, 
-                                        &hw_mpeg4_static_caps, 
-                                        &hw_vc1_static_caps};
+static GstStaticCaps *hw_static_caps[HW_FORMAT_NUM] = {&hw_h264_static_caps,
+    &hw_mpeg2_static_caps,
+    &hw_mpeg4_static_caps,
+    &hw_vc1_static_caps
+                                                      };
 
 static gboolean
 autoplug_continue_cb (GstElement * element, GstPad * pad, GstCaps * caps,
-        MeegoMediaPlayerControl *control) 
+    MeegoMediaPlayerControl *control)
 {
   gint i;
   const gchar *name = NULL;
@@ -3388,7 +3390,7 @@ autoplug_continue_cb (GstElement * element, GstPad * pad, GstCaps * caps,
   EngineGstPrivate *priv = GET_PRIVATE (control);
 
   UMMS_DEBUG ( "pad caps : %" GST_PTR_FORMAT,
-      caps);
+               caps);
 
   //check software a/v caps.
   s = gst_caps_get_structure (caps, 0);
@@ -3397,32 +3399,32 @@ autoplug_continue_cb (GstElement * element, GstPad * pad, GstCaps * caps,
   if (!strncmp (name, "video", 5)) {
     priv->has_video = TRUE;
     //check HW video caps
-    for (i=0; i<HW_FORMAT_NUM; i++) {
+    for (i = 0; i < HW_FORMAT_NUM; i++) {
       hw_caps = gst_static_caps_get (hw_static_caps[i]);
 
       if (gst_caps_can_intersect (hw_caps, caps)) {
         is_hw_vcaps = TRUE;
         priv->hw_viddec++;
 
-        /* 
-         * Don't continue to autoplug this pad, 
+        /*
+         * Don't continue to autoplug this pad,
          * which avoids the failure of creating and plugin HW video decoder, and hence guarantees "no-more-pads"
          * signal will be emitted.
-         * 
+         *
          */
         ret = FALSE;
       }
 
       gst_caps_unref (hw_caps);
 
-      if (is_hw_vcaps) 
+      if (is_hw_vcaps)
         goto hw_video_caps;
     }
   } else if (!strncmp (name, "audio", 5)) {
     priv->has_audio = TRUE;
     ret = FALSE;//Exposes this pad, and hence guarantees "no-more-pads" signal will be emitted.
     //FIXME: check the HW audio caps.
-  } else if (!strncmp (name, "text", 4)){
+  } else if (!strncmp (name, "text", 4)) {
     priv->has_sub = TRUE;
   } else {
     //nothing
@@ -3435,7 +3437,7 @@ hw_video_caps:
   return ret;
 }
 
-static gboolean 
+static gboolean
 uri_parsing_finished_cb (MeegoMediaPlayerControl * self)
 {
   EngineGstPrivate *priv = GET_PRIVATE (self);
@@ -3445,29 +3447,29 @@ uri_parsing_finished_cb (MeegoMediaPlayerControl * self)
   TEARDOWN_ELEMENT (priv->uri_parse_pipe);
   priv->uri_parsed = TRUE;
 
-  UMMS_DEBUG("End, has_video=%d, num of hw_viddec=%d, has_audio=%d, num of hw_auddec=%d", 
-              priv->has_video, priv->hw_viddec, priv->has_audio, priv->hw_auddec);
+  UMMS_DEBUG("End, has_video=%d, num of hw_viddec=%d, has_audio=%d, num of hw_auddec=%d",
+             priv->has_video, priv->hw_viddec, priv->has_audio, priv->hw_auddec);
   return FALSE;
 }
 
-static void no_more_pads_cb (GstElement * uridecodebin, MeegoMediaPlayerControl * self) 
+static void no_more_pads_cb (GstElement * uridecodebin, MeegoMediaPlayerControl * self)
 {
   UMMS_DEBUG("Begin");
   g_idle_add ((GSourceFunc)uri_parsing_finished_cb, self);
   UMMS_DEBUG("End");
 }
 
-/* 
+/*
  * Parse the av asset spacified by the uri.
  *
  * Called when set state from PlayerStateNull/PlayerStateStopped to PlayerStatePaused/PlayerStatePlaying.
- * Through this parsing, we can get the number of streams and their format, and can determine the 
- * resources(HW clock, HW a/v decoder) needed when playing this av asset. 
+ * Through this parsing, we can get the number of streams and their format, and can determine the
+ * resources(HW clock, HW a/v decoder) needed when playing this av asset.
  *
  * Return TRUE if successfully initializeithe parsing action.
  *        FALSE if not.
  *
- * Note: This is a asynchronous invoking, so, requesting resources and setting pipeline to Pause/Playing will be 
+ * Note: This is a asynchronous invoking, so, requesting resources and setting pipeline to Pause/Playing will be
  * done in uri_parsing_finished_cb().
  */
 static gboolean
@@ -3491,10 +3493,10 @@ parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
   g_object_set (G_OBJECT(uridecodebin), "uri", priv->uri, NULL);
 
   g_signal_connect (uridecodebin, "autoplug-continue",
-      G_CALLBACK (autoplug_continue_cb), self);
+                    G_CALLBACK (autoplug_continue_cb), self);
 
   g_signal_connect (uridecodebin, "no-more-pads",
-      G_CALLBACK (no_more_pads_cb), self);
+                    G_CALLBACK (no_more_pads_cb), self);
 
   if (gst_element_set_state (uridecodebin, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
     TEARDOWN_ELEMENT (priv->uri_parse_pipe);
