@@ -23,8 +23,8 @@
 
 #include <string.h>
 
-#include "gst-backend.h"
-
+#include "umms-gtk-backend.h"
+#if 0
 static char *uri_to_play;
 static GtkWidget *video_output;
 static GtkWidget *pause_button;
@@ -459,4 +459,11 @@ main (int argc,
     backend_deinit ();
 
     return 0;
+}
+#endif
+
+int
+main (int argc,
+      char *argv[])
+{
 }
