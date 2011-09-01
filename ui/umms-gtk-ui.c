@@ -43,13 +43,13 @@ toggle_paused (void)
     static gboolean paused = FALSE;
     if (paused)
     {
-        backend_resume ();
+        umms_backend_resume ();
         gtk_button_set_label (GTK_BUTTON (pause_button), "Pause");
         paused = FALSE;
     }
     else
     {
-        backend_pause ();
+        umms_backend_pause ();
         gtk_button_set_label (GTK_BUTTON (pause_button), "Resume");
         paused = TRUE;
     }
@@ -118,13 +118,13 @@ key_press (GtkWidget *widget,
             break;
         case GDK_R:
         case GDK_r:
-            backend_reset ();
+            umms_backend_reset ();
             break;
         case GDK_Right:
-            backend_seek (10);
+            umms_backend_seek (10);
             break;
         case GDK_Left:
-            backend_seek (-10);
+            umms_backend_seek (-10);
             break;
         case GDK_Q:
         case GDK_q:
@@ -158,7 +158,7 @@ seek_cb (GtkRange *range,
     g_print ("duration: %llu\n", duration);
     g_print ("seek: %llu\n", to_seek);
 #endif
-    backend_seek_absolute (to_seek);
+    umms_backend_seek_absolute (to_seek);
 }
 
 static void
@@ -183,7 +183,7 @@ seekforward_cb (GtkRange *range,
   else
     to_seek = duration;
 
-  backend_seek_absolute (to_seek);
+  umms_backend_seek_absolute (to_seek);
 }
 
 static void
