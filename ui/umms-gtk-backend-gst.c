@@ -16,7 +16,7 @@ static gboolean expose_cb(GtkWidget *widget,GdkEventExpose *event,gpointer data)
     gst_x_overlay_set_xwindow_id(GST_X_OVERLAY(data),GDK_WINDOW_XWINDOW(widget->window)); 
     //gulong video_window_xid = GDK_WINDOW_XID (widget->window);
     //gst_x_overlay_set_window_handle(GST_X_OVERLAY(data), video_window_xid); 
-    gst_x_overlay_set_render_rectangle(GST_X_OVERLAY(data), 0,0, 480,320); 
+    //gst_x_overlay_set_render_rectangle(GST_X_OVERLAY(data), 0,0, 480,320); 
     return FALSE; 
 }
 
