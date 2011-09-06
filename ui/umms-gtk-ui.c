@@ -24,7 +24,6 @@
 #include <string.h>
 
 #include "umms-gtk-backend.h"
-#if 0
 static char *uri_to_play;
 static GtkWidget *video_output;
 static GtkWidget *pause_button;
@@ -82,7 +81,7 @@ static void
 reset_cb (GtkWidget *widget,
           gpointer data)
 {
-    backend_reset ();
+    umms_backend_reset ();
 }
 
 static gboolean
@@ -121,10 +120,10 @@ key_press (GtkWidget *widget,
             umms_backend_reset ();
             break;
         case GDK_Right:
-            umms_backend_seek (10);
+            umms_backend_seek_relative (10);
             break;
         case GDK_Left:
-            umms_backend_seek (-10);
+            umms_backend_seek_relative (-10);
             break;
         case GDK_Q:
         case GDK_q:
@@ -137,8 +136,8 @@ key_press (GtkWidget *widget,
     return TRUE;
 }
 
-static void
-seek_cb (GtkRange *range,
+
+static void seek_cb (GtkRange *range,
          GtkScrollType scroll,
          gdouble value,
          gpointer data)
@@ -161,8 +160,8 @@ seek_cb (GtkRange *range,
     umms_backend_seek_absolute (to_seek);
 }
 
-static void
-seekforward_cb (GtkRange *range,
+
+static void seekforward_cb (GtkRange *range,
          GtkScrollType scroll,
          gdouble value,
          gpointer data)
@@ -171,12 +170,12 @@ seekforward_cb (GtkRange *range,
   guint64 pos;
 
   if (!DURATION_IS_VALID (duration))
-    duration = backend_query_duration ();
+    duration = umms_backend_query_duration ();
 
   if (!DURATION_IS_VALID (duration))
     return;
 
-  pos = backend_query_position ();
+  pos = umms_backend_query_position ();
 
   if (pos + _step < duration)
     to_seek = pos + _step;
@@ -186,8 +185,8 @@ seekforward_cb (GtkRange *range,
   umms_backend_seek_absolute (to_seek);
 }
 
-static void
-seekbackward_cb (GtkRange *range,
+
+static void seekbackward_cb (GtkRange *range,
                 GtkScrollType scroll,
                 gdouble value,
                 gpointer data)
@@ -211,8 +210,8 @@ seekbackward_cb (GtkRange *range,
   backend_seek_absolute (to_seek);
 }
 
-static void
-seekto485s_cb (GtkRange *range,
+
+static void seekto485s_cb (GtkRange *range,
                  GtkScrollType scroll,
                  gdouble value,
                  gpointer data)
@@ -230,8 +229,8 @@ seekto485s_cb (GtkRange *range,
   backend_seek_absolute (to_seek);
 }
 
-static void
-start (void)
+
+static void start (void)
 {
     GtkWidget *button;
     GtkWidget *hbox;
@@ -240,13 +239,13 @@ start (void)
     window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
     g_signal_connect (G_OBJECT (window), "delete_event",
-                      G_CALLBACK (delete_event), NULL);
+            G_CALLBACK (delete_event), NULL);
 
     g_signal_connect (G_OBJECT (window), "destroy",
-                      G_CALLBACK (destroy), NULL);
+            G_CALLBACK (destroy), NULL);
 
     g_signal_connect (G_OBJECT (window), "key-press-event",
-                      G_CALLBACK (key_press), NULL);
+            G_CALLBACK (key_press), NULL);
 
     gtk_container_set_border_width (GTK_CONTAINER (window), 0);
 
@@ -263,40 +262,40 @@ start (void)
     gtk_widget_show (hbox);
 
     {
-      GdkWindow * w = NULL;
-      video_output = gtk_drawing_area_new ();
+        GdkWindow * w = NULL;
+        video_output = gtk_drawing_area_new ();
 
-      gtk_box_pack_start (GTK_BOX (vbox), video_output, TRUE, TRUE, 0);
+        gtk_box_pack_start (GTK_BOX (vbox), video_output, TRUE, TRUE, 0);
 
-      gtk_widget_set_size_request (video_output, 800, 50);
+        gtk_widget_set_size_request (video_output, 800, 50);
 
-      gtk_widget_show (video_output);
+        gtk_widget_show (video_output);
 
-      /* for upp alpha plane */
-      w = gtk_widget_get_window (video_output);
-      if (w)
+        /* for upp alpha plane */
+        w = gtk_widget_get_window (video_output);
+        if (w)
         {
-          Display * dpy = GDK_WINDOW_XDISPLAY (w); // todo: usr env
-          Window win = GDK_WINDOW_XID (w);
-          if (dpy)
+            Display * dpy = GDK_WINDOW_XDISPLAY (w); // todo: usr env
+            Window win = GDK_WINDOW_XID (w);
+            if (dpy)
             {
-              unsigned char data[1] = {1};
-              Atom property = XInternAtom (dpy, "UPP_ALPHA", 0);
-              Atom type = XInternAtom (dpy, "INTERGER", 1);
-              XChangeProperty (dpy, win, property, type, 8, PropModeReplace,
-                               data, 1);
-              XFlush (dpy);
-              fprintf (stderr, "get set display sucess!\n");
+                unsigned char data[1] = {1};
+                Atom property = XInternAtom (dpy, "UPP_ALPHA", 0);
+                Atom type = XInternAtom (dpy, "INTERGER", 1);
+                XChangeProperty (dpy, win, property, type, 8, PropModeReplace,
+                        data, 1);
+                XFlush (dpy);
+                fprintf (stderr, "get set display sucess!\n");
             }
-          else
+            else
             {
-              fprintf (stderr, "opendisplay error!\n");
+                fprintf (stderr, "opendisplay error!\n");
             }
-          
+
         }
-      else
+        else
         {
-          fprintf (stderr, "get window error!\n");
+            fprintf (stderr, "get window error!\n");
         }
     }
 
@@ -304,7 +303,7 @@ start (void)
         button = gtk_button_new_with_label ("Pause");
 
         g_signal_connect (G_OBJECT (button), "clicked",
-                          G_CALLBACK (pause_cb), NULL);
+                G_CALLBACK (pause_cb), NULL);
 
         gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 2);
 
@@ -317,7 +316,7 @@ start (void)
         button = gtk_button_new_with_label ("Reset");
 
         g_signal_connect (G_OBJECT (button), "clicked",
-                          G_CALLBACK (reset_cb), NULL);
+                G_CALLBACK (reset_cb), NULL);
 
         gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 2);
 
@@ -325,36 +324,36 @@ start (void)
     }
 
     {
-      button = gtk_button_new_with_label ("<<");
+        button = gtk_button_new_with_label ("<<");
 
-      g_signal_connect (G_OBJECT (button), "clicked",
-                        G_CALLBACK (seekbackward_cb), NULL);
+        g_signal_connect (G_OBJECT (button), "clicked",
+                G_CALLBACK (seekbackward_cb), NULL);
 
-      gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 2);
+        gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 2);
 
-      gtk_widget_show (button);
+        gtk_widget_show (button);
     }
 
     {
-      button = gtk_button_new_with_label (">>");
+        button = gtk_button_new_with_label (">>");
 
-      g_signal_connect (G_OBJECT (button), "clicked",
-                        G_CALLBACK (seekforward_cb), NULL);
+        g_signal_connect (G_OBJECT (button), "clicked",
+                G_CALLBACK (seekforward_cb), NULL);
 
-      gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 2);
+        gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 2);
 
-      gtk_widget_show (button);
+        gtk_widget_show (button);
     }
 
     {
-      button = gtk_button_new_with_label ("seekto485s");
+        button = gtk_button_new_with_label ("seekto485s");
 
-      g_signal_connect (G_OBJECT (button), "clicked",
-                        G_CALLBACK (seekto485s_cb), NULL);
+        g_signal_connect (G_OBJECT (button), "clicked",
+                G_CALLBACK (seekto485s_cb), NULL);
 
-      gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 2);
+        gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 2);
 
-      gtk_widget_show (button);
+        gtk_widget_show (button);
     }
 
     {
@@ -365,7 +364,7 @@ start (void)
         gtk_box_pack_end (GTK_BOX (hbox), scale, TRUE, TRUE, 2);
 
         g_signal_connect (G_OBJECT (scale), "change-value",
-                          G_CALLBACK (seek_cb), NULL);
+                G_CALLBACK (seek_cb), NULL);
 
         gtk_widget_show (scale);
     }
@@ -373,12 +372,12 @@ start (void)
     //gtk_widget_show (window);
 
     {
-      gint x = 0;
-      gint y = 0;
-      gtk_window_move (window, 50, 50);
-      //gtk_window_get_position (window, &x, &y);
-      //fprintf (stderr, "window pos, x:%d, y:%d\n", x, y);
-      //backend_set_video_pos (x, y, 800, 450);
+        gint x = 0;
+        gint y = 0;
+        gtk_window_move (window, 50, 50);
+        //gtk_window_get_position (window, &x, &y);
+        //fprintf (stderr, "window pos, x:%d, y:%d\n", x, y);
+        //backend_set_video_pos (x, y, 800, 450);
     }
     gtk_widget_show (window);
 }
@@ -460,10 +459,4 @@ main (int argc,
 
     return 0;
 }
-#endif
 
-int
-main (int argc,
-      char *argv[])
-{
-}
