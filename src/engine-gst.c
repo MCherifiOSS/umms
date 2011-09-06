@@ -389,26 +389,40 @@ destroy_xevent_handle_thread (MeegoMediaPlayerControl *self)
   return TRUE;
 }
 
+//FIXME: very ugly
+#define IS_VIDREND_BIN(ele) g_str_has_prefix(GST_ELEMENT_NAME(ele), "ismd_vidrend_bin") 
 static gboolean setup_ismd_vbin(MeegoMediaPlayerControl *self, gchar *rect, gint plane)
 {
-  GstElement *vsink;
+  GstElement *vsink = NULL;
+  gboolean new_vsink = FALSE;
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
-  vsink = gst_element_factory_make ("ismd_vidrend_bin", NULL);
-  if (!vsink) {
-    UMMS_DEBUG ("Failed to make ismd_vidrend_bin");
-    return FALSE;
-  }
+  g_object_get (priv->pipeline, "video-sink", &vsink, NULL);
 
+  if (!vsink || !IS_VIDREND_BIN(vsink)) {
+    vsink = gst_element_factory_make ("ismd_vidrend_bin", NULL);
+    if (!vsink) {
+      UMMS_DEBUG ("Failed to make ismd_vidrend_bin");
+      return FALSE;
+    }
+    UMMS_DEBUG ("new ismd_vidrend_bin: %p, name: %s", vsink, GST_ELEMENT_NAME(vsink));
+    new_vsink = TRUE;
+  }
+  
+  UMMS_DEBUG ("playbin2 already have ismd_vidrend_bin: %p, name: %s", vsink, GST_ELEMENT_NAME(vsink));
   if (rect)
     g_object_set (vsink, "rectangle", rect, NULL);
 
   if (plane != INVALID_PLANE_ID)
     g_object_set (vsink, "gdl-plane", plane, NULL);
 
-  g_object_set (priv->pipeline, "video-sink", vsink, NULL);
+  if (new_vsink) {
+    g_object_set (priv->pipeline, "video-sink", vsink, NULL);
+    UMMS_DEBUG ("Set ismd_vidrend_bin to playbin2");
+  } else { 
+    g_object_unref (vsink);
+  }
 
-  UMMS_DEBUG ("Set ismd_vidrend_bin to playbin2");
   return TRUE;
 }
 
@@ -1060,6 +1074,7 @@ engine_gst_set_video_size (MeegoMediaPlayerControl *self,
   if (vsink_bin) {
     gchar *rectangle_des = NULL;
 
+    UMMS_DEBUG ("ismd_vidrend_bin: %p, name: %s", vsink_bin, GST_ELEMENT_NAME(vsink_bin));
     rectangle_des = g_strdup_printf ("%u,%u,%u,%u", x, y, w, h);
     UMMS_DEBUG ("set rectangle damension :'%s'", rectangle_des);
     g_object_set (G_OBJECT(vsink_bin), "rectangle", rectangle_des, NULL);
@@ -1089,6 +1104,7 @@ engine_gst_get_video_size (MeegoMediaPlayerControl *self,
   g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
   if (vsink_bin) {
     gchar *rectangle_des = NULL;
+    UMMS_DEBUG ("ismd_vidrend_bin: %p, name: %s", vsink_bin, GST_ELEMENT_NAME(vsink_bin));
     g_object_get (G_OBJECT(vsink_bin), "rectangle", &rectangle_des, NULL);
     sscanf (rectangle_des, "%u,%u,%u,%u", x, y, w, h);
     UMMS_DEBUG ("got rectangle damension :'%u,%u,%u,%u'", *x, *y, *w, *h);
