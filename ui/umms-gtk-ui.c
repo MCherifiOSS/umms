@@ -1,462 +1,244 @@
-/*
- * Copyright (C) 2008 Felipe Contreras.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
-#include <X11/Xlib.h>
+#include <glib.h>
+#include <glib/gprintf.h>
 #include <gtk/gtk.h>
-#include <gdk/gdkx.h>
-#include <gdk/gdkkeysyms.h>
+#include <gst/gst.h>
+#include "umms-gtk-player.h"
+#include "umms-gtk-ui.h"
 
-#include <string.h>
+#define MY_GST_TIME_ARGS(t) \
+            GST_CLOCK_TIME_IS_VALID (t) ? \
+        (guint) (((GstClockTime)(t)) / (GST_SECOND * 60 * 60)) : 99, \
+        GST_CLOCK_TIME_IS_VALID (t) ? \
+        (guint) ((((GstClockTime)(t)) / (GST_SECOND * 60)) % 60) : 99, \
+        GST_CLOCK_TIME_IS_VALID (t) ? \
+        (guint) ((((GstClockTime)(t)) / GST_SECOND) % 60) : 99
 
-#include "umms-gtk-backend.h"
-static char *uri_to_play;
-static GtkWidget *video_output;
-static GtkWidget *pause_button;
-static GtkWidget *scale;
-static guint64 duration;
-static GtkWidget *window;
-static GtkWidget * subwin;
+GtkWidget *video_window;
+GtkWidget *window;
 
-static guint64 _step = (guint64)97*1000000000;
+static GtkWidget *button_play;
+static GtkWidget *progressbar;
+static GtkWidget *progress_time;
+static GtkWidget *image_play;
+static GtkWidget *image_pause;
 
-#define DURATION_IS_VALID(x) (x != 0 && x != (guint64) -1)
-
-static void
-toggle_paused (void)
+static void ui_pause_bt_cb(GtkWidget *widget, gpointer data)
 {
-    static gboolean paused = FALSE;
-    if (paused)
-    {
-        umms_backend_resume ();
-        gtk_button_set_label (GTK_BUTTON (pause_button), "Pause");
-        paused = FALSE;
+    if (ply_get_state() == PLY_MAIN_STATE_READY) {
+        ply_play_stream();
+        gtk_container_remove(GTK_CONTAINER(button_play), image_play);
+        gtk_container_add(GTK_CONTAINER(button_play), image_pause);
+    } else if (ply_get_state() == PLY_MAIN_STATE_RUN) {
+        ply_pause_stream();
+        gtk_container_remove(GTK_CONTAINER(button_play), image_pause);
+        gtk_container_add(GTK_CONTAINER(button_play), image_play);
+    } else if (ply_get_state() == PLY_MAIN_STATE_PAUSE) {
+        ply_resume_stream();
+        gtk_container_remove(GTK_CONTAINER(button_play), image_play);
+        gtk_container_add(GTK_CONTAINER(button_play), image_pause);
     }
-    else
-    {
-        umms_backend_pause ();
-        gtk_button_set_label (GTK_BUTTON (pause_button), "Resume");
-        paused = TRUE;
-    }
+    gtk_widget_show_all(window);
 }
 
-static void
-toggle_fullscreen (void)
+static void ui_stop_bt_cb(GtkWidget *widget, gpointer data)
 {
-    static gboolean fullscreen = FALSE;
-    if (fullscreen)
-    {
-        gtk_window_unfullscreen (GTK_WINDOW(window));
-        fullscreen = FALSE;
-    }
-    else
-    {
-        gtk_window_fullscreen (GTK_WINDOW(window));
-        fullscreen = TRUE;
+    if (ply_get_state() == PLY_MAIN_STATE_RUN) {
+        ply_stop_stream();
+        gtk_container_remove(GTK_CONTAINER(button_play), image_pause);
+        gtk_container_add(GTK_CONTAINER(button_play), image_play);
+    } else if (ply_get_state() == PLY_MAIN_STATE_PAUSE) {
+        ply_stop_stream();
     }
 }
 
-static void
-pause_cb (GtkWidget *widget,
-          gpointer data)
+static void ui_fileopen_dlg(GtkWidget *widget, gpointer data)
 {
-    toggle_paused ();
+    GtkWidget *fileopen_dlg;
+    gint result;
+    gchar *filename;
+
+    fileopen_dlg = gtk_file_chooser_dialog_new("Select media file",
+            GTK_WINDOW(window),
+            GTK_FILE_CHOOSER_ACTION_OPEN,
+            GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+            GTK_STOCK_OK, GTK_RESPONSE_OK,
+            NULL);
+    result = gtk_dialog_run(GTK_DIALOG(fileopen_dlg));
+    if (GTK_RESPONSE_OK == result) {
+        filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(fileopen_dlg));
+        gtk_widget_destroy(fileopen_dlg);
+        g_print("filename is %s\n", filename);
+        ply_reload_file(filename);
+        ui_pause_bt_cb(widget, data);
+        g_free(filename);
+    } else {
+        gtk_widget_destroy(fileopen_dlg);
+    }
 }
 
-static void
-reset_cb (GtkWidget *widget,
-          gpointer data)
+static void ui_progressbar_vchange_cb( GtkAdjustment *get,
+        GtkAdjustment *set )
 {
-    umms_backend_reset ();
+    PlyMainData *ply_maindata;
+
+    g_print("fasfafafasfafsa:%f\n", get->value);
+    if (ply_get_state() == PLY_MAIN_STATE_RUN ||
+            ply_get_state() == PLY_MAIN_STATE_PAUSE) {
+        ply_maindata = ply_get_maindata();
+        ply_seek_stream_from_beginging((get->value/get->upper) * ply_maindata->duration_nanosecond);
+    }
 }
 
-static gboolean
-delete_event (GtkWidget *widget,
-              GdkEvent *event,
-              gpointer data)
+void ui_send_stop_signal(void)
 {
-    return FALSE;
+    ui_stop_bt_cb(NULL, NULL);
 }
 
-static void
-destroy (GtkWidget *widget,
-         gpointer data)
+void ui_update_progressbar(gint64 pos, gint64 len)
 {
-    gtk_main_quit ();
-}
+    PlyMainData *ply_maindata;
+    gchar label_str[30];
 
-static gboolean
-key_press (GtkWidget *widget,
-           GdkEventKey *event,
-           gpointer data)
-{
-    switch (event->keyval)
+    GtkAdjustment *adj = gtk_range_get_adjustment(GTK_RANGE(progressbar));
+    if( (len/GST_SECOND) != 0)
     {
-        case GDK_P:
-        case GDK_p:
-        case GDK_space:
-            toggle_paused ();
-            break;
-        case GDK_F:
-        case GDK_f:
-            toggle_fullscreen ();
-            break;
-        case GDK_R:
-        case GDK_r:
-            umms_backend_reset ();
-            break;
-        case GDK_Right:
-            umms_backend_seek_relative (10);
-            break;
-        case GDK_Left:
-            umms_backend_seek_relative (-10);
-            break;
-        case GDK_Q:
-        case GDK_q:
-            gtk_main_quit ();
-            break;
-        default:
-            break;
+        adj->value = ((pos/GST_SECOND) * 1000) / (len/GST_SECOND);
+    }
+    if ( (len/GST_SECOND) == 0 ||
+            adj->value > 1000)
+    {
+        adj->value = 1000;
+        pos = len;
     }
 
-    return TRUE;
+    if (ply_get_state()== PLY_MAIN_STATE_READY) {
+        pos = 0;
+        adj->value = 0;
+    }
+
+    ply_maindata = ply_get_maindata();
+    ply_maindata->duration_nanosecond = len;
+
+    gtk_signal_emit_by_name(GTK_OBJECT(adj), "changed");
+    g_sprintf(label_str, "%02u:%02u:%02u/%02u:%02u:%02u", 
+            MY_GST_TIME_ARGS(pos), MY_GST_TIME_ARGS(len));
+    gtk_label_set_text(GTK_LABEL(progress_time), label_str);
+    g_print("%s\n", label_str);
+    gtk_widget_show_all(progress_time);
 }
 
 
-static void seek_cb (GtkRange *range,
-         GtkScrollType scroll,
-         gdouble value,
-         gpointer data)
+gint ui_create(void)
 {
-    guint64 to_seek;
+    GtkWidget *topvbox;
+
+    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_widget_set_size_request(window, 640, 480);
+    gtk_window_set_title(GTK_WINDOW(window), "AdvPlayer");
+    gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+    g_signal_connect(G_OBJECT(window), "delete_event", G_CALLBACK(gtk_main_quit), NULL);
+
+
+    /* Create Top vertical box */
+    topvbox = gtk_vbox_new(FALSE, 0);
+    gtk_container_add(GTK_CONTAINER(window), topvbox);
+
+    /* Create MenuBar */
+    GtkWidget *menubar;
+    GtkWidget *menuitem_file;
+    GtkWidget *menuitem_play;
+    GtkWidget *menuitem_help;
+    GtkWidget *file_menu;
+    GtkWidget *play_menu;
+    GtkWidget *help_menu;
+    menubar  = gtk_menu_bar_new();
+    gtk_box_pack_start(GTK_BOX(topvbox), menubar, FALSE, TRUE, 0);
+    menuitem_file = gtk_menu_item_new_with_mnemonic("File(_F)");
+    gtk_menu_bar_append(GTK_MENU_BAR(menubar), menuitem_file);
+    file_menu = gtk_menu_new();
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem_file), file_menu);
+    GtkWidget *menuitem_file1 = gtk_menu_item_new_with_mnemonic("File(_F)");
+    gtk_container_add(GTK_CONTAINER(file_menu), menuitem_file1);
+
+    menuitem_play = gtk_menu_item_new_with_mnemonic("Play(_P)");
+    //gtk_container_add(GTK_CONTAINER(menubar), menuitem_play);
+    gtk_menu_bar_append(GTK_MENU_BAR(menubar), menuitem_play);
+    play_menu = gtk_menu_new();
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem_play), play_menu);
+
+    menuitem_help = gtk_menu_item_new_with_label("Help(_P)");
+    //gtk_container_add(GTK_CONTAINER(menubar), menuitem_help);
+    gtk_menu_bar_append(GTK_MENU_BAR(menubar), menuitem_help);
+    help_menu = gtk_menu_new();
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem_help), help_menu);
+    gtk_widget_show_all(window);
+
+    /* image widget */
+    video_window = gtk_drawing_area_new();
+    gtk_widget_set_size_request(video_window,640,380); 
+    gtk_box_pack_start(GTK_BOX(topvbox), video_window, FALSE, FALSE, 0);
+
+    /* progress widget */
+    GtkWidget *progress_hbox;
+    progress_hbox = gtk_hbox_new(FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(topvbox), progress_hbox, TRUE, TRUE, 0);
+    progressbar = gtk_hscale_new_with_range(0, 1000, 1);
+    gtk_scale_set_digits(GTK_SCALE(progressbar), 0);
+    gtk_scale_set_draw_value(GTK_SCALE(progressbar), FALSE);
+    gtk_widget_set_size_request(progressbar, 32, 20);
+    GtkAdjustment *adj = gtk_range_get_adjustment(GTK_RANGE(progressbar));
+    gtk_signal_connect(GTK_OBJECT(adj), "value_changed", GTK_SIGNAL_FUNC(ui_progressbar_vchange_cb), adj);
+    gtk_box_pack_start(GTK_BOX(progress_hbox), progressbar, TRUE, TRUE, 0);
+    progress_time = gtk_label_new("00:00:00/00:00:00");
+    gtk_box_pack_start(GTK_BOX(progress_hbox), progress_time, FALSE, FALSE, 0);
+
+    /* Control Button */
+    GtkWidget *button_hbox;
+    GtkWidget *button_rewind;
+    GtkWidget *button_stop;
+    GtkWidget *button_forward;
+    GtkWidget *button_fileopen;
+    GtkWidget *image_rewind;
+    GtkWidget *image_stop;
+    GtkWidget *image_forward;
+    GtkWidget *image_fileopen;
+    button_hbox = gtk_hbox_new(FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(topvbox), button_hbox, FALSE, FALSE, 0);
+    button_rewind = gtk_button_new();
+    image_rewind = gtk_image_new_from_stock("gtk-media-rewind", GTK_ICON_SIZE_BUTTON);
+    gtk_container_add(GTK_CONTAINER(button_rewind), image_rewind);
+    gtk_box_pack_start(GTK_BOX(button_hbox), button_rewind, TRUE, TRUE, 0);
+    button_play = gtk_button_new();
+    image_play = gtk_image_new_from_stock("gtk-media-play", GTK_ICON_SIZE_BUTTON);
+    image_pause = gtk_image_new_from_stock("gtk-media-pause", GTK_ICON_SIZE_BUTTON);
+    g_object_ref((gpointer)image_play);
+    g_object_ref((gpointer)image_pause);
+    gtk_container_add(GTK_CONTAINER(button_play), image_play);
+    gtk_box_pack_start(GTK_BOX(button_hbox), button_play, TRUE, TRUE, 0);
+    button_stop = gtk_button_new();
+    image_stop = gtk_image_new_from_stock("gtk-media-stop", GTK_ICON_SIZE_BUTTON);
+    gtk_container_add(GTK_CONTAINER(button_stop), image_stop);
+    gtk_box_pack_start(GTK_BOX(button_hbox), button_stop, TRUE, TRUE, 0);
+    button_forward = gtk_button_new();
+    image_forward = gtk_image_new_from_stock("gtk-media-forward", GTK_ICON_SIZE_BUTTON);
+    gtk_container_add(GTK_CONTAINER(button_forward), image_forward);
+    gtk_box_pack_start(GTK_BOX(button_hbox), button_forward, TRUE, TRUE, 0);
+    button_fileopen = gtk_button_new();
+    image_fileopen = gtk_image_new_from_stock("gtk-open", GTK_ICON_SIZE_BUTTON);
+    gtk_container_add(GTK_CONTAINER(button_fileopen), image_fileopen);
+    gtk_box_pack_start(GTK_BOX(button_hbox), button_fileopen, TRUE, TRUE, 0);
+
+    g_signal_connect((gpointer)button_fileopen, "clicked", G_CALLBACK(ui_fileopen_dlg), NULL);
+    g_signal_connect((gpointer)button_play, "clicked", G_CALLBACK(ui_pause_bt_cb), NULL);
+    g_signal_connect((gpointer)button_stop, "clicked", G_CALLBACK(ui_stop_bt_cb), NULL);
 
-    if (!DURATION_IS_VALID (duration))
-        duration = umms_backend_query_duration ();
+    gtk_widget_show_all(window);
 
-    if (!DURATION_IS_VALID (duration))
-        return;
-
-    to_seek = (value / 100) * duration;
-
-#if 0
-    g_print ("value: %f\n", value);
-    g_print ("duration: %llu\n", duration);
-    g_print ("seek: %llu\n", to_seek);
-#endif
-    umms_backend_seek_absolute (to_seek);
-}
-
-
-static void seekforward_cb (GtkRange *range,
-         GtkScrollType scroll,
-         gdouble value,
-         gpointer data)
-{
-  guint64 to_seek;
-  guint64 pos;
-
-  if (!DURATION_IS_VALID (duration))
-    duration = umms_backend_query_duration ();
-
-  if (!DURATION_IS_VALID (duration))
-    return;
-
-  pos = umms_backend_query_position ();
-
-  if (pos + _step < duration)
-    to_seek = pos + _step;
-  else
-    to_seek = duration;
-
-  umms_backend_seek_absolute (to_seek);
-}
-
-
-static void seekbackward_cb (GtkRange *range,
-                GtkScrollType scroll,
-                gdouble value,
-                gpointer data)
-{
-    guint64 to_seek;
-    guint64 pos;
-
-    if (!DURATION_IS_VALID (duration))
-        duration = umms_backend_query_duration ();
-
-    if (!DURATION_IS_VALID (duration))
-        return;
-
-    pos = umms_backend_query_position ();
-
-    if (pos - _step > 0)
-        to_seek = pos - _step;
-    else
-        to_seek = 0;
-
-    umms_backend_seek_absolute (to_seek);
-}
-
-
-static void seekto485s_cb (GtkRange *range,
-                 GtkScrollType scroll,
-                 gdouble value,
-                 gpointer data)
-{
-  guint64 to_seek;
-
-  if (!DURATION_IS_VALID (duration))
-    duration = umms_backend_query_duration ();
-
-  /*if (!DURATION_IS_VALID (duration))
-    return;*/
-
-  to_seek = 485000000000;
-
-  umms_backend_seek_absolute (to_seek);
-}
-
-
-static void start (void)
-{
-    GtkWidget *button;
-    GtkWidget *hbox;
-    GtkWidget *vbox;
-
-    window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-
-    g_signal_connect (G_OBJECT (window), "delete_event",
-            G_CALLBACK (delete_event), NULL);
-
-    g_signal_connect (G_OBJECT (window), "destroy",
-            G_CALLBACK (destroy), NULL);
-
-    g_signal_connect (G_OBJECT (window), "key-press-event",
-            G_CALLBACK (key_press), NULL);
-
-    gtk_container_set_border_width (GTK_CONTAINER (window), 0);
-
-    vbox = gtk_vbox_new (FALSE, 0);
-
-    gtk_container_add (GTK_CONTAINER (window), vbox);
-
-    gtk_widget_show (vbox);
-
-    hbox = gtk_hbox_new (FALSE, 0);
-
-    gtk_box_pack_end (GTK_BOX (vbox), hbox, FALSE, FALSE, 2);
-
-    gtk_widget_show (hbox);
-
-    {
-        GdkWindow * w = NULL;
-        video_output = gtk_drawing_area_new ();
-
-        gtk_box_pack_start (GTK_BOX (vbox), video_output, TRUE, TRUE, 0);
-
-        gtk_widget_set_size_request (video_output, 800, 50);
-
-        gtk_widget_show (video_output);
-
-        /* for upp alpha plane */
-        w = gtk_widget_get_window (video_output);
-        if (w)
-        {
-            Display * dpy = GDK_WINDOW_XDISPLAY (w); // todo: usr env
-            Window win = GDK_WINDOW_XID (w);
-            if (dpy)
-            {
-                unsigned char data[1] = {1};
-                Atom property = XInternAtom (dpy, "UPP_ALPHA", 0);
-                Atom type = XInternAtom (dpy, "INTERGER", 1);
-                XChangeProperty (dpy, win, property, type, 8, PropModeReplace,
-                        data, 1);
-                XFlush (dpy);
-                fprintf (stderr, "get set display sucess!\n");
-            }
-            else
-            {
-                fprintf (stderr, "opendisplay error!\n");
-            }
-
-        }
-        else
-        {
-            fprintf (stderr, "get window error!\n");
-        }
-    }
-
-    {
-        button = gtk_button_new_with_label ("Pause");
-
-        g_signal_connect (G_OBJECT (button), "clicked",
-                G_CALLBACK (pause_cb), NULL);
-
-        gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 2);
-
-        gtk_widget_show (button);
-
-        pause_button = button;
-    }
-
-    {
-        button = gtk_button_new_with_label ("Reset");
-
-        g_signal_connect (G_OBJECT (button), "clicked",
-                G_CALLBACK (reset_cb), NULL);
-
-        gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 2);
-
-        gtk_widget_show (button);
-    }
-
-    {
-        button = gtk_button_new_with_label ("<<");
-
-        g_signal_connect (G_OBJECT (button), "clicked",
-                G_CALLBACK (seekbackward_cb), NULL);
-
-        gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 2);
-
-        gtk_widget_show (button);
-    }
-
-    {
-        button = gtk_button_new_with_label (">>");
-
-        g_signal_connect (G_OBJECT (button), "clicked",
-                G_CALLBACK (seekforward_cb), NULL);
-
-        gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 2);
-
-        gtk_widget_show (button);
-    }
-
-    {
-        button = gtk_button_new_with_label ("seekto485s");
-
-        g_signal_connect (G_OBJECT (button), "clicked",
-                G_CALLBACK (seekto485s_cb), NULL);
-
-        gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 2);
-
-        gtk_widget_show (button);
-    }
-
-    {
-        GtkObject *adjustment;
-        adjustment = gtk_adjustment_new (0, 0, 101, 1, 5, 1);
-        scale = gtk_hscale_new (GTK_ADJUSTMENT (adjustment));
-
-        gtk_box_pack_end (GTK_BOX (hbox), scale, TRUE, TRUE, 2);
-
-        g_signal_connect (G_OBJECT (scale), "change-value",
-                G_CALLBACK (seek_cb), NULL);
-
-        gtk_widget_show (scale);
-    }
-
-    //gtk_widget_show (window);
-
-    {
-        gint x = 0;
-        gint y = 0;
-        gtk_window_move (GTK_WINDOW(window), 50, 50);
-        //gtk_window_get_position (window, &x, &y);
-        //fprintf (stderr, "window pos, x:%d, y:%d\n", x, y);
-        //backend_set_video_pos (x, y, 800, 450);
-    }
-    gtk_widget_show (window);
-}
-
-static gboolean
-init (gpointer data)
-{
-    umms_backend_set_window (GINT_TO_POINTER (GDK_WINDOW_XWINDOW (video_output->window)));
-
-    if (uri_to_play)
-        umms_backend_play (uri_to_play);
-
-    return FALSE;
-}
-
-static gboolean
-timeout (gpointer data)
-{
-    guint64 pos;
-
-    pos = umms_backend_query_position ();
-    if (!DURATION_IS_VALID (duration))
-        duration = umms_backend_query_duration ();
-
-    if (!DURATION_IS_VALID (duration))
-        return TRUE;
-
-#if 0
-    g_print ("duration=%f\n", duration / ((double) 60 * 1000 * 1000 * 1000));
-    g_print ("position=%llu\n", pos);
-#endif
-
-    /** @todo use events for seeking instead of checking for bad positions. */
-    if (pos != 0)
-    {
-        double value;
-        value = (pos * (((double) 100) / duration));
-        gtk_range_set_value (GTK_RANGE (scale), value);
-    }
-
-    return TRUE;
-}
-
-static gboolean
-taskStatus (gpointer data)
-{
-  /* query thunder task status */
-  backend_query_thunder_task_status ();
-  return TRUE;
-}
-
-int
-main (int argc,
-      char *argv[])
-{
-    gtk_init (&argc, &argv);
-    umms_backend_init ();
-
-    start ();
-
-    if (argc > 1)
-    {
-        if (strchr (argv[1], ':'))
-            uri_to_play = g_strdup (argv[1]);
-        else
-            uri_to_play = g_strdup_printf ("file://%s", argv[1]);
-    }
-
-    //toggle_fullscreen ();
-    g_idle_add (init, NULL);
-    g_timeout_add (1000, timeout, NULL);
-    //g_timeout_add (5000, taskStatus, NULL);
-
-    gtk_main ();
-
-    g_free (uri_to_play);
-
-    umms_backend_deinit ();
 
     return 0;
 }
 
+void ui_main_loop(void)
+{
+    gtk_main();
+}

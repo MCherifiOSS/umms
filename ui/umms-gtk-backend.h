@@ -1,26 +1,13 @@
-#ifndef _UMMS_GTK_BACKEND_H_
-#include <glib-object.h>
-gboolean umms_backend_init (void);
 
-gboolean umms_backend_deinit (void);
+#ifndef AV_DECODER_H_
+#define AV_DECODER_H_
 
-gboolean umms_backend_play (gpointer uri_to_play);
+gint avdec_init(void);
+gint avdec_set_source(gchar *filename);
+gint avdec_start(void);
+gint avdec_stop(void);
+gint avdec_pause(void);
+gint avdec_resume(void);
+gint avdec_seek_from_beginning(gint64 nanosecond);
 
-gboolean umms_backend_resume (void);
-
-gboolean umms_backend_pause (void);
-
-gboolean umms_backend_reset (void);
-
-gboolean umms_backend_seek (void);
-
-gboolean umms_backend_seek_relative (gint to_seek);
-
-gboolean umms_backend_seek_absolute (gint to_seek);
-
-gint umms_backend_query_duration (void);
-
-gint umms_backend_query_position (void);
-
-gboolean umms_backend_set_window(gpointer win);
-#endif
+#endif /* AV_DECODER_H_ */

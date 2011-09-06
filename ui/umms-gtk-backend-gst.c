@@ -4,8 +4,8 @@
 #include <gst/gst.h>
 #include <gdk/gdkx.h> 
 #include <gst/interfaces/xoverlay.h> 
-#include "av_decoder.h"
-#include "ui.h"
+#include "umms-gtk-backend.h"
+#include "umms-gtk-ui.h"
 
 static GstElement *pipeline;
 static GstElement *video_sink;
@@ -48,14 +48,14 @@ static gint avdec_getduration(GstElement *pipeline)
     GstState current, pending;
 
     gst_element_get_state(pipeline, &current, &pending, 0);
-    
-    
+
+
     gst_element_query_position(pipeline, &fmt, &pos);
     gst_element_query_duration(pipeline, &fmt, &len);
     g_print("duration is:%"GST_TIME_FORMAT"/%"GST_TIME_FORMAT"\n", GST_TIME_ARGS(pos), GST_TIME_ARGS(len));
-    
+
     ui_update_progressbar(pos, len);
-    
+
     if (current == GST_STATE_PLAYING) {
         g_timeout_add(500, (GSourceFunc)avdec_getduration, pipeline);
     }
@@ -85,9 +85,9 @@ gint avdec_init(void)
     bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
     gst_bus_add_watch(bus, avdec_bus_call, NULL);
     gst_object_unref(bus);
-    
+
     g_object_set(G_OBJECT(pipeline), "video-sink", video_sink, NULL);
-    
+
     //gst_x_overlay_set_xwindow_id(GST_X_OVERLAY(video_sink),
     //        GDK_WINDOW_XWINDOW(video_image)); 
     g_signal_connect(video_window, "expose-event", 
@@ -112,15 +112,15 @@ gint avdec_set_source(gchar *filename)
 gint avdec_start(void)
 {
     avdec_seek_from_beginning(0);
-    
+
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
-    
+
     g_timeout_add(500, (GSourceFunc)avdec_getduration, pipeline);
 
     gtk_window_set_focus(GTK_WINDOW(window), video_window);
-    
+
     //g_signal_emit_by_name(video_window, "expose-event");
-    
+
     return 0;
 }
 
@@ -150,3 +150,4 @@ gint avdec_seek_from_beginning(gint64 nanosecond)
             GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
     return 0;
 }
+
