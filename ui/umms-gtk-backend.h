@@ -1,5 +1,10 @@
 #ifndef _UMMS_GTK_BACKEND_H_
 #include <glib-object.h>
+gboolean umms_backend_init (void);
+
+gboolean umms_backend_deinit (void);
+
+gboolean umms_backend_play (gpointer uri_to_play);
 
 gboolean umms_backend_resume (void);
 
@@ -17,4 +22,5 @@ gint umms_backend_query_duration (void);
 
 gint umms_backend_query_position (void);
 
+gboolean umms_backend_set_window(gpointer win);
 #endif

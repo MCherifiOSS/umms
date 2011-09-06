@@ -2,6 +2,28 @@
 #include <stdio.h>
 #include "umms-gtk-backend.h"
 
+gboolean
+umms_backend_init (void)
+{
+    printf("line:%d ---> call umms_backend_init\n", __LINE__);
+    return TRUE;
+}
+
+
+gboolean umms_backend_deinit (void)
+{
+    printf("line:%d ---> call umms_backend_deinit\n", __LINE__);
+    return TRUE;
+}
+
+
+gboolean umms_backend_play (gpointer uri_to_play)
+{
+    printf("line:%d ---> call umms_backend_deinit\n", __LINE__);
+    return TRUE;
+}
+
+
 gboolean 
 umms_backend_resume (void)
 {
@@ -54,6 +76,14 @@ gint
 umms_backend_query_position (void)
 {
     printf("line:%d ---> call umms_backend_query_position\n", __LINE__);
+    return TRUE;
+}
+
+
+gboolean
+umms_backend_set_window(gpointer win)
+{
+    printf("line:%d ---> call umms_backend_set_window\n", __LINE__);
     return TRUE;
 }
 

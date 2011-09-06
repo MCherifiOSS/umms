@@ -32,7 +32,7 @@ static guint64 duration;
 static GtkWidget *window;
 static GtkWidget * subwin;
 
-static guint64 _step = 97*1000000000;
+static guint64 _step = (guint64)97*1000000000;
 
 #define DURATION_IS_VALID(x) (x != 0 && x != (guint64) -1)
 
@@ -60,12 +60,12 @@ toggle_fullscreen (void)
     static gboolean fullscreen = FALSE;
     if (fullscreen)
     {
-        gtk_window_unfullscreen (window);
+        gtk_window_unfullscreen (GTK_WINDOW(window));
         fullscreen = FALSE;
     }
     else
     {
-        gtk_window_fullscreen (window);
+        gtk_window_fullscreen (GTK_WINDOW(window));
         fullscreen = TRUE;
     }
 }
@@ -145,7 +145,7 @@ static void seek_cb (GtkRange *range,
     guint64 to_seek;
 
     if (!DURATION_IS_VALID (duration))
-        duration = backend_query_duration ();
+        duration = umms_backend_query_duration ();
 
     if (!DURATION_IS_VALID (duration))
         return;
@@ -191,23 +191,23 @@ static void seekbackward_cb (GtkRange *range,
                 gdouble value,
                 gpointer data)
 {
-  guint64 to_seek;
-  guint64 pos;
+    guint64 to_seek;
+    guint64 pos;
 
-  if (!DURATION_IS_VALID (duration))
-    duration = backend_query_duration ();
+    if (!DURATION_IS_VALID (duration))
+        duration = umms_backend_query_duration ();
 
-  if (!DURATION_IS_VALID (duration))
-    return;
+    if (!DURATION_IS_VALID (duration))
+        return;
 
-  pos = backend_query_position ();
+    pos = umms_backend_query_position ();
 
-  if (pos - _step > 0)
-    to_seek = pos - _step;
-  else
-    to_seek = 0;
+    if (pos - _step > 0)
+        to_seek = pos - _step;
+    else
+        to_seek = 0;
 
-  backend_seek_absolute (to_seek);
+    umms_backend_seek_absolute (to_seek);
 }
 
 
@@ -219,14 +219,14 @@ static void seekto485s_cb (GtkRange *range,
   guint64 to_seek;
 
   if (!DURATION_IS_VALID (duration))
-    duration = backend_query_duration ();
+    duration = umms_backend_query_duration ();
 
   /*if (!DURATION_IS_VALID (duration))
     return;*/
 
   to_seek = 485000000000;
 
-  backend_seek_absolute (to_seek);
+  umms_backend_seek_absolute (to_seek);
 }
 
 
@@ -374,7 +374,7 @@ static void start (void)
     {
         gint x = 0;
         gint y = 0;
-        gtk_window_move (window, 50, 50);
+        gtk_window_move (GTK_WINDOW(window), 50, 50);
         //gtk_window_get_position (window, &x, &y);
         //fprintf (stderr, "window pos, x:%d, y:%d\n", x, y);
         //backend_set_video_pos (x, y, 800, 450);
@@ -385,10 +385,10 @@ static void start (void)
 static gboolean
 init (gpointer data)
 {
-    backend_set_window (GINT_TO_POINTER (GDK_WINDOW_XWINDOW (video_output->window)));
+    umms_backend_set_window (GINT_TO_POINTER (GDK_WINDOW_XWINDOW (video_output->window)));
 
     if (uri_to_play)
-        backend_play (uri_to_play);
+        umms_backend_play (uri_to_play);
 
     return FALSE;
 }
@@ -398,9 +398,9 @@ timeout (gpointer data)
 {
     guint64 pos;
 
-    pos = backend_query_position ();
+    pos = umms_backend_query_position ();
     if (!DURATION_IS_VALID (duration))
-        duration = backend_query_duration ();
+        duration = umms_backend_query_duration ();
 
     if (!DURATION_IS_VALID (duration))
         return TRUE;
@@ -434,7 +434,7 @@ main (int argc,
       char *argv[])
 {
     gtk_init (&argc, &argv);
-    backend_init (&argc, &argv);
+    umms_backend_init ();
 
     start ();
 
@@ -455,7 +455,7 @@ main (int argc,
 
     g_free (uri_to_play);
 
-    backend_deinit ();
+    umms_backend_deinit ();
 
     return 0;
 }
