@@ -390,7 +390,9 @@ destroy_xevent_handle_thread (MeegoMediaPlayerControl *self)
 }
 
 //FIXME: very ugly
-#define IS_VIDREND_BIN(ele) g_str_has_prefix(GST_ELEMENT_NAME(ele), "ismd_vidrend_bin") 
+#define IS_VIDREND_BIN(ele) \
+   ((g_object_class_find_property (G_OBJECT_GET_CLASS (ele), "scale-mode") != NULL) && (g_object_class_find_property (G_OBJECT_GET_CLASS (ele), "gdl-plane") != NULL))
+
 static gboolean setup_ismd_vbin(MeegoMediaPlayerControl *self, gchar *rect, gint plane)
 {
   GstElement *vsink = NULL;
@@ -398,6 +400,8 @@ static gboolean setup_ismd_vbin(MeegoMediaPlayerControl *self, gchar *rect, gint
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
   g_object_get (priv->pipeline, "video-sink", &vsink, NULL);
+  if (vsink)
+    UMMS_DEBUG ("playbin2 aready has video-sink: %p, name: %s", vsink, GST_ELEMENT_NAME(vsink));
 
   if (!vsink || !IS_VIDREND_BIN(vsink)) {
     vsink = gst_element_factory_make ("ismd_vidrend_bin", NULL);
@@ -409,7 +413,6 @@ static gboolean setup_ismd_vbin(MeegoMediaPlayerControl *self, gchar *rect, gint
     new_vsink = TRUE;
   }
   
-  UMMS_DEBUG ("playbin2 already have ismd_vidrend_bin: %p, name: %s", vsink, GST_ELEMENT_NAME(vsink));
   if (rect)
     g_object_set (vsink, "rectangle", rect, NULL);
 
@@ -3133,6 +3136,7 @@ bus_message_eos_cb (GstBus     *bus,
   UMMS_DEBUG ("message::eos received on bus");
 
   meego_media_player_control_emit_eof (self);
+  engine_gst_stop (self);
 }
 
 
