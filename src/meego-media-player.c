@@ -637,6 +637,15 @@ meego_media_player_set_buffer_depth (MeegoMediaPlayer *player, gint format, gint
 }
 
 gboolean
+meego_media_player_get_buffer_depth (MeegoMediaPlayer *player, gint format, gint64 *buf_val, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_buffer_depth(GET_CONTROL_IFACE (player), format, buf_val);
+  UMMS_DEBUG ("set the format to %d, buffer to %lld", format, buf_val);
+  return TRUE;
+}
+
+gboolean
 meego_media_player_set_mute (MeegoMediaPlayer *player, gint mute, GError **err)
 {
   MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);

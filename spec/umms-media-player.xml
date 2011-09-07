@@ -156,6 +156,11 @@
 			<arg name="buf_val" type="x"/>
 		</method>
 
+		<method name="GetBufferDepth">
+			<arg name="format" type="i"/>
+			<arg name="buf_val" type="x" direction="out"/>
+		</method>
+
 		<method name="SetMute">
 			<arg name="mute" type="i"/>
 		</method>

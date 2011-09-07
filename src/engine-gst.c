@@ -1856,6 +1856,37 @@ engine_gst_set_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 
 
 
 static gboolean
+engine_gst_get_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 *buf_val)
+{
+  EngineGstPrivate *priv = NULL;
+  GstElement *pipe = NULL;
+  gint64 val;
+  
+  *buf_val = -1;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
+
+  if (format == BufferFormatByTime) {
+    g_object_get (G_OBJECT (pipe), "buffer-duration", &val, NULL);
+    UMMS_DEBUG("Get the buffer-duration: %lld", val);
+    *buf_val = val;
+  } else if (format == BufferFormatByBytes) {
+    g_object_get (G_OBJECT (pipe), "buffer-size", &val, NULL);
+    UMMS_DEBUG("Get the buffer-size: %lld", val);
+    *buf_val = val;
+  } else {
+    UMMS_DEBUG("Pass the wrong format:%d to buffer depth setting", format);
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+static gboolean
 engine_gst_set_mute (MeegoMediaPlayerControl *self, gint mute)
 {
   GstElement *pipe;
@@ -2707,6 +2738,8 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_get_current_subtitle);
   meego_media_player_control_implement_set_buffer_depth (klass,
       engine_gst_set_buffer_depth);
+  meego_media_player_control_implement_get_buffer_depth (klass,
+      engine_gst_get_buffer_depth);
   meego_media_player_control_implement_set_mute (klass,
       engine_gst_set_mute);
   meego_media_player_control_implement_is_mute (klass,
