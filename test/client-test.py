@@ -350,9 +350,9 @@ class CmdHandler(threading.Thread):
             uri = raw_input("Input the Subtitle, 'd' for default: '%s'\n" % (default_sub))
             print "uri for subtitle :'%s'" % (uri)
             if uri == "d":
-                self.player.SetUri(default_sub)
+                self.player.SetSubtitleUri(default_sub)
             else :
-                self.player.SetUri(uri)
+                self.player.SetSubtitleUri(uri)
 	
         elif mid == SetCurrentSubtitle:
             sub == raw_input("Input your expect subtitle, '%d'\n")
@@ -401,7 +401,7 @@ state_name = (
 )
 
 
-default_uri = "file:///root/rpmbuild/Ocean_eleven.mkv"
+default_uri = "file:///root/video/720p.m4v"
 #default_uri = "file:///root/p.mkv"
 default_sub = ""
 #"file://root/text-subtitle.srt"

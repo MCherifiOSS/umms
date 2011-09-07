@@ -54,6 +54,8 @@ static gboolean meego_media_player_gstreamer_load_engine (MeegoMediaPlayer *play
       }
     }
   }
+  if (ret)
+    ret = meego_media_player_control_set_uri (player->player_control, uri);
 
   return ret;
 }

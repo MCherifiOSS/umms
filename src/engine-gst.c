@@ -26,12 +26,6 @@ G_DEFINE_TYPE_WITH_CODE (EngineGst, engine_gst, G_TYPE_OBJECT,
 
 #define GET_PRIVATE(o) ((EngineGst *)o)->priv
 
-#define RESET_STR(str) \
-     if (str) {       \
-       g_free(str);   \
-       str = NULL;    \
-     }
-
 #define TEARDOWN_ELEMENT(ele)                      \
     if (ele) {                                     \
       gst_element_set_state (ele, GST_STATE_NULL); \
@@ -436,6 +430,7 @@ static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTabl
   gint  plane = INVALID_PLANE_ID;
   GValue *val = NULL;
 
+  UMMS_DEBUG ("setting up gdl plane target");
   val = g_hash_table_lookup (params, TARGET_PARAM_KEY_RECTANGLE);
   if (val) {
     rect = (gchar *)g_value_get_string (val);
@@ -504,6 +499,7 @@ static gboolean setup_datacopy_target (MeegoMediaPlayerControl *self, GHashTable
   GstElement *shmvbin = NULL;
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
+  UMMS_DEBUG ("setting up datacopy target");
   shmvbin = gst_element_factory_make ("shmvidrendbin", NULL);
   if (!shmvbin) {
     UMMS_DEBUG ("Making \"shmvidrendbin\" failed");
@@ -609,6 +605,7 @@ static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable 
   gint x, y, w, h, rx, ry;
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
+  UMMS_DEBUG ("setting up xwindow target");
   if (priv->xwin_initialized) {
     unset_xwindow_target (self);
   }
@@ -941,15 +938,17 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
     }
   }
 
-uri_not_parsed:
-  UMMS_DEBUG ("uri parsing not finished");
-  return FALSE;
 
 OUT:
   if (!ret) {
     priv->pending_state = old_pending;
   }
   return ret;
+
+uri_not_parsed:
+  UMMS_DEBUG ("uri parsing not finished");
+  return FALSE;
+
 }
 
 static gboolean
@@ -3219,8 +3218,8 @@ bus_sync_handler (GstBus *bus,
   g_return_val_if_fail (ENGINE_IS_GST (engine), GST_BUS_DROP);
   priv = GET_PRIVATE (engine);
 
-  UMMS_DEBUG ("sync-handler received on bus: prepare-gdl-plane");
   vsink =  GST_ELEMENT(GST_MESSAGE_SRC (message));
+  UMMS_DEBUG ("sync-handler received on bus: prepare-gdl-plane, source: %s", GST_ELEMENT_NAME(vsink));
 
   if (!prepare_plane ((MeegoMediaPlayerControl *)engine)) {
     //Since we are in streame thread, let the vsink to post the error message. Handle it in bus_message_error_cb().

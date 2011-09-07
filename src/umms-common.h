@@ -13,6 +13,11 @@
 #define UMMS_AUDIO_MANAGER_INTERFACE_NAME "com.meego.UMMS.AudioManger"
 
 
+#define RESET_STR(str) \
+     if (str) {       \
+       g_free(str);   \
+       str = NULL;    \
+     }
 
 typedef enum {
     PlayerStateNull,
