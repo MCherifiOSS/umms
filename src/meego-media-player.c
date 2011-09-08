@@ -91,6 +91,9 @@ struct _MeegoMediaPlayerPrivate {
 
   //Media player "snapshot", for suspend/restore operation.
   gint64   position;
+
+  gint        target_type;
+  GHashTable *target_params;
 };
 
 static void
@@ -217,6 +220,7 @@ meego_media_player_reply (MeegoMediaPlayer *player, GError **err)
 gboolean meego_media_player_load_engine (MeegoMediaPlayer *player, const gchar *uri, gboolean *new_engine)
 {
   MeegoMediaPlayerClass *kclass = MEEGO_MEDIA_PLAYER_GET_CLASS (player);
+  MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
 
   if (!kclass->load_engine) {
     UMMS_DEBUG ("virtual method \"load_engine\" not implemented");
@@ -227,6 +231,17 @@ gboolean meego_media_player_load_engine (MeegoMediaPlayer *player, const gchar *
     UMMS_DEBUG ("loading pipeline engine failed");
     return FALSE;
   }
+
+  if (*new_engine) {
+    connect_signals (player, player->player_control);
+  }
+
+  /* Set all the cached property. */
+  meego_media_player_control_set_volume (player->player_control, priv->volume);
+  meego_media_player_control_set_mute (player->player_control, priv->mute);
+  meego_media_player_control_set_scale_mode (player->player_control, priv->scale_mode);
+  if (priv->target_params)
+    meego_media_player_control_set_target (player->player_control, priv->target_type, priv->target_params);
 
   UMMS_DEBUG ("new: %d", *new_engine);
   return TRUE;
@@ -254,28 +269,7 @@ meego_media_player_set_uri (MeegoMediaPlayer *player,
 
   priv->uri = g_strdup (uri);
   UMMS_DEBUG ("URI: %s", uri);
-
-  if (!meego_media_player_load_engine (player, priv->uri, &new_engine)) {
-    g_set_error (err, UMMS_ENGINE_ERROR, UMMS_ENGINE_ERROR_FAILED, "loading engine failed");
-    goto engine_failed;
-  }
-
-  if (new_engine) {
-    connect_signals (player, player->player_control);
-  }
-
-  /* Set all the cached property. */
-  meego_media_player_control_set_volume (player->player_control, priv->volume);
-  meego_media_player_control_set_mute (player->player_control, priv->mute);
-  meego_media_player_control_set_scale_mode (player->player_control, priv->scale_mode);
-
-  g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_Initialized], 0);
-
   return TRUE;
-
-engine_failed:
-  RESET_STR(priv->uri);  
-  return FALSE;
 }
 
 //For convenience's sake, we don't cache the target info if player backend is not ready.
@@ -283,87 +277,73 @@ gboolean
 meego_media_player_set_target (MeegoMediaPlayer *player, gint type, GHashTable *params,
     GError **err)
 {
-  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
-  meego_media_player_control_set_target (GET_CONTROL_IFACE (player), type, params);
-  return TRUE;
+  gboolean ret = TRUE;
+  MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
+
+  if (player->player_control) {
+    ret = meego_media_player_control_set_target (GET_CONTROL_IFACE (player), type, params);
+  } else {
+    priv->target_type = type;
+    if (priv->target_params)
+      g_hash_table_unref (priv->target_params);
+    priv->target_params = g_hash_table_ref (params);
+  }
+
+  return ret;
+}
+
+gboolean meego_media_player_activate (MeegoMediaPlayer *player, PlayerState state)
+{
+
+  gboolean ret = TRUE;
+  gboolean new_engine = FALSE;
+  MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
+  MeegoMediaPlayerControl *player_control = GET_CONTROL_IFACE (player);
+
+  if (!priv->uri) {
+    UMMS_DEBUG ("No URI specified");
+    return FALSE;
+  }
+
+  if (!player_control) {
+    if (!meego_media_player_load_engine (player, priv->uri, &new_engine)) {
+      return FALSE;
+    }
+  }
+
+  switch (state) {
+    case PlayerStatePaused:
+      ret = meego_media_player_control_pause (player_control);
+      break;
+    case PlayerStatePlaying:
+      ret = meego_media_player_control_play (player_control);
+      break;
+    default:
+      UMMS_DEBUG ("Invalid target state: %d", state);
+      ret = FALSE;
+      break;
+  }
+
+  if (ret)
+    UMMS_DEBUG ("setting state: %d succeed");
+  else
+    UMMS_DEBUG ("setting state: %d failed");
+
+  return ret;
 }
 
 gboolean
 meego_media_player_play (MeegoMediaPlayer *player,
     GError **err)
 {
-  gboolean ret = TRUE;
-  gboolean new_engine = FALSE;
-  MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
-
-  if (priv->uri && !player->player_control) {
-    UMMS_DEBUG ("replay the URI: %s", priv->uri);
-    if (!meego_media_player_load_engine (player, priv->uri, &new_engine)) {
-      g_set_error (err, UMMS_ENGINE_ERROR, UMMS_ENGINE_ERROR_FAILED, "loading engine failed");
-      return FALSE;
-    }
-  }
-
-  if (new_engine) {
-    connect_signals (player, player->player_control);
-  }
-
-  if (player->player_control) {
-    if (!meego_media_player_control_play (GET_CONTROL_IFACE (player))) {
-      UMMS_DEBUG ("Setting engine to pause failed");
-      g_set_error (err, UMMS_ENGINE_ERROR, UMMS_ENGINE_ERROR_FAILED, "Setting engine to pause failed");
-      ret = FALSE;
-    }
-  } else {
-    UMMS_DEBUG ("MediaPlayer not ready, can't pause it");
-    g_set_error (err, UMMS_GENERIC_ERROR, UMMS_GENERIC_ERROR_STATE_UNSUITABLE, "MediaPlayer not ready, can't pause it");
-    ret = FALSE;
-  }
-
-  if (ret) {
-    UMMS_DEBUG ("invoking succeed");
-  }
-
-  return ret;
+  return meego_media_player_activate (player, PlayerStatePlaying);
 }
 
 gboolean
 meego_media_player_pause(MeegoMediaPlayer *player,
     GError **err)
 {
-  gboolean ret = TRUE;
-  gboolean new_engine = FALSE;
-  MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
-
-  if (priv->uri && !player->player_control) {
-    UMMS_DEBUG ("replay the URI: %s", priv->uri);
-    if (!meego_media_player_load_engine (player, priv->uri, &new_engine)) {
-      g_set_error (err, UMMS_ENGINE_ERROR, UMMS_ENGINE_ERROR_FAILED, "loading engine failed");
-      return FALSE;
-    }
-  }
-
-  if (new_engine) {
-    connect_signals (player, player->player_control);
-  }
-
-  if (player->player_control) {
-    if (!meego_media_player_control_pause (GET_CONTROL_IFACE (player))) {
-      UMMS_DEBUG ("Setting engine to pause failed");
-      g_set_error (err, UMMS_ENGINE_ERROR, UMMS_ENGINE_ERROR_FAILED, "Setting engine to pause failed");
-      ret = FALSE;
-    }
-  } else {
-    UMMS_DEBUG ("MediaPlayer not ready, can't pause it");
-    g_set_error (err, UMMS_GENERIC_ERROR, UMMS_GENERIC_ERROR_STATE_UNSUITABLE, "MediaPlayer not ready, can't pause it");
-    ret = FALSE;
-  }
-
-  if (ret) {
-    UMMS_DEBUG ("invoking succeed");
-  }
-
-  return ret;
+  return meego_media_player_activate (player, PlayerStatePaused);
 }
 
 gboolean
@@ -958,6 +938,9 @@ meego_media_player_dispose (GObject *object)
     g_object_unref (player_control);
   }
 
+  if (priv->target_params) 
+    g_hash_table_unref (priv->target_params);
+
   if (priv->uri)
     g_free (priv->uri);
 
@@ -967,7 +950,6 @@ meego_media_player_dispose (GObject *object)
   if (priv->attended && priv->timeout_id > 0) {
     g_source_remove (priv->timeout_id);
   }
-
 
   G_OBJECT_CLASS (meego_media_player_parent_class)->dispose (object);
 }
@@ -1229,14 +1211,14 @@ meego_media_player_set_default_params (MeegoMediaPlayer *player)
 static void
 meego_media_player_init (MeegoMediaPlayer *player)
 {
-  player->priv = PLAYER_PRIVATE (player);
-
-  player->player_control = (MeegoMediaPlayerControl *)engine_gst_new ();
-  connect_signals(player, player->player_control); 
+  MeegoMediaPlayerPrivate *priv;
+  priv = player->priv = PLAYER_PRIVATE (player);
+  
+  player->player_control = NULL;
+  priv->uri = NULL;
+  priv->target_params = NULL;
   meego_media_player_set_default_params (player);
 }
-
-
 
 MeegoMediaPlayer *
 meego_media_player_new (void)
