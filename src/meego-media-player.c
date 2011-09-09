@@ -249,6 +249,7 @@ gboolean meego_media_player_load_engine (MeegoMediaPlayer *player, const gchar *
     meego_media_player_control_set_subtitle_uri (GET_CONTROL_IFACE (player), priv->sub_uri);
 
   UMMS_DEBUG ("new: %d", *new_engine);
+  g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_Initialized], 0);
   return TRUE;
 }
 
@@ -328,11 +329,8 @@ gboolean meego_media_player_activate (MeegoMediaPlayer *player, PlayerState stat
       break;
   }
 
-  if (ret)
-    UMMS_DEBUG ("setting state: %d succeed");
-  else
-    UMMS_DEBUG ("setting state: %d failed");
-
+  UMMS_DEBUG ("setting state: %d %s", state, (ret?"succeed":"failed"));
+#endif
   return ret;
 }
 
