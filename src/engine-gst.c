@@ -3135,7 +3135,7 @@ bus_message_eos_cb (GstBus     *bus,
   UMMS_DEBUG ("message::eos received on bus");
 
   meego_media_player_control_emit_eof (self);
-  engine_gst_stop (self);
+  engine_gst_stop ((MeegoMediaPlayerControl *)self);
 }
 
 
