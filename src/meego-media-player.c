@@ -75,6 +75,7 @@ struct _MeegoMediaPlayerPrivate {
   gboolean attended;
 
   gchar    *uri;
+  gchar    *sub_uri;
 
   //member fields to stroe default params
   gint     volume;
@@ -217,6 +218,7 @@ meego_media_player_reply (MeegoMediaPlayer *player, GError **err)
   return TRUE;
 }
 
+/* Create inner player engine which can handle this uri, and set all the cached properties*/
 gboolean meego_media_player_load_engine (MeegoMediaPlayer *player, const gchar *uri, gboolean *new_engine)
 {
   MeegoMediaPlayerClass *kclass = MEEGO_MEDIA_PLAYER_GET_CLASS (player);
@@ -237,11 +239,14 @@ gboolean meego_media_player_load_engine (MeegoMediaPlayer *player, const gchar *
   }
 
   /* Set all the cached property. */
+  meego_media_player_control_set_uri (player->player_control, priv->uri);
   meego_media_player_control_set_volume (player->player_control, priv->volume);
   meego_media_player_control_set_mute (player->player_control, priv->mute);
   meego_media_player_control_set_scale_mode (player->player_control, priv->scale_mode);
   if (priv->target_params)
     meego_media_player_control_set_target (player->player_control, priv->target_type, priv->target_params);
+  if (priv->sub_uri)
+    meego_media_player_control_set_subtitle_uri (GET_CONTROL_IFACE (player), priv->sub_uri);
 
   UMMS_DEBUG ("new: %d", *new_engine);
   return TRUE;
@@ -298,14 +303,13 @@ gboolean meego_media_player_activate (MeegoMediaPlayer *player, PlayerState stat
   gboolean ret = TRUE;
   gboolean new_engine = FALSE;
   MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
-  MeegoMediaPlayerControl *player_control = GET_CONTROL_IFACE (player);
 
   if (!priv->uri) {
     UMMS_DEBUG ("No URI specified");
     return FALSE;
   }
 
-  if (!player_control) {
+  if (!player->player_control) {
     if (!meego_media_player_load_engine (player, priv->uri, &new_engine)) {
       return FALSE;
     }
@@ -313,10 +317,10 @@ gboolean meego_media_player_activate (MeegoMediaPlayer *player, PlayerState stat
 
   switch (state) {
     case PlayerStatePaused:
-      ret = meego_media_player_control_pause (player_control);
+      ret = meego_media_player_control_pause (player->player_control);
       break;
     case PlayerStatePlaying:
-      ret = meego_media_player_control_play (player_control);
+      ret = meego_media_player_control_play (player->player_control);
       break;
     default:
       UMMS_DEBUG ("Invalid target state: %d", state);
@@ -652,10 +656,18 @@ meego_media_player_suspend(MeegoMediaPlayer *player,
 gboolean
 meego_media_player_set_subtitle_uri (MeegoMediaPlayer *player, gchar *sub_uri, GError **err)
 {
-  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
-  UMMS_DEBUG ("set the subtitle uri to %s", sub_uri);
-  meego_media_player_control_set_subtitle_uri(GET_CONTROL_IFACE (player), sub_uri);
-  return TRUE;
+  gboolean ret = TRUE;
+  MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
+
+  if (player->player_control) {
+    ret = meego_media_player_control_set_subtitle_uri (GET_CONTROL_IFACE (player), sub_uri);
+  } else {
+    RESET_STR (priv->sub_uri);
+    UMMS_DEBUG ("cache the suburi %s", sub_uri);
+    priv->sub_uri = g_strdup (sub_uri);
+  }
+
+  return ret;
 }
 
 gboolean
@@ -941,11 +953,9 @@ meego_media_player_dispose (GObject *object)
   if (priv->target_params) 
     g_hash_table_unref (priv->target_params);
 
-  if (priv->uri)
-    g_free (priv->uri);
-
-  if (priv->name)
-    g_free (priv->name);
+  RESET_STR (priv->uri);
+  RESET_STR (priv->sub_uri);
+  RESET_STR (priv->name);
 
   if (priv->attended && priv->timeout_id > 0) {
     g_source_remove (priv->timeout_id);
@@ -1215,7 +1225,8 @@ meego_media_player_init (MeegoMediaPlayer *player)
   priv = player->priv = PLAYER_PRIVATE (player);
   
   player->player_control = NULL;
-  priv->uri = NULL;
+  priv->uri     = NULL;
+  priv->sub_uri = NULL;
   priv->target_params = NULL;
   meego_media_player_set_default_params (player);
 }

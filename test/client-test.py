@@ -241,9 +241,18 @@ class CmdHandler(threading.Thread):
             if type == "d":
                 self.player.SetTarget(DataCopy, {})
             elif type == "r": 
-                self.player.SetTarget(ReservedType0, {"rectangle":"0,0,352,288", "plane-id":UPP_A})
+                rectangle = raw_input ("Input the rectangle: 'd' for fullscreen\n")
+                if rectangle == "d":
+		  rectangle = "0,0,0,0"
+                self.player.SetTarget(ReservedType0, {"rectangle":rectangle, "plane-id":UPP_A})
             elif type == "x":
-                self.player.SetTarget(XWindow, {"window-id":0x400013})
+                wid_str = raw_input("Input window id: \n")
+            	if cmp(wid_str[0:2],"0x"[0:2]) == 0:
+	            wid = int (wid_str, 16)
+                else:
+                    wid = int (wid_str)
+                print "wid: %d" % wid
+                self.player.SetTarget(XWindow, {"window-id":wid})
             else:
                 print "Not supported target type:'%s'\n" % (type)
         elif mid == Play:
@@ -403,7 +412,7 @@ state_name = (
 
 default_uri = "file:///root/video/720p.m4v"
 #default_uri = "file:///root/p.mkv"
-default_sub = ""
+default_sub = "file:///root/video/subtest/text-subtitle.srt"
 #"file://root/text-subtitle.srt"
 #default_uri = "file:///root/multi.mkv"
 player_name = ""
