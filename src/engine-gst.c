@@ -389,23 +389,27 @@ destroy_xevent_handle_thread (MeegoMediaPlayerControl *self)
 
 static gboolean setup_ismd_vbin(MeegoMediaPlayerControl *self, gchar *rect, gint plane)
 {
+  GstElement *cur_vsink = NULL;
+  GstElement *new_vsink = NULL;
   GstElement *vsink = NULL;
-  gboolean new_vsink = FALSE;
+  gboolean   ret = TRUE;
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
-  g_object_get (priv->pipeline, "video-sink", &vsink, NULL);
-  if (vsink)
-    UMMS_DEBUG ("playbin2 aready has video-sink: %p, name: %s", vsink, GST_ELEMENT_NAME(vsink));
+  g_object_get (priv->pipeline, "video-sink", &cur_vsink, NULL);
+  if (cur_vsink)
+    UMMS_DEBUG ("playbin2 aready has video-sink: %p, name: %s", cur_vsink, GST_ELEMENT_NAME(cur_vsink));
 
-  if (!vsink || !IS_VIDREND_BIN(vsink)) {
-    vsink = gst_element_factory_make ("ismd_vidrend_bin", NULL);
-    if (!vsink) {
+  if (!cur_vsink || !IS_VIDREND_BIN(cur_vsink)) {
+    new_vsink = gst_element_factory_make ("ismd_vidrend_bin", NULL);
+    if (!new_vsink) {
       UMMS_DEBUG ("Failed to make ismd_vidrend_bin");
-      return FALSE;
+      ret = FALSE;
+      goto OUT;
     }
-    UMMS_DEBUG ("new ismd_vidrend_bin: %p, name: %s", vsink, GST_ELEMENT_NAME(vsink));
-    new_vsink = TRUE;
+    UMMS_DEBUG ("new ismd_vidrend_bin: %p, name: %s", new_vsink, GST_ELEMENT_NAME(new_vsink));
   }
+
+  vsink = new_vsink ? new_vsink : cur_vsink;
   
   if (rect)
     g_object_set (vsink, "rectangle", rect, NULL);
@@ -416,11 +420,13 @@ static gboolean setup_ismd_vbin(MeegoMediaPlayerControl *self, gchar *rect, gint
   if (new_vsink) {
     g_object_set (priv->pipeline, "video-sink", vsink, NULL);
     UMMS_DEBUG ("Set ismd_vidrend_bin to playbin2");
-  } else { 
-    g_object_unref (vsink);
-  }
+  } 
 
-  return TRUE;
+OUT:
+  if (cur_vsink){ 
+    g_object_unref (cur_vsink);
+  }
+  return ret;
 }
 
 
