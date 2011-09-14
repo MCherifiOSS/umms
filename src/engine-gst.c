@@ -17,7 +17,8 @@
 #include "meego-media-player-control.h"
 #include "param-table.h"
 
-
+static gpointer _umms_socket_write_thread(void * dummy);
+static gpointer _umms_socket_listen_thread(void * dummy);
 
 static void meego_media_player_control_init (MeegoMediaPlayerControl* iface);
 
@@ -2884,6 +2885,9 @@ engine_gst_class_init (EngineGstClass *klass)
   object_class->set_property = engine_gst_set_property;
   object_class->dispose = engine_gst_dispose;
   object_class->finalize = engine_gst_finalize;
+
+ // g_thread_create ((GThreadFunc) _umms_socket_listen_thread, NULL, TRUE, NULL);
+ // g_thread_create ((GThreadFunc) _umms_socket_write_thread, NULL, TRUE, NULL);
 }
 
 static void
@@ -3360,6 +3364,7 @@ engine_gst_init (EngineGst *self)
   setup_ismd_vbin (MEEGO_MEDIA_PLAYER_CONTROL(self), FULL_SCREEN_RECT, UPP_A);
   priv->target_type = ReservedType0;
   priv->target_initialized = TRUE;
+
 }
 
 EngineGst *
@@ -3585,7 +3590,7 @@ parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
 static GThread *event_thread = NULL;
 static int listen_fd = -1;
 static int port = 112131;
-static char * ip_address = "127.0.0.1";
+static char * ip_address = NULL;
 
 #define MAX_SERV_CONNECTS 5
 static int serv_fds[MAX_SERV_CONNECTS];
@@ -3600,6 +3605,7 @@ _umms_socket_listen_thread (void * dummy)// Will replace it
     struct sockaddr_in serv_addr; 
     static int new_fd = -1;
     socklen_t cli_len;
+    socklen_t serv_len;
     int i = 0;
 
     G_LOCK(fake_lock_here);
@@ -3616,15 +3622,19 @@ _umms_socket_listen_thread (void * dummy)// Will replace it
     
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = htonl(inet_addr(ip_address));
+    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     serv_addr.sin_port = htons(port); 
-    UMMS_DEBUG("try to binding to %s:%d", ip_address, port);
     if(bind(listen_fd, (struct sockaddr*)&serv_addr, sizeof(struct sockaddr)) == -1) {
         UMMS_DEBUG("try to binding to %s:%d Failed, error is %s",
                 ip_address, port, strerror(errno));
         close(listen_fd);
         listen_fd = -1;
         return NULL;
+    }
+
+    serv_len = sizeof(struct sockaddr);
+    if(getsockname(listen_fd, (struct sockaddr *)&serv_addr, &serv_len) == 0) {
+        UMMS_DEBUG("we now binding to %s:%d", inet_ntoa(serv_addr.sin_addr.s_addr), port);
     }
 
     if(listen(listen_fd, 5) == -1) {
@@ -3690,9 +3700,13 @@ _umms_raw_data_send_func(void * dummy)
     /* Now write the data. */
     for(i = 0; i < MAX_SERV_CONNECTS; i++) {
         if(serv_fds[i] != -1) {
+            UMMS_DEBUG("Send the data for i:%d, fd:%d", i, serv_fds[i]);
             char *content = malloc(1024* sizeof(char));
-            memset(content, i, 1024* sizeof(char));
-            write_num = write(serv_fds[i], content, 1024* sizeof(char));
+            memset(content, 'a' + i, 1024* sizeof(char));
+
+            /* Do not send the signal because the socket closed. */
+            write_num = send(serv_fds[i], content, 1024* sizeof(char), MSG_NOSIGNAL);
+            free(content);
             if(write_num == -1) {
                 UMMS_DEBUG("write data failed, because %s", strerror(errno));
                 close(serv_fds[i]);
@@ -3708,5 +3722,16 @@ _umms_raw_data_send_func(void * dummy)
     }
 
     G_UNLOCK(fake_lock_here);
+}
+
+static gpointer
+_umms_socket_write_thread(void * dummy)
+{
+    while(1) {
+        _umms_raw_data_send_func(NULL);
+        sleep(1);
+    }
+
+    return NULL;
 }
 
