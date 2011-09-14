@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <sys/socket.h> 
 #include <netinet/in.h>
 #include <gst/gst.h>
@@ -3601,9 +3602,11 @@ _umms_socket_listen_thread (void * dummy)// Will replace it
     socklen_t cli_len;
     int i = 0;
 
+    G_LOCK(fake_lock_here);
     for(i = 0; i < MAX_SERV_CONNECTS; i++) {
         serv_fds[i] = -1;
     }
+    G_UNLOCK(fake_lock_here);
 
     listen_fd = socket(AF_INET, SOCK_STREAM, 0);
     if(listen_fd < 0) {
@@ -3642,24 +3645,24 @@ _umms_socket_listen_thread (void * dummy)// Will replace it
                     inet_ntoa(cli_addr.sin_addr), cli_addr.sin_port);
         }
 
+        G_LOCK(fake_lock_here);
         for(i = 0; i < MAX_SERV_CONNECTS; i++) {
             if(serv_fds[i] == -1)
                 break;
         }
 
         if(i < MAX_SERV_CONNECTS) {
-            G_LOCK(fake_lock_here);
             serv_fds[i] = new_fd;
-            G_UNLOCK(fake_lock_here);
+            fcntl(serv_fds[i], F_SETFL, O_NONBLOCK);
         } else {
             UMMS_DEBUG("The connection is too much, can not serve you, sorry");
             close(new_fd);
         }
 
         /* To check whether the main thread want us to exit. */
-        G_LOCK(fake_lock_here);
         if(exit_flag) {
             UMMS_DEBUG("Main thread told listen thread exit, BYE!");
+            G_UNLOCK(fake_lock_here);
             break;
         }
         G_UNLOCK(fake_lock_here);
@@ -3671,8 +3674,39 @@ _umms_socket_listen_thread (void * dummy)// Will replace it
 }
 
 
+static void 
+_umms_raw_data_send_func(void * dummy)
+{
+    int i = 0;
+    int write_num = -1;
 
+    G_LOCK(fake_lock_here);
+    if(exit_flag) {
+        G_UNLOCK(fake_lock_here);
+        UMMS_DEBUG("Skip the work because exit.");
+        return;
+    }
 
+    /* Now write the data. */
+    for(i = 0; i < MAX_SERV_CONNECTS; i++) {
+        if(serv_fds[i] != -1) {
+            char *content = malloc(1024* sizeof(char));
+            memset(content, i, 1024* sizeof(char));
+            write_num = write(serv_fds[i], content, 1024* sizeof(char));
+            if(write_num == -1) {
+                UMMS_DEBUG("write data failed, because %s", strerror(errno));
+                close(serv_fds[i]);
+                serv_fds[i] = -1; /* mark invalid and not use again. */
+            } else {
 
+                /* TODO: We need to handle the data size problem here. Because
+                 * the funciton is called in signal context and can not block,
+                 * we should set the fd to NO_BLOCK and the write may failed
+                 * because the data is to big. We need to handle this case. */
+            }
+        }
+    }
 
+    G_UNLOCK(fake_lock_here);
+}
 
