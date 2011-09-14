@@ -506,14 +506,24 @@ static Window get_top_level_win (MeegoMediaPlayerControl *self, Window sub_win)
 
 static gboolean setup_datacopy_target (MeegoMediaPlayerControl *self, GHashTable *params)
 {
+  gchar *rect = NULL;
+  GValue *val = NULL;
   GstElement *shmvbin = NULL;
   EngineGstPrivate *priv = GET_PRIVATE (self);
+  
 
   UMMS_DEBUG ("setting up datacopy target");
   shmvbin = gst_element_factory_make ("shmvidrendbin", NULL);
   if (!shmvbin) {
     UMMS_DEBUG ("Making \"shmvidrendbin\" failed");
     return FALSE;
+  }
+
+  val = g_hash_table_lookup (params, TARGET_PARAM_KEY_RECTANGLE);
+  if (val) {
+    rect = (gchar *)g_value_get_string (val);
+    UMMS_DEBUG ("setting rectangle = '%s'", rect);
+    g_object_set (shmvbin, "rectangle", rect, NULL);
   }
 
   g_object_set (priv->pipeline, "video-sink", shmvbin, NULL);
@@ -1075,7 +1085,7 @@ engine_gst_set_video_size (MeegoMediaPlayerControl *self,
 {
   EngineGstPrivate *priv = GET_PRIVATE (self);
   GstElement *pipe = priv->pipeline;
-  gboolean ret;
+  gboolean ret = FALSE;
   GstElement *vsink_bin;
 
   g_return_val_if_fail (pipe, FALSE);
@@ -1086,16 +1096,19 @@ engine_gst_set_video_size (MeegoMediaPlayerControl *self,
   if (vsink_bin) {
     gchar *rectangle_des = NULL;
 
-    UMMS_DEBUG ("ismd_vidrend_bin: %p, name: %s", vsink_bin, GST_ELEMENT_NAME(vsink_bin));
-    rectangle_des = g_strdup_printf ("%u,%u,%u,%u", x, y, w, h);
-    UMMS_DEBUG ("set rectangle damension :'%s'", rectangle_des);
-    g_object_set (G_OBJECT(vsink_bin), "rectangle", rectangle_des, NULL);
-    g_free (rectangle_des);
-    gst_object_unref (vsink_bin);
-    ret = TRUE;
+    UMMS_DEBUG ("video sink: %p, name: %s", vsink_bin, GST_ELEMENT_NAME(vsink_bin));
+    if (g_object_class_find_property (G_OBJECT_GET_CLASS (vsink_bin), "rectangle")) {
+      rectangle_des = g_strdup_printf ("%u,%u,%u,%u", x, y, w, h);
+      UMMS_DEBUG ("set rectangle damension :'%s'", rectangle_des);
+      g_object_set (G_OBJECT(vsink_bin), "rectangle", rectangle_des, NULL);
+      g_free (rectangle_des);
+      gst_object_unref (vsink_bin);
+      ret = TRUE;
+    } else {
+      UMMS_DEBUG ("video sink: %s has no 'rectangle' property",  GST_ELEMENT_NAME(vsink_bin));
+    }
   } else {
     UMMS_DEBUG ("Get video-sink failed");
-    ret = FALSE;
   }
 
   return ret;
