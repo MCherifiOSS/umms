@@ -1,3 +1,4 @@
+#include <dbus/dbus-glib.h>
 #include "umms-marshals.h"
 #include "meego-media-player-control.h"
 

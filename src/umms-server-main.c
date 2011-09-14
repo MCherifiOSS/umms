@@ -18,7 +18,6 @@
 
 static GMainLoop *loop = NULL;
 
-static void remove_mngr (UmmsObjectManager *mngr);
 
 static gboolean
 request_name (void)
@@ -135,6 +134,34 @@ static void emit_signal (MeegoMediaPlayer *obj, int sig_id)
 
 }
 #endif
+
+static gboolean
+unregister_object (gpointer obj)
+{
+  DBusGConnection *connection;
+  GError *err = NULL;
+
+  connection = dbus_g_bus_get (DBUS_BUS_SYSTEM, &err);
+  if (connection == NULL) {
+    g_printerr ("Failed to open connection to DBus: %s\n", err->message);
+    g_error_free (err);
+    return FALSE;
+  }
+  dbus_g_connection_unregister_g_object (connection,
+      G_OBJECT (obj));
+  return TRUE;
+}
+
+static void
+remove_mngr (UmmsObjectManager *mngr)
+{
+  printf("remove object manager\n");
+  unregister_object (mngr);
+  g_object_unref (mngr);
+
+  return;
+}
+
 static gboolean channel_cb(GIOChannel *source, GIOCondition condition, gpointer data)
 {
   int rc;
@@ -167,6 +194,7 @@ static gboolean channel_cb(GIOChannel *source, GIOCondition condition, gpointer 
   }
   return TRUE;
 }
+
 #endif
 
 
@@ -226,29 +254,4 @@ main (int    argc,
   return EXIT_SUCCESS;
 }
 
-static gboolean
-unregister_object (gpointer obj)
-{
-  DBusGConnection *connection;
-  GError *err = NULL;
 
-  connection = dbus_g_bus_get (DBUS_BUS_SYSTEM, &err);
-  if (connection == NULL) {
-    g_printerr ("Failed to open connection to DBus: %s\n", err->message);
-    g_error_free (err);
-    return FALSE;
-  }
-  dbus_g_connection_unregister_g_object (connection,
-      G_OBJECT (obj));
-  return TRUE;
-}
-
-static void
-remove_mngr (UmmsObjectManager *mngr)
-{
-  printf("remove object manager\n");
-  unregister_object (mngr);
-  g_object_unref (mngr);
-
-  return;
-}

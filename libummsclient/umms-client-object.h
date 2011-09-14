@@ -48,7 +48,7 @@ GType umms_client_object_get_type (void) G_GNUC_CONST;
 
 UmmsClientObject *umms_client_object_new (void);
 DBusGProxy *umms_client_object_request_player (UmmsClientObject *self, gboolean attended, gdouble time_to_execution, gchar **name);
-void *umms_client_object_remove_player (UmmsClientObject *self, DBusGProxy *player);
+void umms_client_object_remove_player (UmmsClientObject *self, DBusGProxy *player);
 
 G_END_DECLS
 

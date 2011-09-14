@@ -1,26 +1,30 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <glib-object.h>
+#include <gst/gst.h>
 
 #include "test-common.h"
 #include "../src/umms-debug.h"
 #include "../src/meego-media-player-control.h"
 #include "../src/engine-gst.h"
 
-extern to_continue;
+extern gboolean to_continue;
 GMainLoop *loop = NULL;
 static MeegoMediaPlayerControl *player = NULL;
 gboolean method_call (gpointer data)
 {
-  gchar *obj_path, *token;
   gchar *uri;
-  GError *error = NULL;
-  static gint i = 0;
-  gint64 pos, size;
+  gint64 pos = 0;
+  gint64 size = 0;
   gint   volume, state;
   gdouble rate = 1.0;
   guint   x = 0, y = 0, w = 352, h = 288;
-  gboolean has_video, has_audio, support_fullscreen, is_seekable, is_streaming;
+  gboolean has_video = FALSE;
+  gboolean has_audio = FALSE;
+  gboolean support_fullscreen = FALSE;
+  gboolean is_seekable = FALSE;
+  gboolean is_streaming = FALSE;
   gint method_id;
 
   TESTER_DEBUG ("called");
@@ -207,11 +211,8 @@ connect_sigs(MeegoMediaPlayerControl *player)
             0);
 }
 
-main (int argc, char **argv)
+int main (int argc, char **argv)
 {
-  GError *error = NULL;
-  guint i;
-  gchar *obj_path;
   GThread *cmd_thread;
 
   g_type_init ();

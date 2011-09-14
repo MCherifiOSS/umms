@@ -152,12 +152,10 @@ static gboolean quit_play (gpointer data)
   return FALSE;
 }
 
-main (int argc, char **argv)
+int main (int argc, char **argv)
 {
   GError *error = NULL;
-  guint i;
   gchar *obj_path;
-  GThread *cmd_thread;
 
   g_type_init ();
 

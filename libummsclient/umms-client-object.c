@@ -113,7 +113,6 @@ DBusGProxy *umms_client_object_request_player (UmmsClientObject *self, gboolean 
   gchar  *obj_path;
   gchar  *token;
   DBusGProxy  *player = NULL;
-  const gchar *method_name = NULL;
 
   if (attended) {
     if (!dbus_g_proxy_call (priv->obj_mngr, "RequestMediaPlayer", &error,
@@ -181,7 +180,7 @@ need_reply_cb(DBusGProxy *player)
   return;
 }
 
-void *umms_client_object_remove_player (UmmsClientObject *self, DBusGProxy *player)
+void umms_client_object_remove_player (UmmsClientObject *self, DBusGProxy *player)
 {
   const gchar *obj_path = NULL;
   UmmsClientObjectPrivate *priv = GET_PRIVATE (self);

@@ -84,7 +84,6 @@ static void
 umms_object_manager_class_init (UmmsObjectManagerClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
-  UmmsObjectManagerClass *p_class = UMMS_OBJECT_MANAGER_CLASS (klass);
 
   g_type_class_add_private (klass, sizeof (UmmsObjectManagerPrivate));
 
@@ -144,7 +143,7 @@ umms_object_manager_request_media_player(UmmsObjectManager *self, gchar **object
 
   g_signal_connect_object (player, "client-no-reply", G_CALLBACK(client_no_reply_cb), NULL, 0);
 
-  g_object_get(G_OBJECT(player), "name", object_path, NULL, 0);
+  g_object_get(G_OBJECT(player), "name", object_path, NULL);
 
   UMMS_DEBUG("object_path returned to client = '%s'", *object_path);
 
@@ -165,7 +164,6 @@ umms_object_manager_request_media_player_unattended(UmmsObjectManager *self,
     GError **error)
 {
   MeegoMediaPlayer *player;
-  GError *err = NULL;
 
   UMMS_DEBUG("request unattened media player, time_to_execution = '%lf' seconds", time_to_execution);
 
@@ -189,9 +187,7 @@ gboolean
 umms_object_manager_remove_media_player(UmmsObjectManager *self, gchar *object_path, GError **error)
 {
   UmmsObjectManagerPrivate *priv;
-  MeegoMediaPlayer *player;
   GList *ele;
-  GError *err = NULL;
 
   UMMS_DEBUG("removing '%s'", object_path);
 
@@ -285,7 +281,7 @@ _gen_media_player (UmmsObjectManager *mngr, gboolean attended)
   id = priv->cur_player_id++;
   object_path = g_strdup_printf (OBJ_NAME_PREFIX"%d", id);
 
-  UMMS_DEBUG("object_path='%s' ", object_path, object_path);
+  UMMS_DEBUG("object_path='%s' ", object_path);
 
   dbus_g_object_type_install_info (MEEGO_TYPE_MEDIA_PLAYER, &dbus_glib_meego_media_player_object_info);
 
@@ -322,12 +318,11 @@ static gboolean
 _remove_media_player (MeegoMediaPlayer *player)
 {
   DBusGConnection *connection;
-  UmmsObjectManager *mngr;
   UmmsObjectManagerPrivate *priv;
   GError *err = NULL;
 
   UMMS_DEBUG ("Removing player(%p)", player);
-  g_return_if_fail (mngr_global);
+  g_return_val_if_fail (mngr_global, FALSE);
 
   priv = mngr_global->priv;
 

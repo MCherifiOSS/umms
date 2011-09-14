@@ -292,7 +292,7 @@ static gpointer cmd_thread_func (gpointer data)
   gchar param[256];
   gint  rc;
   static gint mid;
-  static to_continue = TRUE;
+  static gooblean to_continue = TRUE;
   gchar *path;
 
 

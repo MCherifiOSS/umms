@@ -1,5 +1,6 @@
 #include <gst/gst.h>
 #include <gst/interfaces/xoverlay.h>
+#include <dbus/dbus-glib.h>
 
 #include "umms-debug.h"
 #include "umms-common.h"
@@ -258,9 +259,7 @@ meego_media_player_set_uri (MeegoMediaPlayer *player,
     const gchar           *uri,
     GError **err)
 {
-  MeegoMediaPlayerClass *kclass = MEEGO_MEDIA_PLAYER_GET_CLASS (player);
   MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
-  gboolean new_engine;
 
   if (!uri || uri[0] == '\0') {
     UMMS_DEBUG ("Invalid URI");
@@ -676,6 +675,7 @@ meego_media_player_restore (MeegoMediaPlayer *player,
   return TRUE;
 }
 
+gboolean
 meego_media_player_get_subtitle_num (MeegoMediaPlayer *player, gint *sub_num, GError **err)
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
@@ -716,7 +716,7 @@ meego_media_player_get_buffer_depth (MeegoMediaPlayer *player, gint format, gint
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_buffer_depth(GET_CONTROL_IFACE (player), format, buf_val);
-  UMMS_DEBUG ("set the format to %d, buffer to %lld", format, buf_val);
+  UMMS_DEBUG ("set the format to %d, buffer to %lld", format, *buf_val);
   return TRUE;
 }
 
@@ -864,7 +864,7 @@ meego_media_player_get_protocol_name (MeegoMediaPlayer *player, gchar **protocol
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_protocol_name(GET_CONTROL_IFACE (player), protocol_name);
-  UMMS_DEBUG ("We get the protocol name: %s", protocol_name);
+  UMMS_DEBUG ("We get the protocol name: %s", *protocol_name);
   return TRUE;
 }
 
@@ -873,7 +873,7 @@ meego_media_player_get_current_uri (MeegoMediaPlayer *player, gchar **uri, GErro
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
   meego_media_player_control_get_current_uri(GET_CONTROL_IFACE (player), uri);
-  UMMS_DEBUG ("We get the uri: %s", uri);
+  UMMS_DEBUG ("We get the uri: %s", *uri);
   return TRUE;
 }
 

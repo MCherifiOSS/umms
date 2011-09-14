@@ -4,12 +4,15 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <unistd.h>
+#include <netinet/in.h>
 #include <gst/gst.h>
 #include <gst/interfaces/xoverlay.h>
 /* for the volume property */
 #include <gst/interfaces/streamvolume.h>
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
+#include <glib/gprintf.h>
 #include "umms-common.h"
 #include "umms-debug.h"
 #include "umms-error.h"
@@ -160,8 +163,6 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
                     const gchar           *uri)
 {
   EngineGstPrivate *priv = GET_PRIVATE (self);
-  GstState state, pending;
-  GstStateChangeReturn ret;
 
   g_return_val_if_fail (uri, FALSE);
 
@@ -254,7 +255,6 @@ cutout (MeegoMediaPlayerControl *self, gint x, gint y, gint w, gint h)
 {
   Atom property;
   gchar data[256];
-  gint status;
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
   property = XInternAtom (priv->disp, "_MUTTER_HINTS", 0);
@@ -943,7 +943,7 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
     goto uri_not_parsed;
   }
 
-  if (ret = request_resource(self)) {
+  if ((ret = request_resource(self))) {
     if (target_state == GST_STATE_PLAYING) {
       if (IS_LIVE_URI(priv->uri)) {
         //    ISmdGstClock *ismd_clock = NULL;
@@ -1040,64 +1040,6 @@ engine_gst_stop (MeegoMediaPlayerControl *self)
   return TRUE;
 }
 
-static gint
-_is_ismd_vidrend_bin (GstElement * element, gpointer user_data)
-{
-  gint ret = 1; //0: match , non-zero: dismatch
-  gchar *ele_name = NULL;
-
-  if (!GST_IS_BIN(element)) {
-    goto unref_ele;
-  }
-
-  ele_name = gst_element_get_name (element);
-  UMMS_DEBUG ("element name='%s'", ele_name);
-
-  //ugly solution, check by element metadata will be better
-  ele_name = gst_element_get_name (element);
-  if (g_strrstr(ele_name, "ismdgstvidrendbin") != NULL || g_strrstr(ele_name, "ismd_vidrend_bin") != NULL)
-    ret = 0;
-
-  g_free (ele_name);
-  if (ret) {//dismatch
-    goto unref_ele;
-  }
-
-  return ret;
-
-unref_ele:
-  gst_object_unref (element);
-  return ret;
-}
-
-/*
- * This function is used to judge whether we are using ismd_vidrend_bin
- * which allow video rectangle and plane settings through properties.
- * Deprecated.
- */
-static GstElement *
-_get_ismd_vidrend_bin (GstBin *bin)
-{
-  GstIterator *children;
-  gpointer result;
-
-  g_return_val_if_fail (GST_IS_BIN (bin), NULL);
-
-  GST_INFO ("[%s]: looking up ismd_vidrend_bin  element",
-            GST_ELEMENT_NAME (bin));
-
-  children = gst_bin_iterate_recurse (bin);
-  result = gst_iterator_find_custom (children,
-           (GCompareFunc)_is_ismd_vidrend_bin, (gpointer) NULL);
-  gst_iterator_free (children);
-
-  if (result) {
-    GST_INFO ("found ismd_vidrend_bin." );
-  }
-
-  return GST_ELEMENT_CAST (result);
-}
-
 static gboolean
 engine_gst_set_video_size (MeegoMediaPlayerControl *self,
     guint x, guint y, guint w, guint h)
@@ -1162,7 +1104,6 @@ engine_gst_get_video_size (MeegoMediaPlayerControl *self,
     ret = FALSE;
   }
 
-OUT:
   if (vsink_bin)
     gst_object_unref (vsink_bin);
   return ret;
@@ -1270,8 +1211,6 @@ engine_gst_set_playback_rate (MeegoMediaPlayerControl *self, gdouble in_rate)
 {
   GstElement *pipe;
   EngineGstPrivate *priv;
-  GstFormat fmt;
-  gint64 cur;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
@@ -1373,7 +1312,7 @@ engine_gst_get_media_size_time (MeegoMediaPlayerControl *self, gint64 *media_siz
   GstElement *pipe;
   EngineGstPrivate *priv;
   gint64 duration;
-  gboolean ret;
+  gboolean ret = TRUE;
   GstFormat fmt = GST_FORMAT_TIME;
 
   g_return_val_if_fail (self != NULL, FALSE);
@@ -1391,6 +1330,7 @@ engine_gst_get_media_size_time (MeegoMediaPlayerControl *self, gint64 *media_siz
   } else {
     UMMS_DEBUG ("query media_size_time failed");
     *media_size_time = -1;
+    ret = FALSE;
   }
 
   return ret;
@@ -1403,7 +1343,6 @@ engine_gst_get_media_size_bytes (MeegoMediaPlayerControl *self, gint64 *media_si
   GstElement *source;
   EngineGstPrivate *priv;
   gint64 length = 0;
-  gboolean ret;
   GstFormat fmt = GST_FORMAT_BYTES;
 
   g_return_val_if_fail (self != NULL, FALSE);
@@ -1865,7 +1804,6 @@ static gboolean
 engine_gst_set_proxy (MeegoMediaPlayerControl *self, GHashTable *params)
 {
   EngineGstPrivate *priv = NULL;
-  GstElement *pipe = NULL;
   GValue *val = NULL;
 
   g_return_val_if_fail ((self != NULL) && (params != NULL), FALSE);
@@ -2222,14 +2160,14 @@ engine_gst_get_video_codec (MeegoMediaPlayerControl *self, gint channel, gchar *
     return TRUE;
   }
 
-  if (size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
+  if ((size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC)) > 0) {
     gchar *st = NULL;
 
     for (i = 0; i < size; ++i) {
       if (gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
         UMMS_DEBUG("Channel: %d provide the video codec named: %s", channel, st);
         if (codec_name) {
-          codec_name = g_strconcat(codec_name, st);
+          codec_name = g_strconcat(codec_name, st, NULL);
         } else {
           codec_name = g_strdup(st);
         }
@@ -2284,14 +2222,14 @@ engine_gst_get_audio_codec (MeegoMediaPlayerControl *self, gint channel, gchar *
     return TRUE;
   }
 
-  if (size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
+  if ((size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC)) > 0) {
     gchar *st = NULL;
 
     for (i = 0; i < size; ++i) {
       if (gst_tag_list_get_string_index (tag_list, GST_TAG_AUDIO_CODEC, i, &st) && st) {
         UMMS_DEBUG("Channel: %d provide the audio codec named: %s", channel, st);
         if (codec_name) {
-          codec_name = g_strconcat(codec_name, st);
+          codec_name = g_strconcat(codec_name, st, NULL);
         } else {
           codec_name = g_strdup(st);
         }
@@ -2318,7 +2256,6 @@ engine_gst_get_video_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
   GstElement *pipe = NULL;
   int tol_channel;
   GstTagList * tag_list = NULL;
-  gint size = 0;
   guint32 bit_rate = 0;
 
   *video_rate = 0;
@@ -2368,7 +2305,6 @@ engine_gst_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
   GstElement *pipe = NULL;
   int tol_channel;
   GstTagList * tag_list = NULL;
-  gint size = 0;
   guint32 bit_rate = 0;
 
   *audio_rate = 0;
@@ -2443,7 +2379,6 @@ engine_gst_get_encapsulation(MeegoMediaPlayerControl *self, gchar ** encapsulati
 static gboolean
 engine_gst_get_audio_samplerate(MeegoMediaPlayerControl *self, gint channel, gint * sample_rate)
 {
-  EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
   int tol_channel;
   GstCaps *caps = NULL;
@@ -2491,7 +2426,6 @@ static gboolean
 engine_gst_get_video_framerate(MeegoMediaPlayerControl *self, gint channel,
     gint * frame_rate_num, gint * frame_rate_denom)
 {
-  EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
   int tol_channel;
   GstCaps *caps = NULL;
@@ -2539,7 +2473,6 @@ engine_gst_get_video_framerate(MeegoMediaPlayerControl *self, gint channel,
 static gboolean
 engine_gst_get_video_resolution(MeegoMediaPlayerControl *self, gint channel, gint * width, gint * height)
 {
-  EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
   int tol_channel;
   GstCaps *caps = NULL;
@@ -2588,7 +2521,6 @@ static gboolean
 engine_gst_get_video_aspect_ratio(MeegoMediaPlayerControl *self, gint channel,
     gint * ratio_num, gint * ratio_denom)
 {
-  EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
   int tol_channel;
   GstCaps *caps = NULL;
@@ -2636,7 +2568,6 @@ engine_gst_get_video_aspect_ratio(MeegoMediaPlayerControl *self, gint channel,
 static gboolean
 engine_gst_get_protocol_name(MeegoMediaPlayerControl *self, gchar ** prot_name)
 {
-  EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
   gchar * uri = NULL;
 
@@ -2703,7 +2634,6 @@ static gboolean
 engine_gst_get_title(MeegoMediaPlayerControl *self, gchar ** title)
 {
   EngineGstPrivate *priv = NULL;
-  GstElement *pipe = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
@@ -2719,7 +2649,6 @@ static gboolean
 engine_gst_get_artist(MeegoMediaPlayerControl *self, gchar ** artist)
 {
   EngineGstPrivate *priv = NULL;
-  GstElement *pipe = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
@@ -3006,7 +2935,6 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   EngineGstPrivate *priv = GET_PRIVATE (self);
   GstPad * src_pad = NULL;
   GstTagList * tag_list = NULL;
-  guint32 bit_rate;
   gchar * pad_name = NULL;
   gchar * element_name = NULL;
   gchar * title = NULL;
@@ -3062,7 +2990,7 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   int out_of_channel = 0;
 
   /* This logic may be used when the inputselector is not included.
-     Now we just get the video and audio codec from inputselector's pad. *
+     Now we just get the video and audio codec from inputselector's pad. */
 
   /* We are now interest in the codec, container format and bit rate. */
   if (size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
@@ -3217,7 +3145,6 @@ bus_message_error_cb (GstBus     *bus,
     EngineGst  *self)
 {
   GError *error = NULL;
-  EngineGstPrivate *priv = GET_PRIVATE (self);
 
   UMMS_DEBUG ("message::error received on bus");
 
@@ -3239,7 +3166,6 @@ bus_message_buffering_cb (GstBus *bus,
   const GstStructure *str;
   gboolean res;
   gint buffer_percent;
-  GstState state, pending_state;
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
   str = gst_message_get_structure (message);
@@ -3626,7 +3552,6 @@ static gboolean
 parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
 {
   GstElement *uridecodebin;
-  GstStateChangeReturn res;
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
   g_return_val_if_fail (uri, FALSE);

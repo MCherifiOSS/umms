@@ -1,3 +1,4 @@
+#include <dbus/dbus-glib.h>
 #include "umms-debug.h"
 #include "umms-common.h"
 #include "umms-error.h"

@@ -345,6 +345,8 @@ void meego_media_player_control_emit_video_tag_changed (gpointer instance, gint 
 void meego_media_player_control_emit_audio_tag_changed (gpointer instance, gint channel);
 void meego_media_player_control_emit_text_tag_changed (gpointer instance, gint channel);
 void meego_media_player_control_emit_metadata_changed(gpointer instance);
+void meego_media_player_control_emit_suspended (gpointer instance);
+void meego_media_player_control_emit_restored (gpointer instance);
 
 G_END_DECLS
 #endif

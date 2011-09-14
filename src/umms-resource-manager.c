@@ -76,7 +76,6 @@ static void
 umms_resource_manager_class_init (UmmsResourceManagerClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
-  UmmsResourceManagerClass *p_class = UMMS_RESOURCE_MANAGER_CLASS (klass);
 
   g_type_class_add_private (klass, sizeof (UmmsResourceManagerPrivate));
 

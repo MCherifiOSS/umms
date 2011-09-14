@@ -1,5 +1,6 @@
 #include <glib.h>
 #include <stdio.h>
+#include <string.h>
 #include "test-common.h"
 
 gchar args[2][256];
@@ -96,11 +97,7 @@ gboolean method_call (gpointer data);
 
 gpointer cmd_thread_func (gpointer data)
 {
-  gchar buf[32];
-  gchar param[256];
   gint  rc;
-  static gint mid;
-  gchar *path;
 
   while (to_continue) {
     g_print ("Input cmd:\n");

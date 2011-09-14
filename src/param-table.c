@@ -20,15 +20,12 @@ void param_table_release (GHashTable *param)
 GHashTable *
 param_table_create (const gchar* key1, ...)
 {
-  GPtrArray   *key_array;
-  GValueArray *val_array;
   GHashTable  *params;
   const gchar *key;
   GValue      *val;
   GType       valtype;
   const char  *collect_err;
   va_list     args;
-  gint        i;
 
   params = g_hash_table_new_full (g_str_hash, NULL, NULL, val_release);
 

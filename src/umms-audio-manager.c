@@ -6,6 +6,7 @@
 #include "umms-marshals.h"
 #include "umms-audio-manager.h"
 #include "audio-manager-interface.h"
+#include "audio-manager-engine.h"
 
 G_DEFINE_TYPE (UmmsAudioManager, umms_audio_manager, G_TYPE_OBJECT)
 
@@ -23,8 +24,6 @@ umms_audio_manager_get_property (GObject    *object,
     GValue     *value,
     GParamSpec *pspec)
 {
-  UmmsAudioManagerPrivate *priv = GET_PRIVATE (object);
-
   switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -37,9 +36,6 @@ umms_audio_manager_set_property (GObject      *object,
     const GValue *value,
     GParamSpec   *pspec)
 {
-  UmmsAudioManagerPrivate *priv = GET_PRIVATE (object);
-  const gchar *tmp;
-
   switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);

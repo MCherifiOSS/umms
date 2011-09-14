@@ -14,6 +14,10 @@ typedef enum {
     UMMS_AUDIO_ERROR_FAILED = 40
 }UmmsErrorCode;
 
+GQuark umms_engine_error_quark (void);
+GQuark umms_resource_error_quark (void);
+GQuark umms_generic_error_quark (void);
+GQuark umms_audio_error_quark (void);
 
 #define UMMS_ENGINE_ERROR umms_engine_error_quark()
 #define UMMS_RESOURCE_ERROR umms_resource_error_quark()

@@ -1,6 +1,7 @@
 #include <dbus/dbus-glib.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <glib-object.h>
 
 #include "test-common.h"
@@ -14,11 +15,8 @@ GMainLoop *loop;
 
 gboolean method_call (gpointer data)
 {
-  gchar *obj_path, *token;
   gchar *uri;
   GError *error = NULL;
-  DBusGProxy *player_control;
-  static gint i = 0;
   gint64 pos, size;
   gint   volume, state;
   gdouble rate = 1.0;
@@ -371,10 +369,8 @@ connect_sigs(DBusGProxy *player)
 
 
 
-main (int argc, char **argv)
+int main (int argc, char **argv)
 {
-  GError *error = NULL;
-  guint i;
   gchar *obj_path;
   GThread *cmd_thread;
 
