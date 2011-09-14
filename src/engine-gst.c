@@ -1,5 +1,7 @@
 #include <string.h>
 #include <stdio.h>
+#include <sys/socket.h> 
+#include <netinet/in.h>
 #include <gst/gst.h>
 #include <gst/interfaces/xoverlay.h>
 /* for the volume property */
@@ -3576,3 +3578,101 @@ parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
   }
   return TRUE;
 }
+
+
+//////////////////// The function for socket data transfer, should move to another file /////////////////
+static GThread *event_thread = NULL;
+static int listen_fd = -1;
+static int port = 112131;
+static char * ip_address = "127.0.0.1";
+
+#define MAX_SERV_CONNECTS 5
+static int serv_fds[MAX_SERV_CONNECTS];
+static int exit_flag = 0;
+G_LOCK_DEFINE_STATIC (fake_lock_here); // will be replace to gobject_lock in the future. 
+
+
+static gpointer
+_umms_socket_listen_thread (void * dummy)// Will replace it
+{
+    struct sockaddr_in cli_addr; 
+    struct sockaddr_in serv_addr; 
+    static int new_fd = -1;
+    socklen_t cli_len;
+    int i = 0;
+
+    for(i = 0; i < MAX_SERV_CONNECTS; i++) {
+        serv_fds[i] = -1;
+    }
+
+    listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if(listen_fd < 0) {
+        UMMS_DEBUG("The listen socket create failed!");
+        return NULL;    
+    }
+    
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = htonl(inet_addr(ip_address));
+    serv_addr.sin_port = htons(port); 
+    UMMS_DEBUG("try to binding to %s:%d", ip_address, port);
+    if(bind(listen_fd, (struct sockaddr*)&serv_addr, sizeof(struct sockaddr)) == -1) {
+        UMMS_DEBUG("try to binding to %s:%d Failed, error is %s",
+                ip_address, port, strerror(errno));
+        close(listen_fd);
+        listen_fd = -1;
+        return NULL;
+    }
+
+    if(listen(listen_fd, 5) == -1) {
+        UMMS_DEBUG("Listen Failed, error us %s", strerror(errno));
+        close(listen_fd);
+        listen_fd = -1;
+        return NULL;
+    }
+
+    while(1) {
+        cli_len = sizeof(cli_addr);
+        new_fd = accept(listen_fd, (struct sockaddr*)(&cli_addr), &cli_len);
+        if(new_fd < 0) {
+            UMMS_DEBUG("A invalid accept call, errno is %s", strerror(errno));
+            break;
+        } else {
+            UMMS_DEBUG("We get a connect request from %s:%d", 
+                    inet_ntoa(cli_addr.sin_addr), cli_addr.sin_port);
+        }
+
+        for(i = 0; i < MAX_SERV_CONNECTS; i++) {
+            if(serv_fds[i] == -1)
+                break;
+        }
+
+        if(i < MAX_SERV_CONNECTS) {
+            G_LOCK(fake_lock_here);
+            serv_fds[i] = new_fd;
+            G_UNLOCK(fake_lock_here);
+        } else {
+            UMMS_DEBUG("The connection is too much, can not serve you, sorry");
+            close(new_fd);
+        }
+
+        /* To check whether the main thread want us to exit. */
+        G_LOCK(fake_lock_here);
+        if(exit_flag) {
+            UMMS_DEBUG("Main thread told listen thread exit, BYE!");
+            break;
+        }
+        G_UNLOCK(fake_lock_here);
+    }
+
+    close(listen_fd);
+    listen_fd = -1;
+    return NULL;
+}
+
+
+
+
+
+
+
