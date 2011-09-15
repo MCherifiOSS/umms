@@ -29,6 +29,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <gst/gst.h>
 #include <gst/interfaces/xoverlay.h>
 /* for the volume property */
@@ -3644,7 +3645,7 @@ _umms_socket_listen_thread(MeegoMediaPlayerControl* control)
 
   serv_len = sizeof(struct sockaddr);
   if (getsockname(priv->listen_fd, (struct sockaddr *)&serv_addr, &serv_len) == 0) {
-    UMMS_DEBUG("we now binding to %s:%d", inet_ntoa(serv_addr.sin_addr.s_addr), priv->port);
+    UMMS_DEBUG("we now binding to %s:%d", inet_ntoa(serv_addr.sin_addr), priv->port);
   }
 
   if (listen(priv->listen_fd, 5) == -1) {
