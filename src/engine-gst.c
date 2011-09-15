@@ -17,9 +17,6 @@
 #include "meego-media-player-control.h"
 #include "param-table.h"
 
-static gpointer _umms_socket_write_thread(void * dummy);
-static gpointer _umms_socket_listen_thread(void * dummy);
-
 static void meego_media_player_control_init (MeegoMediaPlayerControl* iface);
 
 G_DEFINE_TYPE_WITH_CODE (EngineGst, engine_gst, G_TYPE_OBJECT,
@@ -67,6 +64,10 @@ static gchar *live_src_uri[] = {"mms://", "mmsh://", "rtsp://",
   }                                                                                \
   ret;                                                                             \
 })
+
+#define UMMS_MAX_SERV_CONNECTS 5
+#define UMMS_SOCKET_DEFAULT_PORT 112131
+#define UMMS_SOCKET_DEFAULT_ADDR NULL
 
 struct _EngineGstPrivate {
   GstElement *pipeline;
@@ -128,6 +129,16 @@ struct _EngineGstPrivate {
   GstTagList *tag_list;
   gchar *title;
   gchar *artist;
+
+  /* Use for socket raw data transfer. */
+  GMutex *socks_lock; // protect the sockets FD.
+  int listen_fd;
+  GThread *listen_thread;
+  gchar * address;
+  gint port;
+  gint serv_fds[UMMS_MAX_SERV_CONNECTS];
+  gint sock_exit_flag; 
+  guint data_probe_id;
 };
 
 static gboolean _query_buffering_percent (GstElement *pipe, gdouble *percent);
@@ -138,6 +149,10 @@ static gboolean create_xevent_handle_thread (MeegoMediaPlayerControl *self);
 static gboolean destroy_xevent_handle_thread (MeegoMediaPlayerControl *self);
 static gboolean parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri);
 static void release_resource (MeegoMediaPlayerControl *self);
+static gpointer _umms_socket_listen_thread(MeegoMediaPlayerControl* control);
+static void _umms_send_socket_data(GstPad * pad, GstMiniObject * mini_obj, gpointer user_data);
+static void _umms_socket_thread_join(MeegoMediaPlayerControl* control);
+
 
 static gboolean
 engine_gst_set_uri (MeegoMediaPlayerControl *self,
@@ -2850,6 +2865,21 @@ engine_gst_dispose (GObject *object)
 {
   EngineGstPrivate *priv = GET_PRIVATE (object);
 
+  if(priv->listen_thread) {
+    _umms_socket_thread_join((MeegoMediaPlayerControl *)object);
+    priv->listen_thread = NULL;
+  }
+  
+  if (priv->socks_lock) {
+    g_mutex_free (priv->socks_lock);
+    priv->socks_lock = NULL;
+  }
+  
+  if(priv->address && priv->address != UMMS_SOCKET_DEFAULT_ADDR) {
+    g_free(priv->address);
+    priv->address = NULL;
+  }
+
   _stop_pipe ((MeegoMediaPlayerControl *)object);
 
   TEARDOWN_ELEMENT (priv->source);
@@ -2898,9 +2928,6 @@ engine_gst_class_init (EngineGstClass *klass)
   object_class->set_property = engine_gst_set_property;
   object_class->dispose = engine_gst_dispose;
   object_class->finalize = engine_gst_finalize;
-
- // g_thread_create ((GThreadFunc) _umms_socket_listen_thread, NULL, TRUE, NULL);
- // g_thread_create ((GThreadFunc) _umms_socket_write_thread, NULL, TRUE, NULL);
 }
 
 static void
@@ -3378,6 +3405,15 @@ engine_gst_init (EngineGst *self)
   priv->target_type = ReservedType0;
   priv->target_initialized = TRUE;
 
+  ///* Not used now
+  priv->socks_lock = g_mutex_new ();
+  priv->sock_exit_flag = 0;
+  priv->port = UMMS_SOCKET_DEFAULT_PORT;
+  priv->address = UMMS_SOCKET_DEFAULT_ADDR;
+  priv->listen_thread = g_thread_create ((GThreadFunc) _umms_socket_listen_thread, self, TRUE, NULL);
+//  priv->data_probe_id = gst_pad_add_data_probe (sink_pad,
+//      G_CALLBACK (_umms_send_socket_data), (gpointer) self); 
+  //*/
 }
 
 EngineGst *
@@ -3599,20 +3635,8 @@ parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
 }
 
 
-//////////////////// The function for socket data transfer, should move to another file /////////////////
-static GThread *event_thread = NULL;
-static int listen_fd = -1;
-static int port = 112131;
-static char * ip_address = NULL;
-
-#define MAX_SERV_CONNECTS 5
-static int serv_fds[MAX_SERV_CONNECTS];
-static int exit_flag = 0;
-G_LOCK_DEFINE_STATIC (fake_lock_here); // will be replace to gobject_lock in the future. 
-
-
-static gpointer
-_umms_socket_listen_thread (void * dummy)// Will replace it
+static gpointer 
+_umms_socket_listen_thread(MeegoMediaPlayerControl* control)
 {
     struct sockaddr_in cli_addr; 
     struct sockaddr_in serv_addr; 
@@ -3620,15 +3644,16 @@ _umms_socket_listen_thread (void * dummy)// Will replace it
     socklen_t cli_len;
     socklen_t serv_len;
     int i = 0;
+    EngineGstPrivate *priv = GET_PRIVATE (control);
 
-    G_LOCK(fake_lock_here);
-    for(i = 0; i < MAX_SERV_CONNECTS; i++) {
-        serv_fds[i] = -1;
+    g_mutex_lock (priv->socks_lock);
+    for(i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
+        priv->serv_fds[i] = -1;
     }
-    G_UNLOCK(fake_lock_here);
+    g_mutex_unlock (priv->socks_lock);
 
-    listen_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if(listen_fd < 0) {
+    priv->listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if(priv->listen_fd < 0) {
         UMMS_DEBUG("The listen socket create failed!");
         return NULL;    
     }
@@ -3636,30 +3661,30 @@ _umms_socket_listen_thread (void * dummy)// Will replace it
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serv_addr.sin_port = htons(port); 
-    if(bind(listen_fd, (struct sockaddr*)&serv_addr, sizeof(struct sockaddr)) == -1) {
+    serv_addr.sin_port = htons(priv->port); 
+    if(bind(priv->listen_fd, (struct sockaddr*)&serv_addr, sizeof(struct sockaddr)) == -1) {
         UMMS_DEBUG("try to binding to %s:%d Failed, error is %s",
-                ip_address, port, strerror(errno));
-        close(listen_fd);
-        listen_fd = -1;
+                priv->address, priv->port, strerror(errno));
+        close(priv->listen_fd);
+        priv->listen_fd = -1;
         return NULL;
     }
 
     serv_len = sizeof(struct sockaddr);
-    if(getsockname(listen_fd, (struct sockaddr *)&serv_addr, &serv_len) == 0) {
-        UMMS_DEBUG("we now binding to %s:%d", inet_ntoa(serv_addr.sin_addr.s_addr), port);
+    if(getsockname(priv->listen_fd, (struct sockaddr *)&serv_addr, &serv_len) == 0) {
+        UMMS_DEBUG("we now binding to %s:%d", inet_ntoa(serv_addr.sin_addr.s_addr), priv->port);
     }
 
-    if(listen(listen_fd, 5) == -1) {
+    if(listen(priv->listen_fd, 5) == -1) {
         UMMS_DEBUG("Listen Failed, error us %s", strerror(errno));
-        close(listen_fd);
-        listen_fd = -1;
+        close(priv->listen_fd);
+        priv->listen_fd = -1;
         return NULL;
     }
 
     while(1) {
         cli_len = sizeof(cli_addr);
-        new_fd = accept(listen_fd, (struct sockaddr*)(&cli_addr), &cli_len);
+        new_fd = accept(priv->listen_fd, (struct sockaddr*)(&cli_addr), &cli_len);
         if(new_fd < 0) {
             UMMS_DEBUG("A invalid accept call, errno is %s", strerror(errno));
             break;
@@ -3668,83 +3693,106 @@ _umms_socket_listen_thread (void * dummy)// Will replace it
                     inet_ntoa(cli_addr.sin_addr), cli_addr.sin_port);
         }
 
-        G_LOCK(fake_lock_here);
-        for(i = 0; i < MAX_SERV_CONNECTS; i++) {
-            if(serv_fds[i] == -1)
+        g_mutex_lock (priv->socks_lock);
+        for(i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
+            if(priv->serv_fds[i] == -1)
                 break;
         }
 
-        if(i < MAX_SERV_CONNECTS) {
-            serv_fds[i] = new_fd;
-            fcntl(serv_fds[i], F_SETFL, O_NONBLOCK);
+        if(i < UMMS_MAX_SERV_CONNECTS) {
+            priv->serv_fds[i] = new_fd;
+            fcntl(priv->serv_fds[i], F_SETFL, O_NONBLOCK);
         } else {
             UMMS_DEBUG("The connection is too much, can not serve you, sorry");
             close(new_fd);
         }
 
         /* To check whether the main thread want us to exit. */
-        if(exit_flag) {
+        if(priv->sock_exit_flag) {
             UMMS_DEBUG("Main thread told listen thread exit, BYE!");
-            G_UNLOCK(fake_lock_here);
+            g_mutex_unlock (priv->socks_lock);
             break;
         }
-        G_UNLOCK(fake_lock_here);
+        g_mutex_unlock (priv->socks_lock);
     }
 
-    close(listen_fd);
-    listen_fd = -1;
+    if(priv->listen_fd != -1) {
+        close(priv->listen_fd);
+        priv->listen_fd = -1;
+    }
     return NULL;
 }
 
 
 static void 
-_umms_raw_data_send_func(void * dummy)
+_umms_send_socket_data(GstPad * pad, GstMiniObject * mini_obj, gpointer user_data)
 {
     int i = 0;
     int write_num = -1;
+    EngineGstPrivate *priv = GET_PRIVATE (user_data);
 
-    G_LOCK(fake_lock_here);
-    if(exit_flag) {
-        G_UNLOCK(fake_lock_here);
-        UMMS_DEBUG("Skip the work because exit.");
-        return;
-    }
+    if (GST_IS_BUFFER (mini_obj)) {
+        GstBuffer *buf = GST_BUFFER_CAST (mini_obj);
 
-    /* Now write the data. */
-    for(i = 0; i < MAX_SERV_CONNECTS; i++) {
-        if(serv_fds[i] != -1) {
-            UMMS_DEBUG("Send the data for i:%d, fd:%d", i, serv_fds[i]);
-            char *content = malloc(1024* sizeof(char));
-            memset(content, 'a' + i, 1024* sizeof(char));
+        g_mutex_lock (priv->socks_lock);
+        if(priv->sock_exit_flag) {
+            g_mutex_unlock (priv->socks_lock);
+            UMMS_DEBUG("Skip the work because exit.");
+            return;
+        }
 
-            /* Do not send the signal because the socket closed. */
-            write_num = send(serv_fds[i], content, 1024* sizeof(char), MSG_NOSIGNAL);
-            free(content);
-            if(write_num == -1) {
-                UMMS_DEBUG("write data failed, because %s", strerror(errno));
-                close(serv_fds[i]);
-                serv_fds[i] = -1; /* mark invalid and not use again. */
-            } else {
+        /* Now write the data. */
+        for(i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
+            if(priv->serv_fds[i] != -1) {
+                UMMS_DEBUG("Send the data for i:%d, fd:%d", i, priv->serv_fds[i]);
 
-                /* TODO: We need to handle the data size problem here. Because
-                 * the funciton is called in signal context and can not block,
-                 * we should set the fd to NO_BLOCK and the write may failed
-                 * because the data is to big. We need to handle this case. */
+                /* Do not send the signal because the socket closed. 
+                 * Use MSG_NOSIGNAL flag */
+                write_num = send(priv->serv_fds[i], GST_BUFFER_DATA(buf), GST_BUFFER_SIZE(buf), MSG_NOSIGNAL);
+
+                if(write_num == -1) {
+                    UMMS_DEBUG("write data failed, because %s", strerror(errno));
+                    close(priv->serv_fds[i]);
+                    priv->serv_fds[i] = -1; /* mark invalid and not use again. */
+                } else if(write_num > 0 && write_num != 
+                        GST_BUFFER_SIZE(buf)) { // write some bytes but not the whole because we set NO_BLOCK.
+
+                    /* TODO: We need to handle the data size problem here. Because
+                     * the funciton is called in signal context and can not block,
+                     * we has set the fd to NO_BLOCK and the write may failed
+                     * because the data is to big. We may need to ref the buffer and 
+                     * send it from the current offset next time. */
+                    UMMS_DEBUG("The socket just write part of the data, notice!!!");
+                } else {
+                    UMMS_DEBUG("write data %d bytes to socket fd:%d.", GST_BUFFER_SIZE(buf), priv->serv_fds[i]); 
+                }
             }
         }
-    }
 
-    G_UNLOCK(fake_lock_here);
+        g_mutex_unlock (priv->socks_lock);
+    }
 }
 
-static gpointer
-_umms_socket_write_thread(void * dummy)
+
+static void 
+_umms_socket_thread_join(MeegoMediaPlayerControl* control)
 {
-    while(1) {
-        _umms_raw_data_send_func(NULL);
-        sleep(1);
+    EngineGstPrivate *priv = GET_PRIVATE (control);
+    struct sockaddr_in server_addr;
+
+    g_mutex_lock (priv->socks_lock);
+    priv->sock_exit_flag = 1;
+    g_mutex_unlock (priv->socks_lock);
+
+    if(priv->listen_fd == -1) { /* need to wakeup the listen thread. */
+        int fd = priv->listen_fd;
+        priv->listen_fd = -1;
+
+        UMMS_DEBUG("we close the listen fd");
+        close(fd);
     }
 
-    return NULL;
+    g_thread_join(priv->listen_thread);
 }
+
 
