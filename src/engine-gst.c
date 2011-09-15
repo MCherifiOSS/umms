@@ -782,7 +782,7 @@ engine_gst_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *par
 static gboolean
 prepare_plane (MeegoMediaPlayerControl *self)
 {
-  GstElement *vsink_bin;
+  GstElement *vsink_bin = NULL;
   gint plane;
   gboolean ret = TRUE;
   EngineGstPrivate *priv = GET_PRIVATE (self);
@@ -792,7 +792,7 @@ prepare_plane (MeegoMediaPlayerControl *self)
   if (vsink_bin) {
     if (g_object_class_find_property (G_OBJECT_GET_CLASS (vsink_bin), "gdl-plane") == NULL) {
       UMMS_DEBUG ("vsink has no gdl-plane property, which means target type is not XWindow or ReservedType0");
-      return ret;
+      goto OUT;
     }
 
     g_object_get (G_OBJECT(vsink_bin), "gdl-plane", &plane, NULL);
@@ -814,8 +814,11 @@ prepare_plane (MeegoMediaPlayerControl *self)
     }
 
     priv->res_list = g_list_append (priv->res_list, res);
-    gst_object_unref (vsink_bin);
   }
+
+OUT:
+  if (vsink_bin)
+    gst_object_unref (vsink_bin);
 
   return ret;
 }
@@ -1118,14 +1121,18 @@ engine_gst_set_video_size (MeegoMediaPlayerControl *self,
       UMMS_DEBUG ("set rectangle damension :'%s'", rectangle_des);
       g_object_set (G_OBJECT(vsink_bin), "rectangle", rectangle_des, NULL);
       g_free (rectangle_des);
-      gst_object_unref (vsink_bin);
       ret = TRUE;
+      goto OUT;
     } else {
       UMMS_DEBUG ("video sink: %s has no 'rectangle' property",  GST_ELEMENT_NAME(vsink_bin));
     }
   } else {
     UMMS_DEBUG ("Get video-sink failed");
   }
+
+OUT:
+  if (vsink_bin)
+    gst_object_unref (vsink_bin);
 
   return ret;
 }
@@ -1138,7 +1145,7 @@ engine_gst_get_video_size (MeegoMediaPlayerControl *self,
   GstElement *pipe = priv->pipeline;
   guint x[1], y[1];
   gboolean ret;
-  GstElement *vsink_bin;
+  GstElement *vsink_bin = NULL;
 
   g_return_val_if_fail (pipe, FALSE);
   UMMS_DEBUG ("invoked");
@@ -1149,12 +1156,15 @@ engine_gst_get_video_size (MeegoMediaPlayerControl *self,
     g_object_get (G_OBJECT(vsink_bin), "rectangle", &rectangle_des, NULL);
     sscanf (rectangle_des, "%u,%u,%u,%u", x, y, w, h);
     UMMS_DEBUG ("got rectangle damension :'%u,%u,%u,%u'", *x, *y, *w, *h);
-    gst_object_unref (vsink_bin);
     ret = TRUE;
   } else {
     UMMS_DEBUG ("Get video-sink failed");
     ret = FALSE;
   }
+
+OUT:
+  if (vsink_bin)
+    gst_object_unref (vsink_bin);
   return ret;
 }
 
@@ -3268,8 +3278,8 @@ bus_sync_handler (GstBus *bus,
   if ( ! gst_structure_has_name( message->structure, "prepare-gdl-plane" ) )
     return( GST_BUS_PASS );
 
-  g_return_val_if_fail (engine, GST_BUS_DROP);
-  g_return_val_if_fail (ENGINE_IS_GST (engine), GST_BUS_DROP);
+  g_return_val_if_fail (engine, GST_BUS_PASS);
+  g_return_val_if_fail (ENGINE_IS_GST (engine), GST_BUS_PASS);
   priv = GET_PRIVATE (engine);
 
   vsink =  GST_ELEMENT(GST_MESSAGE_SRC (message));
@@ -3285,6 +3295,8 @@ bus_sync_handler (GstBus *bus,
 
 //  meego_media_player_control_emit_request_window (engine);
 
+  if (message)
+    gst_message_unref (message);
   return( GST_BUS_DROP );
 }
 
