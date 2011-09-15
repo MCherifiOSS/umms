@@ -3800,7 +3800,7 @@ _umms_socket_thread_join(MeegoMediaPlayerControl* control)
   if (priv->listen_fd != -1) { /* need to wakeup the listen thread. */
     struct hostent *host = gethostbyname("localhost");
     int fd = socket(AF_INET, SOCK_STREAM, 0);
-    if ((fd != -1) { 
+    if (fd != -1) { 
         bzero(&server_addr, sizeof(server_addr));
         server_addr.sin_family = AF_INET;
         server_addr.sin_port = htons(priv->port);
