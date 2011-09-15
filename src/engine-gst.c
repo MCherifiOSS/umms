@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <sys/socket.h> 
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <gst/gst.h>
 #include <gst/interfaces/xoverlay.h>
@@ -137,7 +137,7 @@ struct _EngineGstPrivate {
   gchar * address;
   gint port;
   gint serv_fds[UMMS_MAX_SERV_CONNECTS];
-  gint sock_exit_flag; 
+  gint sock_exit_flag;
   guint data_probe_id;
 };
 
@@ -429,7 +429,7 @@ static gboolean setup_ismd_vbin(MeegoMediaPlayerControl *self, gchar *rect, gint
   }
 
   vsink = new_vsink ? new_vsink : cur_vsink;
-  
+
   if (rect)
     g_object_set (vsink, "rectangle", rect, NULL);
 
@@ -439,10 +439,10 @@ static gboolean setup_ismd_vbin(MeegoMediaPlayerControl *self, gchar *rect, gint
   if (new_vsink) {
     g_object_set (priv->pipeline, "video-sink", vsink, NULL);
     UMMS_DEBUG ("Set ismd_vidrend_bin to playbin2");
-  } 
+  }
 
 OUT:
-  if (cur_vsink){ 
+  if (cur_vsink) {
     g_object_unref (cur_vsink);
   }
   return ret;
@@ -1917,7 +1917,7 @@ engine_gst_get_buffer_depth (MeegoMediaPlayerControl *self, gint format, gint64 
   EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
   gint64 val;
-  
+
   *buf_val = -1;
 
   g_return_val_if_fail (self != NULL, FALSE);
@@ -2865,17 +2865,17 @@ engine_gst_dispose (GObject *object)
 {
   EngineGstPrivate *priv = GET_PRIVATE (object);
 
-  if(priv->listen_thread) {
+  if (priv->listen_thread) {
     _umms_socket_thread_join((MeegoMediaPlayerControl *)object);
     priv->listen_thread = NULL;
   }
-  
+
   if (priv->socks_lock) {
     g_mutex_free (priv->socks_lock);
     priv->socks_lock = NULL;
   }
-  
-  if(priv->address && priv->address != UMMS_SOCKET_DEFAULT_ADDR) {
+
+  if (priv->address && priv->address != UMMS_SOCKET_DEFAULT_ADDR) {
     g_free(priv->address);
     priv->address = NULL;
   }
@@ -3412,7 +3412,7 @@ engine_gst_init (EngineGst *self)
   priv->address = UMMS_SOCKET_DEFAULT_ADDR;
   priv->listen_thread = g_thread_create ((GThreadFunc) _umms_socket_listen_thread, self, TRUE, NULL);
 //  priv->data_probe_id = gst_pad_add_data_probe (sink_pad,
-//      G_CALLBACK (_umms_send_socket_data), (gpointer) self); 
+//      G_CALLBACK (_umms_send_socket_data), (gpointer) self);
   //*/
 }
 
@@ -3635,164 +3635,164 @@ parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
 }
 
 
-static gpointer 
+static gpointer
 _umms_socket_listen_thread(MeegoMediaPlayerControl* control)
 {
-    struct sockaddr_in cli_addr; 
-    struct sockaddr_in serv_addr; 
-    static int new_fd = -1;
-    socklen_t cli_len;
-    socklen_t serv_len;
-    int i = 0;
-    EngineGstPrivate *priv = GET_PRIVATE (control);
+  struct sockaddr_in cli_addr;
+  struct sockaddr_in serv_addr;
+  static int new_fd = -1;
+  socklen_t cli_len;
+  socklen_t serv_len;
+  int i = 0;
+  EngineGstPrivate *priv = GET_PRIVATE (control);
+
+  g_mutex_lock (priv->socks_lock);
+  for (i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
+    priv->serv_fds[i] = -1;
+  }
+  g_mutex_unlock (priv->socks_lock);
+
+  priv->listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (priv->listen_fd < 0) {
+    UMMS_DEBUG("The listen socket create failed!");
+    return NULL;
+  }
+
+  memset(&serv_addr, 0, sizeof(serv_addr));
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  serv_addr.sin_port = htons(priv->port);
+  if (bind(priv->listen_fd, (struct sockaddr*)&serv_addr, sizeof(struct sockaddr)) == -1) {
+    UMMS_DEBUG("try to binding to %s:%d Failed, error is %s",
+               priv->address, priv->port, strerror(errno));
+    close(priv->listen_fd);
+    priv->listen_fd = -1;
+    return NULL;
+  }
+
+  serv_len = sizeof(struct sockaddr);
+  if (getsockname(priv->listen_fd, (struct sockaddr *)&serv_addr, &serv_len) == 0) {
+    UMMS_DEBUG("we now binding to %s:%d", inet_ntoa(serv_addr.sin_addr.s_addr), priv->port);
+  }
+
+  if (listen(priv->listen_fd, 5) == -1) {
+    UMMS_DEBUG("Listen Failed, error us %s", strerror(errno));
+    close(priv->listen_fd);
+    priv->listen_fd = -1;
+    return NULL;
+  }
+
+  while (1) {
+    cli_len = sizeof(cli_addr);
+    new_fd = accept(priv->listen_fd, (struct sockaddr*)(&cli_addr), &cli_len);
+    if (new_fd < 0) {
+      UMMS_DEBUG("A invalid accept call, errno is %s", strerror(errno));
+      break;
+    } else {
+      UMMS_DEBUG("We get a connect request from %s:%d",
+                 inet_ntoa(cli_addr.sin_addr), cli_addr.sin_port);
+    }
 
     g_mutex_lock (priv->socks_lock);
-    for(i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
-        priv->serv_fds[i] = -1;
+    for (i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
+      if (priv->serv_fds[i] == -1)
+        break;
+    }
+
+    if (i < UMMS_MAX_SERV_CONNECTS) {
+      priv->serv_fds[i] = new_fd;
+      fcntl(priv->serv_fds[i], F_SETFL, O_NONBLOCK);
+    } else {
+      UMMS_DEBUG("The connection is too much, can not serve you, sorry");
+      close(new_fd);
+    }
+
+    /* To check whether the main thread want us to exit. */
+    if (priv->sock_exit_flag) {
+      UMMS_DEBUG("Main thread told listen thread exit, BYE!");
+      g_mutex_unlock (priv->socks_lock);
+      break;
     }
     g_mutex_unlock (priv->socks_lock);
+  }
 
-    priv->listen_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if(priv->listen_fd < 0) {
-        UMMS_DEBUG("The listen socket create failed!");
-        return NULL;    
-    }
-    
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serv_addr.sin_port = htons(priv->port); 
-    if(bind(priv->listen_fd, (struct sockaddr*)&serv_addr, sizeof(struct sockaddr)) == -1) {
-        UMMS_DEBUG("try to binding to %s:%d Failed, error is %s",
-                priv->address, priv->port, strerror(errno));
-        close(priv->listen_fd);
-        priv->listen_fd = -1;
-        return NULL;
-    }
-
-    serv_len = sizeof(struct sockaddr);
-    if(getsockname(priv->listen_fd, (struct sockaddr *)&serv_addr, &serv_len) == 0) {
-        UMMS_DEBUG("we now binding to %s:%d", inet_ntoa(serv_addr.sin_addr.s_addr), priv->port);
-    }
-
-    if(listen(priv->listen_fd, 5) == -1) {
-        UMMS_DEBUG("Listen Failed, error us %s", strerror(errno));
-        close(priv->listen_fd);
-        priv->listen_fd = -1;
-        return NULL;
-    }
-
-    while(1) {
-        cli_len = sizeof(cli_addr);
-        new_fd = accept(priv->listen_fd, (struct sockaddr*)(&cli_addr), &cli_len);
-        if(new_fd < 0) {
-            UMMS_DEBUG("A invalid accept call, errno is %s", strerror(errno));
-            break;
-        } else {
-            UMMS_DEBUG("We get a connect request from %s:%d", 
-                    inet_ntoa(cli_addr.sin_addr), cli_addr.sin_port);
-        }
-
-        g_mutex_lock (priv->socks_lock);
-        for(i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
-            if(priv->serv_fds[i] == -1)
-                break;
-        }
-
-        if(i < UMMS_MAX_SERV_CONNECTS) {
-            priv->serv_fds[i] = new_fd;
-            fcntl(priv->serv_fds[i], F_SETFL, O_NONBLOCK);
-        } else {
-            UMMS_DEBUG("The connection is too much, can not serve you, sorry");
-            close(new_fd);
-        }
-
-        /* To check whether the main thread want us to exit. */
-        if(priv->sock_exit_flag) {
-            UMMS_DEBUG("Main thread told listen thread exit, BYE!");
-            g_mutex_unlock (priv->socks_lock);
-            break;
-        }
-        g_mutex_unlock (priv->socks_lock);
-    }
-
-    if(priv->listen_fd != -1) {
-        close(priv->listen_fd);
-        priv->listen_fd = -1;
-    }
-    return NULL;
+  if (priv->listen_fd != -1) {
+    close(priv->listen_fd);
+    priv->listen_fd = -1;
+  }
+  return NULL;
 }
 
 
-static void 
+static void
 _umms_send_socket_data(GstPad * pad, GstMiniObject * mini_obj, gpointer user_data)
 {
-    int i = 0;
-    int write_num = -1;
-    EngineGstPrivate *priv = GET_PRIVATE (user_data);
+  int i = 0;
+  int write_num = -1;
+  EngineGstPrivate *priv = GET_PRIVATE (user_data);
 
-    if (GST_IS_BUFFER (mini_obj)) {
-        GstBuffer *buf = GST_BUFFER_CAST (mini_obj);
+  if (GST_IS_BUFFER (mini_obj)) {
+    GstBuffer *buf = GST_BUFFER_CAST (mini_obj);
 
-        g_mutex_lock (priv->socks_lock);
-        if(priv->sock_exit_flag) {
-            g_mutex_unlock (priv->socks_lock);
-            UMMS_DEBUG("Skip the work because exit.");
-            return;
-        }
-
-        /* Now write the data. */
-        for(i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
-            if(priv->serv_fds[i] != -1) {
-                UMMS_DEBUG("Send the data for i:%d, fd:%d", i, priv->serv_fds[i]);
-
-                /* Do not send the signal because the socket closed. 
-                 * Use MSG_NOSIGNAL flag */
-                write_num = send(priv->serv_fds[i], GST_BUFFER_DATA(buf), GST_BUFFER_SIZE(buf), MSG_NOSIGNAL);
-
-                if(write_num == -1) {
-                    UMMS_DEBUG("write data failed, because %s", strerror(errno));
-                    close(priv->serv_fds[i]);
-                    priv->serv_fds[i] = -1; /* mark invalid and not use again. */
-                } else if(write_num > 0 && write_num != 
-                        GST_BUFFER_SIZE(buf)) { // write some bytes but not the whole because we set NO_BLOCK.
-
-                    /* TODO: We need to handle the data size problem here. Because
-                     * the funciton is called in signal context and can not block,
-                     * we has set the fd to NO_BLOCK and the write may failed
-                     * because the data is to big. We may need to ref the buffer and 
-                     * send it from the current offset next time. */
-                    UMMS_DEBUG("The socket just write part of the data, notice!!!");
-                } else {
-                    UMMS_DEBUG("write data %d bytes to socket fd:%d.", GST_BUFFER_SIZE(buf), priv->serv_fds[i]); 
-                }
-            }
-        }
-
-        g_mutex_unlock (priv->socks_lock);
+    g_mutex_lock (priv->socks_lock);
+    if (priv->sock_exit_flag) {
+      g_mutex_unlock (priv->socks_lock);
+      UMMS_DEBUG("Skip the work because exit.");
+      return;
     }
+
+    /* Now write the data. */
+    for (i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
+      if (priv->serv_fds[i] != -1) {
+        UMMS_DEBUG("Send the data for i:%d, fd:%d", i, priv->serv_fds[i]);
+
+        /* Do not send the signal because the socket closed.
+         * Use MSG_NOSIGNAL flag */
+        write_num = send(priv->serv_fds[i], GST_BUFFER_DATA(buf), GST_BUFFER_SIZE(buf), MSG_NOSIGNAL);
+
+        if (write_num == -1) {
+          UMMS_DEBUG("write data failed, because %s", strerror(errno));
+          close(priv->serv_fds[i]);
+          priv->serv_fds[i] = -1; /* mark invalid and not use again. */
+        } else if (write_num > 0 && write_num !=
+                   GST_BUFFER_SIZE(buf)) { // write some bytes but not the whole because we set NO_BLOCK.
+
+          /* TODO: We need to handle the data size problem here. Because
+           * the funciton is called in signal context and can not block,
+           * we has set the fd to NO_BLOCK and the write may failed
+           * because the data is to big. We may need to ref the buffer and
+           * send it from the current offset next time. */
+          UMMS_DEBUG("The socket just write part of the data, notice!!!");
+        } else {
+          UMMS_DEBUG("write data %d bytes to socket fd:%d.", GST_BUFFER_SIZE(buf), priv->serv_fds[i]);
+        }
+      }
+    }
+
+    g_mutex_unlock (priv->socks_lock);
+  }
 }
 
 
-static void 
+static void
 _umms_socket_thread_join(MeegoMediaPlayerControl* control)
 {
-    EngineGstPrivate *priv = GET_PRIVATE (control);
-    struct sockaddr_in server_addr;
+  EngineGstPrivate *priv = GET_PRIVATE (control);
+  struct sockaddr_in server_addr;
 
-    g_mutex_lock (priv->socks_lock);
-    priv->sock_exit_flag = 1;
-    g_mutex_unlock (priv->socks_lock);
+  g_mutex_lock (priv->socks_lock);
+  priv->sock_exit_flag = 1;
+  g_mutex_unlock (priv->socks_lock);
 
-    if(priv->listen_fd == -1) { /* need to wakeup the listen thread. */
-        int fd = priv->listen_fd;
-        priv->listen_fd = -1;
+  if (priv->listen_fd == -1) { /* need to wakeup the listen thread. */
+    int fd = priv->listen_fd;
+    priv->listen_fd = -1;
 
-        UMMS_DEBUG("we close the listen fd");
-        close(fd);
-    }
+    UMMS_DEBUG("we close the listen fd");
+    close(fd);
+  }
 
-    g_thread_join(priv->listen_thread);
+  g_thread_join(priv->listen_thread);
 }
 
 

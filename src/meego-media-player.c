@@ -29,7 +29,7 @@ G_DEFINE_TYPE (MeegoMediaPlayer, meego_media_player, G_TYPE_OBJECT)
     }\
   }while(0)
 
-#define   DEFAULT_SCALE_MODE  ScaleModeKeepAspectRatio 
+#define   DEFAULT_SCALE_MODE  ScaleModeKeepAspectRatio
 #define   DEFAULT_VOLUME 50
 #define   DEFAULT_MUTE   FALSE
 #define   DEFAULT_X      0
@@ -329,7 +329,7 @@ gboolean meego_media_player_activate (MeegoMediaPlayer *player, PlayerState stat
       break;
   }
 
-  UMMS_DEBUG ("setting state: %d %s", state, (ret?"succeed":"failed"));
+  UMMS_DEBUG ("setting state: %d %s", state, (ret ? "succeed" : "failed"));
   return ret;
 }
 
@@ -947,7 +947,7 @@ meego_media_player_dispose (GObject *object)
     g_object_unref (player_control);
   }
 
-  if (priv->target_params) 
+  if (priv->target_params)
     g_hash_table_unref (priv->target_params);
 
   RESET_STR (priv->uri);
@@ -1220,7 +1220,7 @@ meego_media_player_init (MeegoMediaPlayer *player)
 {
   MeegoMediaPlayerPrivate *priv;
   priv = player->priv = PLAYER_PRIVATE (player);
-  
+
   player->player_control = NULL;
   priv->uri     = NULL;
   priv->sub_uri = NULL;
