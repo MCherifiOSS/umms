@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <gst/gst.h>
@@ -3784,15 +3785,25 @@ _umms_socket_thread_join(MeegoMediaPlayerControl* control)
   priv->sock_exit_flag = 1;
   g_mutex_unlock (priv->socks_lock);
 
-  if (priv->listen_fd == -1) { /* need to wakeup the listen thread. */
-    int fd = priv->listen_fd;
-    priv->listen_fd = -1;
-
-    UMMS_DEBUG("we close the listen fd");
-    close(fd);
+  if (priv->listen_fd != -1) { /* need to wakeup the listen thread. */
+    struct hostent *host = gethostbyname("localhost");
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    if ((fd != -1) { 
+        bzero(&server_addr, sizeof(server_addr));
+        server_addr.sin_family = AF_INET;
+        server_addr.sin_port = htons(priv->port);
+        server_addr.sin_addr = *((struct in_addr*)host->h_addr);
+        
+        UMMS_DEBUG("try to wakeup the thread by connect");
+        connect (fd, (struct sockaddr*)(&server_addr), sizeof(struct sockaddr));
+        close(fd);
+    } else {
+        UMMS_DEBUG("socket create failed, can not wakeup the listen thread");
+    }
   }
 
-  g_thread_join(priv->listen_thread);
+  g_thread_join(priv->listen_thread);  
+  UMMS_DEBUG("listen_thread has joined");
 }
 
 
