@@ -2875,10 +2875,18 @@ static void
 engine_gst_dispose (GObject *object)
 {
   EngineGstPrivate *priv = GET_PRIVATE (object);
+  int i;
 
   if (priv->listen_thread) {
     _umms_socket_thread_join((MeegoMediaPlayerControl *)object);
     priv->listen_thread = NULL;
+  }
+
+  for (i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
+    if (priv->serv_fds[i] != -1) {
+      close(priv->serv_fds[i]);
+    }
+    priv->serv_fds[i] = -1;
   }
 
   if (priv->socks_lock) {
@@ -3661,6 +3669,9 @@ _umms_socket_listen_thread(MeegoMediaPlayerControl* control)
 
   g_mutex_lock (priv->socks_lock);
   for (i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
+    if (priv->serv_fds[i] != -1) {
+      close(priv->serv_fds[i]);
+    }
     priv->serv_fds[i] = -1;
   }
   g_mutex_unlock (priv->socks_lock);
