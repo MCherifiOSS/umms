@@ -970,17 +970,14 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
   if ((ret = request_resource(self))) {
     if (target_state == GST_STATE_PLAYING) {
       if (IS_LIVE_URI(priv->uri)) {
-        //    ISmdGstClock *ismd_clock = NULL;
-        /* For the special case of live source.
+         /* For the special case of live source.
            Becasue our hardware decoder and sink need the special clock type and if the clock type is wrong,
            the hardware can not work well.  In file case, the provide_clock will be called after all the elements
            have been made and added in pause state, so the element which represent the hardware will provide the
            right clock. But in live source case, the state change from NULL to playing is continous and the provide_clock
            function may be called before hardware element has been made.
            So we need to set the clock of pipeline statically here.*/
-        //    ismd_clock = g_object_new (ISMD_GST_TYPE_CLOCK, NULL);
-        //    gst_pipeline_use_clock (GST_PIPELINE_CAST(priv->pipeline), GST_CLOCK_CAST(ismd_clock));
-        GstClock *clock = get_hw_clock ();
+          GstClock *clock = get_hw_clock ();
         if (clock) {
           gst_pipeline_use_clock (GST_PIPELINE_CAST(priv->pipeline), clock);
           g_object_unref (clock);
@@ -990,7 +987,6 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
           ret = FALSE;
           goto OUT;
         }
-
       }
     }
 
