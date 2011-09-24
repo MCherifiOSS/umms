@@ -1,21 +1,21 @@
-/* 
+/*
  * UMMS (Unified Multi Media Service) provides a set of DBus APIs to support
  * playing Audio and Video as well as DVB playback.
  *
  * Authored by Zhiwen Wu <zhiwen.wu@intel.com>
  *             Junyan He <junyan.he@intel.com>
  * Copyright (c) 2011 Intel Corp.
- * 
+ *
  * UMMS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * UMMS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with UMMS; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -550,7 +550,7 @@ static gboolean setup_datacopy_target (MeegoMediaPlayerControl *self, GHashTable
   GValue *val = NULL;
   GstElement *shmvbin = NULL;
   EngineGstPrivate *priv = GET_PRIVATE (self);
-  
+
 
   UMMS_DEBUG ("setting up datacopy target");
   shmvbin = gst_element_factory_make ("shmvidrendbin", NULL);
@@ -970,14 +970,14 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
   if ((ret = request_resource(self))) {
     if (target_state == GST_STATE_PLAYING) {
       if (IS_LIVE_URI(priv->uri)) {
-         /* For the special case of live source.
-           Becasue our hardware decoder and sink need the special clock type and if the clock type is wrong,
-           the hardware can not work well.  In file case, the provide_clock will be called after all the elements
-           have been made and added in pause state, so the element which represent the hardware will provide the
-           right clock. But in live source case, the state change from NULL to playing is continous and the provide_clock
-           function may be called before hardware element has been made.
-           So we need to set the clock of pipeline statically here.*/
-          GstClock *clock = get_hw_clock ();
+        /* For the special case of live source.
+          Becasue our hardware decoder and sink need the special clock type and if the clock type is wrong,
+          the hardware can not work well.  In file case, the provide_clock will be called after all the elements
+          have been made and added in pause state, so the element which represent the hardware will provide the
+          right clock. But in live source case, the state change from NULL to playing is continous and the provide_clock
+          function may be called before hardware element has been made.
+          So we need to set the clock of pipeline statically here.*/
+        GstClock *clock = get_hw_clock ();
         if (clock) {
           gst_pipeline_use_clock (GST_PIPELINE_CAST(priv->pipeline), clock);
           g_object_unref (clock);
@@ -1112,15 +1112,25 @@ engine_gst_set_video_size (MeegoMediaPlayerControl *self,
 
     //Font Setting
 #define SUBTITLE_FONT_CUSTOM (0)
-    if(SUBTITLE_FONT_CUSTOM){    tsvalue = SUBTITLE_FONT_CUSTOM;}
-    else if(w<=320  && h<=240){  tsvalue = 6;}
-    else if(w<=640  && h<=480){  tsvalue = 10;}
-    else if(w<=720  && h<=576){  tsvalue = 12;}
-    else if(w<=1024 && h<=720){  tsvalue = 16;}
-    else if(w<=1280 && h<=800){  tsvalue = 20;}
-    else if(w<=1920 && h<=1280){ tsvalue = 26;}
-    else if(w<=2880 && h<=1920){ tsvalue = 36;}
-    else {tsvalue = 12;}
+    if (SUBTITLE_FONT_CUSTOM) {
+      tsvalue = SUBTITLE_FONT_CUSTOM;
+    } else if (w <= 320  && h <= 240) {
+      tsvalue = 6;
+    } else if (w <= 640  && h <= 480) {
+      tsvalue = 10;
+    } else if (w <= 720  && h <= 576) {
+      tsvalue = 12;
+    } else if (w <= 1024 && h <= 720) {
+      tsvalue = 16;
+    } else if (w <= 1280 && h <= 800) {
+      tsvalue = 20;
+    } else if (w <= 1920 && h <= 1280) {
+      tsvalue = 26;
+    } else if (w <= 2880 && h <= 1920) {
+      tsvalue = 36;
+    } else {
+      tsvalue = 12;
+    }
 
     g_object_set (G_OBJECT(tsink_bin), "tsub-fontsize", tsvalue, NULL);
 
@@ -3241,14 +3251,18 @@ bus_message_buffering_cb (GstBus *bus,
 
       UMMS_DEBUG ("Done buffering");
       priv->buffering = FALSE;
+
       if (priv->pending_state == PlayerStatePlaying)
         gst_element_set_state (priv->pipeline, GST_STATE_PLAYING);
-      meego_media_player_control_emit_buffered (self);
 
+      meego_media_player_control_emit_buffered (self);
     } else if (!priv->buffering && priv->pending_state == PlayerStatePlaying) {
       priv->buffering = TRUE;
       UMMS_DEBUG ("Set pipeline to paused for buffering data");
-      gst_element_set_state (priv->pipeline, GST_STATE_PAUSED);
+
+      if (!priv->is_live)
+        gst_element_set_state (priv->pipeline, GST_STATE_PAUSED);
+
       meego_media_player_control_emit_buffering (self);
     }
   }
@@ -3631,9 +3645,16 @@ parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
   g_signal_connect (uridecodebin, "no-more-pads",
                     G_CALLBACK (no_more_pads_cb), self);
 
-  if (gst_element_set_state (uridecodebin, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
-    TEARDOWN_ELEMENT (priv->uri_parse_pipe);
-    return FALSE;
+  if (priv->is_live) {
+    if (gst_element_set_state (uridecodebin, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
+      TEARDOWN_ELEMENT (priv->uri_parse_pipe);
+      return FALSE;
+    }
+  } else {
+    if (gst_element_set_state (uridecodebin, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
+      TEARDOWN_ELEMENT (priv->uri_parse_pipe);
+      return FALSE;
+    }
   }
   return TRUE;
 }
@@ -3794,21 +3815,21 @@ _umms_socket_thread_join(MeegoMediaPlayerControl* control)
   if (priv->listen_fd != -1) { /* need to wakeup the listen thread. */
     struct hostent *host = gethostbyname("localhost");
     int fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (fd != -1) { 
-        bzero(&server_addr, sizeof(server_addr));
-        server_addr.sin_family = AF_INET;
-        server_addr.sin_port = htons(priv->port);
-        server_addr.sin_addr = *((struct in_addr*)host->h_addr);
-        
-        UMMS_DEBUG("try to wakeup the thread by connect");
-        connect (fd, (struct sockaddr*)(&server_addr), sizeof(struct sockaddr));
-        close(fd);
+    if (fd != -1) {
+      bzero(&server_addr, sizeof(server_addr));
+      server_addr.sin_family = AF_INET;
+      server_addr.sin_port = htons(priv->port);
+      server_addr.sin_addr = *((struct in_addr*)host->h_addr);
+
+      UMMS_DEBUG("try to wakeup the thread by connect");
+      connect (fd, (struct sockaddr*)(&server_addr), sizeof(struct sockaddr));
+      close(fd);
     } else {
-        UMMS_DEBUG("socket create failed, can not wakeup the listen thread");
+      UMMS_DEBUG("socket create failed, can not wakeup the listen thread");
     }
   }
 
-  g_thread_join(priv->listen_thread);  
+  g_thread_join(priv->listen_thread);
   UMMS_DEBUG("listen_thread has joined");
 }
 
