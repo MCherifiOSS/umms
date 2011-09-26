@@ -4,6 +4,7 @@
 #include <gst/interfaces/xoverlay.h>
 /* for the volume property */
 #include <gst/interfaces/streamvolume.h>
+#include <gst/app/gstappsink.h>
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <glib/gprintf.h>
@@ -18,7 +19,7 @@
 /* add PAT, CAT, NIT, SDT, EIT to pids filter for dvbsrc */
 #define INIT_PIDS "0:1:16:17:18"
 #define TEST_PIDS "0:257:1110:1120"
-
+#define DVB_SRC
 
 static void meego_media_player_control_init (MeegoMediaPlayerControl* iface);
 
@@ -103,6 +104,7 @@ struct _DvbPlayerPrivate {
 
   gboolean recording;
   gchar *file_location;
+  GstPad *request_pad;
 };
 
 static gboolean _stop_pipe (MeegoMediaPlayerControl *control);
@@ -119,6 +121,8 @@ static void update_elements_list (DvbPlayer *player);
 static gboolean autoplug_dec_element (DvbPlayer *player, GstElement * element);
 static gboolean link_sink (DvbPlayer *player, GstPad *pad);
 static GstPad *get_sink_pad (GstElement * element);
+static gboolean start_recording (MeegoMediaPlayerControl *self);
+static gboolean stop_recording (MeegoMediaPlayerControl *self);
 
 enum {
   CHAIN_TYPE_VIDEO,
@@ -287,7 +291,11 @@ dvb_player_set_uri (MeegoMediaPlayerControl *self,
 
   priv->uri = g_strdup (uri);
 
+#ifdef DVB_SRC
   return dvb_player_parse_uri (DVB_PLAYER (self), uri); 
+#else
+  return TRUE;
+#endif
 }
 
 static gboolean
@@ -988,6 +996,10 @@ static gboolean
 _stop_pipe (MeegoMediaPlayerControl *control)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (control);
+
+  if (priv->recording) {
+    stop_recording (control);
+  }
 
   if (gst_element_set_state(priv->pipeline, GST_STATE_NULL) == GST_STATE_CHANGE_FAILURE) {
     UMMS_DEBUG ("Unable to set NULL state");
@@ -2206,20 +2218,18 @@ static gboolean start_recording (MeegoMediaPlayerControl *self)
     location = DEFAULT_FILE_LOCATION;
   g_object_set (filesink, "location", location, NULL);
 
-  gst_bin_add (priv->pipeline, filesink);
+  gst_bin_add (GST_BIN(priv->pipeline), filesink);
 
   if (!(sinkpad = gst_element_get_static_pad (filesink, "sink"))){
     UMMS_DEBUG ("Getting program pad failed");
     goto failed;
   }
 
-  //TODO: remove this code, just for testing
-  g_object_set (priv->tsdemux, "pids", TEST_PIDS, NULL);
-
-  if (!(srcpad = gst_element_get_request_pad (priv->tsdemux, "rawts"))){
+  if (!(srcpad = gst_element_get_request_pad (priv->tsdemux, "program"))){
     UMMS_DEBUG ("Getting program pad failed");
     goto failed;
   }
+
 
   if (GST_PAD_LINK_OK != gst_pad_link (srcpad, sinkpad)) {
     UMMS_DEBUG ("Linking filesink failed");
@@ -2235,12 +2245,11 @@ static gboolean start_recording (MeegoMediaPlayerControl *self)
   ret = TRUE;
   priv->recording = TRUE;
   priv->tsfilesink = filesink;
+  priv->request_pad = srcpad;
 
 out:
     if (sinkpad)
       gst_object_unref (sinkpad);
-    if (srcpad)
-      gst_object_unref (srcpad);
 
     if (!ret) {
       UMMS_DEBUG ("failed!!!");
@@ -2249,7 +2258,7 @@ out:
     return ret;
 
 failed:
-    gst_bin_remove (priv->pipeline, filesink);
+    gst_bin_remove (GST_BIN(priv->pipeline), filesink);
     TEARDOWN_ELEMENT (filesink);
     goto out;
 }
@@ -2259,15 +2268,20 @@ static gboolean stop_recording (MeegoMediaPlayerControl *self)
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
 
   UMMS_DEBUG ("Begin");
+
   if (!priv->tsfilesink) {
     UMMS_DEBUG ("We don't have filesink, can't remove it");
     return FALSE;
   }
 
-  gst_bin_remove (priv->pipeline, priv->tsfilesink);
+  gst_bin_remove (GST_BIN(priv->pipeline), priv->tsfilesink);
   TEARDOWN_ELEMENT (priv->tsfilesink);
-  priv->recording = FALSE;
 
+  gst_element_release_request_pad (priv->tsdemux, priv->request_pad);
+  gst_object_unref (priv->request_pad);
+  priv->request_pad = NULL;
+
+  priv->recording = FALSE;
   UMMS_DEBUG ("End");
   return TRUE;
 }
@@ -2607,6 +2621,7 @@ dvb_player_dispose (GObject *object)
   TEARDOWN_ELEMENT(priv->vsink);
   TEARDOWN_ELEMENT(priv->asink);
   TEARDOWN_ELEMENT(priv->pipeline);
+
 
   if (priv->target_type == XWindow) {
     unset_xwindow_target ((MeegoMediaPlayerControl *)object);
@@ -3025,12 +3040,11 @@ dvb_player_init (DvbPlayer *self)
       self,
       0);
 
-//  gst_bus_set_sync_handler(bus, (GstBusSyncHandler) bus_sync_handler,
-//      self);
+  gst_bus_set_sync_handler(bus, (GstBusSyncHandler) bus_sync_handler,
+      self);
 
   gst_object_unref (GST_OBJECT (bus));
 
-#define DVB_SRC
 /*frontend pipeline: dvbsrc --> queue --> ismd_clock_recovery_provider --> flutsdemux*/
 #ifdef DVB_SRC
   priv->source = source = gst_element_factory_make ("dvbsrc", "dvb-src");
