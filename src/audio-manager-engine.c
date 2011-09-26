@@ -191,14 +191,14 @@ audio_manager_interface_init (AudioManagerInterface *iface)
 {
   AudioManagerInterfaceClass *klass = (AudioManagerInterfaceClass *)iface;
 
-  audio_manager_interface_implement_set_volume (klass,
-      audio_manager_engine_set_volume);
-  audio_manager_interface_implement_get_volume (klass,
-      audio_manager_engine_get_volume);
-  audio_manager_interface_implement_set_state (klass,
-      audio_manager_engine_set_state);
-  audio_manager_interface_implement_get_state (klass,
-      audio_manager_engine_get_state);
+//  audio_manager_interface_implement_set_volume (klass,
+//      audio_manager_engine_set_volume);
+//  audio_manager_interface_implement_get_volume (klass,
+//      audio_manager_engine_get_volume);
+//  audio_manager_interface_implement_set_state (klass,
+//      audio_manager_engine_set_state);
+//  audio_manager_interface_implement_get_state (klass,
+//      audio_manager_engine_get_state);
 }
 
 static void

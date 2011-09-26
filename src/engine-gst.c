@@ -160,7 +160,6 @@ static gboolean _stop_pipe (MeegoMediaPlayerControl *control);
 static gboolean engine_gst_set_video_size (MeegoMediaPlayerControl *self, guint x, guint y, guint w, guint h);
 static gboolean create_xevent_handle_thread (MeegoMediaPlayerControl *self);
 static gboolean destroy_xevent_handle_thread (MeegoMediaPlayerControl *self);
-static gboolean parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri);
 static void release_resource (MeegoMediaPlayerControl *self);
 
 
@@ -211,7 +210,8 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
 
   //URI is one of metadatas whose change should be notified.
   meego_media_player_control_emit_metadata_changed (self);
-  return parse_uri_async(self, priv->uri);
+  //return parse_uri_async(self, priv->uri);//Mod
+  return TRUE;
 }
 
 static gboolean
@@ -633,66 +633,19 @@ int xerror_handler (
   return x_print_error (dpy, event, stderr);
 }
 
-
-/*
- * 1. Calculate top-level window according to video window.
- * 2. Cutout video window geometry according to its relative position to top-level window.
- * 3. Setup underlying ismd_vidrend_bin element.
- * 4. Create xevent handle thread.
- */
-
 static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable *params)
 {
   GValue *val;
-  gint x, y, w, h, rx, ry;
   EngineGstPrivate *priv = GET_PRIVATE (self);
-
-  UMMS_DEBUG ("setting up xwindow target");
-  if (priv->xwin_initialized) {
-    unset_xwindow_target (self);
-  }
-
-  if (!priv->disp)
-    priv->disp = XOpenDisplay (NULL);
-
-  if (!priv->disp) {
-    UMMS_DEBUG ("Could not open display");
-    return FALSE;
-  }
-
-  XSetErrorHandler (xerror_handler);
 
   val = g_hash_table_lookup (params, "window-id");
   if (!val) {
     UMMS_DEBUG ("no window-id");
     return FALSE;
   }
+
   priv->video_win_id = (Window)g_value_get_int (val);
-  priv->app_win_id = get_top_level_win (self, priv->video_win_id);
-
-  if (!priv->app_win_id) {
-    UMMS_DEBUG ("Get top-level window failed");
-    return FALSE;
-  }
-
-  get_video_rectangle (self, &x, &y, &w, &h, &rx, &ry);
-  cutout (self, rx, ry, w, h);
-
-  //make ismd video sink and set its rectangle property
-  gchar *rectangle_des = NULL;
-  rectangle_des = g_strdup_printf ("%u,%u,%u,%u", x, y, w, h);
-
-  UMMS_DEBUG ("set rectangle damension :'%s'", rectangle_des);
-  setup_ismd_vbin (self, rectangle_des, INVALID_PLANE_ID);
-  g_free (rectangle_des);
-
-  //Monitor top-level window's structure change event.
-  XSelectInput (priv->disp, priv->app_win_id,
-                StructureNotifyMask);
-  create_xevent_handle_thread (self);
-
   priv->target_type = XWindow;
-  priv->xwin_initialized = TRUE;
 
   return TRUE;
 }
@@ -705,21 +658,13 @@ unset_target (MeegoMediaPlayerControl *self)
   if (!priv->target_initialized)
     return TRUE;
 
-  /*
-   *For DataCopy and ReservedType0, gstreamer will handle the video-sink element elegantly.
-   *Nothing need to do here.
-   */
   switch (priv->target_type) {
     case XWindow:
       unset_xwindow_target (self);
       break;
     case DataCopy:
-      break;
     case Socket:
-      g_assert_not_reached ();
-      break;
     case ReservedType0:
-      break;
     default:
       g_assert_not_reached ();
       break;
@@ -752,36 +697,21 @@ engine_gst_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *par
     return FALSE;
   }
 
-  if (priv->target_initialized) {
-    unset_target (self);
-  }
-
   switch (type) {
     case XWindow:
       ret = setup_xwindow_target (self, params);
       break;
     case DataCopy:
-      setup_datacopy_target(self, params);
-      break;
     case Socket:
-      UMMS_DEBUG ("unsupported target type: Socket");
-      ret = FALSE;
-      break;
     case ReservedType0:
-      /*
-       * ReservedType0 represents the gdl-plane video output in our UMMS implementation.
-       */
-      ret = setup_gdl_plane_target (self, params);
-      break;
     default:
+      ret = FALSE;
       break;
   }
 
   if (ret) {
     priv->target_type = type;
-    priv->target_initialized = TRUE;
   }
-
   return ret;
 }
 
@@ -945,51 +875,17 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
   old_pending = priv->pending_state;
   priv->pending_state = ((target_state == GST_STATE_PAUSED) ? PlayerStatePaused : PlayerStatePlaying);
 
-  if (!priv->uri_parsed) {
-    goto uri_not_parsed;
+  if (gst_element_set_state(priv->pipeline, target_state) == GST_STATE_CHANGE_FAILURE) {
+    UMMS_DEBUG ("set pipeline to %d failed", target_state);
+    ret = FALSE;
+    goto OUT;
   }
-
-  if ((ret = request_resource(self))) {
-    if (target_state == GST_STATE_PLAYING) {
-      if (IS_LIVE_URI(priv->uri)) {
-        /* For the special case of live source.
-          Becasue our hardware decoder and sink need the special clock type and if the clock type is wrong,
-          the hardware can not work well.  In file case, the provide_clock will be called after all the elements
-          have been made and added in pause state, so the element which represent the hardware will provide the
-          right clock. But in live source case, the state change from NULL to playing is continous and the provide_clock
-          function may be called before hardware element has been made.
-          So we need to set the clock of pipeline statically here.*/
-        GstClock *clock = get_hw_clock ();
-        if (clock) {
-          gst_pipeline_use_clock (GST_PIPELINE_CAST(priv->pipeline), clock);
-          g_object_unref (clock);
-        } else {
-          UMMS_DEBUG ("Can't get HW clock");
-          meego_media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, "Can't get HW clock for live source");
-          ret = FALSE;
-          goto OUT;
-        }
-      }
-    }
-
-    if (gst_element_set_state(priv->pipeline, target_state) == GST_STATE_CHANGE_FAILURE) {
-      UMMS_DEBUG ("set pipeline to %d failed", target_state);
-      ret = FALSE;
-      goto OUT;
-    }
-  }
-
 
 OUT:
   if (!ret) {
     priv->pending_state = old_pending;
   }
   return ret;
-
-uri_not_parsed:
-  UMMS_DEBUG ("uri parsing not finished");
-  return FALSE;
-
 }
 
 static gboolean
@@ -1013,9 +909,6 @@ _stop_pipe (MeegoMediaPlayerControl *control)
     UMMS_DEBUG ("Unable to set NULL state");
     return FALSE;
   }
-
-
-  release_resource (control);
 
   UMMS_DEBUG ("gstreamer engine stopped");
   return TRUE;
@@ -1761,16 +1654,6 @@ engine_gst_set_subtitle_uri (MeegoMediaPlayerControl *self, gchar *sub_uri)
   priv = GET_PRIVATE (self);
   pipe = priv->pipeline;
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
-
-  /* We first set the subtitle render element of playbin2 using ismd_subrend_bin.
-     If failed, we just use the default subrender logic in playbin2. */
-  sub_sink = gst_element_factory_make ("ismd_subrend_bin", NULL);
-  if (sub_sink) {
-    UMMS_DEBUG ("succeed to make the ismd_subrend_bin, set it to playbin2");
-    g_object_set (priv->pipeline, "text-sink", sub_sink, NULL);
-  } else {
-    UMMS_DEBUG ("Unable to make the ismd_subrend_bin");
-  }
 
   /* It seems that the subtitle URI need to set before activate the group, and
      can not dynamic change it of current group when playing.
@@ -2724,10 +2607,10 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_pause);
   meego_media_player_control_implement_stop (klass,
       engine_gst_stop);
-  meego_media_player_control_implement_set_video_size (klass,
-      engine_gst_set_video_size);
-  meego_media_player_control_implement_get_video_size (klass,
-      engine_gst_get_video_size);
+//  meego_media_player_control_implement_set_video_size (klass,
+//      engine_gst_set_video_size);
+//  meego_media_player_control_implement_get_video_size (klass,
+//      engine_gst_get_video_size);
   meego_media_player_control_implement_is_seekable (klass,
       engine_gst_is_seekable);
   meego_media_player_control_implement_set_position (klass,
@@ -2794,10 +2677,10 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       engine_gst_suspend);
   meego_media_player_control_implement_restore (klass,
       engine_gst_restore);
-  meego_media_player_control_implement_set_scale_mode (klass,
-      engine_gst_set_scale_mode);
-  meego_media_player_control_implement_get_scale_mode (klass,
-      engine_gst_get_scale_mode);
+// meego_media_player_control_implement_set_scale_mode (klass,
+//      engine_gst_set_scale_mode);
+//  meego_media_player_control_implement_get_scale_mode (klass,
+//      engine_gst_get_scale_mode);
   meego_media_player_control_implement_get_video_codec (klass,
       engine_gst_get_video_codec);
   meego_media_player_control_implement_get_audio_codec (klass,
@@ -2859,17 +2742,7 @@ engine_gst_dispose (GObject *object)
   _stop_pipe ((MeegoMediaPlayerControl *)object);
 
   TEARDOWN_ELEMENT (priv->source);
-  TEARDOWN_ELEMENT (priv->uri_parse_pipe);
   TEARDOWN_ELEMENT (priv->pipeline);
-
-  if (priv->target_type == XWindow) {
-    unset_xwindow_target ((MeegoMediaPlayerControl *)object);
-  }
-
-  if (priv->disp) {
-    XCloseDisplay (priv->disp);
-    priv->disp = NULL;
-  }
 
   if (priv->tag_list)
     gst_tag_list_free(priv->tag_list);
@@ -3241,25 +3114,19 @@ bus_sync_handler (GstBus *bus,
   if ( GST_MESSAGE_TYPE( message ) != GST_MESSAGE_ELEMENT )
     return( GST_BUS_PASS );
 
-  if ( ! gst_structure_has_name( message->structure, "prepare-gdl-plane" ) )
+  if (!gst_structure_has_name( message->structure, "prepare-xwindow-id"))
     return( GST_BUS_PASS );
 
   g_return_val_if_fail (engine, GST_BUS_PASS);
   g_return_val_if_fail (ENGINE_IS_GST (engine), GST_BUS_PASS);
   priv = GET_PRIVATE (engine);
 
+  UMMS_DEBUG ("sync-handler received on bus: prepare-xwindow-id, source: %s", GST_ELEMENT_NAME(vsink));
   vsink =  GST_ELEMENT(GST_MESSAGE_SRC (message));
-  UMMS_DEBUG ("sync-handler received on bus: prepare-gdl-plane, source: %s", GST_ELEMENT_NAME(vsink));
-
-  if (!prepare_plane ((MeegoMediaPlayerControl *)engine)) {
-    //Since we are in streame thread, let the vsink to post the error message. Handle it in bus_message_error_cb().
-    err = g_error_new_literal (UMMS_RESOURCE_ERROR, UMMS_RESOURCE_ERROR_NO_RESOURCE, "Plane unavailable");
-    msg = gst_message_new_error (GST_OBJECT_CAST(priv->pipeline), err, "No resource");
-    gst_element_post_message (priv->pipeline, msg);
-    g_error_free (err);
+  if (vsink && GST_IS_X_OVERLAY (vsink)) {
+    if (priv->video_win_id != 0)
+      gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (vsink), priv->video_win_id);
   }
-
-//  meego_media_player_control_emit_request_window (engine);
 
   if (message)
     gst_message_unref (message);

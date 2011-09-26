@@ -128,6 +128,9 @@ static gboolean link_sink (DvbPlayer *player, GstPad *pad);
 static GstPad *get_sink_pad (GstElement * element);
 static gboolean start_recording (MeegoMediaPlayerControl *self);
 static gboolean stop_recording (MeegoMediaPlayerControl *self);
+GstElement *create_video_bin (void);
+GstElement *create_audio_bin (void);
+
 
 enum {
   CHAIN_TYPE_VIDEO,
@@ -709,64 +712,19 @@ static int xerror_handler (
 }
 
 
-/* 
- * 1. Calculate top-level window according to video window.
- * 2. Cutout video window geometry according to its relative position to top-level window.
- * 3. Setup underlying ismd_vidrend_bin element.
- * 4. Create xevent handle thread.
- */
-
 static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable *params)
 {
   GValue *val;
-  gint x, y, w, h, rx, ry;
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
-
-  if (priv->xwin_initialized) {
-    unset_xwindow_target (self);
-  }
-
-  if (!priv->disp)
-    priv->disp = XOpenDisplay (NULL);
-
-  if (!priv->disp) {
-    UMMS_DEBUG ("Could not open display");
-    return FALSE;
-  }
-
-  XSetErrorHandler (xerror_handler);
 
   val = g_hash_table_lookup (params, "window-id");
   if (!val) {
     UMMS_DEBUG ("no window-id");
     return FALSE;
   }
+
   priv->video_win_id = (Window)g_value_get_int (val);
-  priv->app_win_id = get_top_level_win (self, priv->video_win_id);
-
-  if (!priv->app_win_id) {
-    UMMS_DEBUG ("Get top-level window failed");
-    return FALSE;
-  }
-
-  get_video_rectangle (self, &x, &y, &w, &h, &rx, &ry);
-  cutout (self, rx, ry, w, h);
-
-  //make ismd video sink and set its rectangle property
-  gchar *rectangle_des = NULL;
-  rectangle_des = g_strdup_printf ("%u,%u,%u,%u", x, y, w, h);
-
-  UMMS_DEBUG ("set rectangle damension :'%s'", rectangle_des);
-  setup_ismd_vbin (self, rectangle_des, INVALID_PLANE_ID);
-  g_free (rectangle_des);
-
-  //Monitor top-level window's structure change event.
-  XSelectInput (priv->disp, priv->app_win_id,
-      StructureNotifyMask);
-  create_xevent_handle_thread (self);
-
   priv->target_type = XWindow;
-  priv->xwin_initialized = TRUE;
 
   return TRUE;
 }
@@ -811,7 +769,7 @@ dvb_player_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *par
 
   /*
    * Set target can only happen at Null or Stopped. Two reasons:
-   * 1. Gstreamer don't support switching sink on the fly. 
+   * 1. Gstreamer don't support switching sink on the fly.
    * 2. PlayerStateNull/PlayerStateStopped means all target related resources have been released.
    *    It is more convenience for resource management implementing.
    */
@@ -825,36 +783,21 @@ dvb_player_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *par
     return FALSE;
   }
 
-  if (priv->target_initialized) {
-    unset_target (self);
-  }
-
   switch (type) {
     case XWindow:
       ret = setup_xwindow_target (self, params);
       break;
     case DataCopy:
-      setup_datacopy_target(self, params);
-      break;
     case Socket:
-      UMMS_DEBUG ("unsupported target type: Socket");
-      ret = FALSE;
-      break;
     case ReservedType0:
-      /*
-       * ReservedType0 represents the gdl-plane video output in our UMMS implementation.
-       */
-      ret = setup_gdl_plane_target (self, params);
-      break;
     default:
+      ret = FALSE;
       break;
   }
 
   if (ret) {
     priv->target_type = type;
-    priv->target_initialized = TRUE;
   }
-
   return ret;
 }
 
@@ -3100,7 +3043,6 @@ dvb_player_init (DvbPlayer *self)
   GstElement *pipeline = NULL;
   GstElement *source = NULL;
   GstElement *front_queue = NULL;
-  GstElement *clock_provider = NULL;
   GstElement *tsdemux = NULL;
   GstElement *vsink = NULL;
   GstElement *asink = NULL;
@@ -3152,12 +3094,6 @@ dvb_player_init (DvbPlayer *self)
     UMMS_DEBUG ("Creating dvbsrc failed");
     goto failed;
   }
-
-  clock_provider = gst_element_factory_make ("ismd_clock_recovery_provider", "ismd-clock-recovery-provider");
-  if (!clock_provider) {
-    UMMS_DEBUG ("Creating ismd_clock_recovery_provider element failed");
-    goto failed;
-  }
 #else
   priv->source = source = gst_element_factory_make ("filesrc", NULL);
   if (!source) {
@@ -3165,29 +3101,16 @@ dvb_player_init (DvbPlayer *self)
     goto failed;
   }
   g_object_set (priv->source, "location", "/root/tvb.ts", NULL);
-
-  GstClock *clock = get_hw_clock ();
-  if (clock) {
-    gst_pipeline_use_clock (GST_PIPELINE_CAST(pipeline), clock);
-    g_object_unref (clock);
-  } else { 
-    UMMS_DEBUG ("Can't get HW clock");
-    meego_media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, "Can't get HW clock for live source");
-    goto failed;
-  }
 #endif
   front_queue   = gst_element_factory_make ("queue", "front-queue");
   priv->tsdemux = tsdemux = gst_element_factory_make ("flutsdemux", NULL);
   
-  /*create default audio sink elements*/
-  //FIXME: Consider the subtitle sink
-  priv->asink = asink = gst_element_factory_make ("ismd_audio_sink", NULL);
+  priv->asink = asink = create_audio_bin();
+  priv->vsink = vsink = create_video_bin();
 
-  /*recode sink*/
-
-  if (!front_queue || !tsdemux || !asink) {
+  if (!front_queue || !tsdemux || !asink || !vsink) {
     UMMS_DEBUG ("front_queue(%p), tsdemux(%p), asink(%p)", \
-                front_queue, tsdemux, asink);
+                front_queue, tsdemux, asink, vsink);
     UMMS_DEBUG ("Creating element failed\n");
     goto failed;
   }
@@ -3196,6 +3119,7 @@ dvb_player_init (DvbPlayer *self)
   gst_object_ref_sink (source);
   gst_object_ref_sink (tsdemux);
   gst_object_ref_sink (asink);
+  gst_object_ref_sink (vsink);
 
   g_signal_connect (tsdemux, "pad-added", G_CALLBACK (pad_added_cb), self);
   g_signal_connect (tsdemux, "no-more-pads", G_CALLBACK (no_more_pads_cb), self);
@@ -3203,15 +3127,10 @@ dvb_player_init (DvbPlayer *self)
 
   /* Add and link frontend elements*/
   gst_bin_add_many (GST_BIN (pipeline),source, front_queue, tsdemux, NULL);
-#ifdef DVB_SRC
-  gst_bin_add (GST_BIN (pipeline), clock_provider);
-  gst_element_link_many (source, front_queue, clock_provider, tsdemux, NULL);
-#else
   gst_element_link_many (source, front_queue, tsdemux, NULL);
-#endif
 
   //TODO:Create socket thread
-  
+
   connect_appsink (self);
 
   priv->player_state = PlayerStateNull;
@@ -3230,20 +3149,12 @@ dvb_player_init (DvbPlayer *self)
 
   //URI is one of metadatas whose change should be notified.
   meego_media_player_control_emit_metadata_changed (self);
-
-
-  //Setup default target.
-#define FULL_SCREEN_RECT "0,0,0,0"
-  setup_ismd_vbin (MEEGO_MEDIA_PLAYER_CONTROL(self), FULL_SCREEN_RECT, UPP_A);
-  priv->target_type = ReservedType0;
-  priv->target_initialized = TRUE;
   return;
 
 failed:
   TEARDOWN_ELEMENT(pipeline);
   TEARDOWN_ELEMENT(source);
   TEARDOWN_ELEMENT(front_queue);
-  TEARDOWN_ELEMENT(clock_provider);
   TEARDOWN_ELEMENT(tsdemux);
   TEARDOWN_ELEMENT(vsink);
   TEARDOWN_ELEMENT(asink);
@@ -3340,8 +3251,8 @@ pad_added_cb (GstElement *element,
     if (g_str_has_prefix (name, "video")) {
       autoplug_pad (player, srcpad, CHAIN_TYPE_VIDEO);
     } else if (g_str_has_prefix (name, "audio")) {
-      //autoplug_pad (player, srcpad, CHAIN_TYPE_AUDIO);
-      link_sink (player, srcpad);
+      autoplug_pad (player, srcpad, CHAIN_TYPE_AUDIO);
+      //link_sink (player, srcpad);
     } else {
       //FIXME: do we need to handle flustsdemux's subpicture/private pad? 
     }
@@ -3756,4 +3667,98 @@ out:
     gst_object_unref (sinkpad);
 
   return ret;
+}
+
+GstElement *
+create_video_bin (void)
+{
+  GstElement *video_convert = NULL;
+  GstElement *video_scale = NULL;
+  GstElement *video_sink = NULL;
+  GstElement *video_bin = NULL;
+  GstPad *sinkpad = NULL;
+
+  video_convert = gst_element_factory_make ("ffmpegcolorspace", NULL);
+  video_scale = gst_element_factory_make ("videoscale", NULL);
+  video_sink = gst_element_factory_make ("autovideosink", NULL);
+  video_bin = gst_bin_new ("video-bin");
+
+  if (!video_convert || !video_scale || !video_sink || !video_bin) {
+    UMMS_DEBUG ("Creating video elements failed, \
+        video_convert(%p), video_scale(%p), video_sink(%p), video_bin(%p)",
+        video_convert, video_scale, video_sink, video_bin);
+    goto make_failed;
+  }
+
+  gst_bin_add_many (GST_BIN (video_bin), video_convert, video_scale, video_sink, NULL);
+  if (!gst_element_link_many (video_convert, video_scale, video_sink, NULL)) {
+    UMMS_DEBUG ("linking video elements failed");
+    goto link_failed;
+  }
+
+  sinkpad = gst_element_get_static_pad (video_convert, "sink");
+  gst_element_add_pad (video_bin, gst_ghost_pad_new ("sink", sinkpad));
+  gst_object_unref (GST_OBJECT (sinkpad));
+
+  return video_bin;
+
+make_failed:
+  if (video_convert)
+    gst_object_unref (video_convert);
+  if (video_scale)
+    gst_object_unref (video_scale);
+  if (video_sink)
+    gst_object_unref (video_sink);
+
+link_failed:
+  if (video_bin)
+    gst_object_unref (video_bin);
+  return NULL;
+}
+
+GstElement *
+create_audio_bin (void)
+{
+  GstElement *audio_convert = NULL;
+  GstElement *audio_resample = NULL;
+  GstElement *audio_sink = NULL;
+  GstElement *audio_bin = NULL;
+  GstPad *sinkpad = NULL;
+
+  audio_convert = gst_element_factory_make ("audioconvert", NULL);
+  audio_resample = gst_element_factory_make ("audioresample", NULL);
+  audio_sink = gst_element_factory_make ("autoaudiosink", NULL);
+  audio_bin = gst_bin_new ("audio-bin");
+
+  if (!audio_convert || !audio_resample || !audio_sink || !audio_bin) {
+    UMMS_DEBUG ("Creating audio elements failed, \
+        audio_convert(%p), audio_resample(%p), audio_sink(%p), audio_bin(%p)",
+        audio_convert, audio_resample, audio_sink, audio_bin);
+    goto make_failed;
+  }
+
+  gst_bin_add_many (GST_BIN (audio_bin), audio_convert, audio_resample, audio_sink, NULL);
+  if (!gst_element_link_many (audio_convert, audio_resample, audio_sink, NULL)) {
+    UMMS_DEBUG ("linking audio elements failed");
+    goto link_failed;
+  }
+
+  sinkpad = gst_element_get_static_pad (audio_convert, "sink");
+  gst_element_add_pad (audio_bin, gst_ghost_pad_new ("sink", sinkpad));
+  gst_object_unref (GST_OBJECT (sinkpad));
+
+  return audio_bin;
+
+make_failed:
+  if (audio_convert)
+    gst_object_unref (audio_convert);
+  if (audio_resample)
+    gst_object_unref (audio_resample);
+  if (audio_sink)
+    gst_object_unref (audio_sink);
+
+link_failed:
+  if (audio_bin)
+    gst_object_unref (audio_bin);
+  return NULL;
 }
