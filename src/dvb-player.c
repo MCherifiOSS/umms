@@ -982,15 +982,8 @@ dvb_player_play (MeegoMediaPlayerControl *self)
     DvbPlayerPrivate *priv = GET_PRIVATE(self);
 
     if (request_resource(self)) {
-
-      if (gst_element_set_state(priv->pipeline, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
+      if (gst_element_set_state(priv->pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
         UMMS_DEBUG ("Set pipeline to paused failed");
-        return FALSE;
-      }
-
-      //make dvbsrc to produce data
-      if (gst_element_set_state(priv->source, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
-        UMMS_DEBUG ("Setting dvbsrc to playing failed");
         return FALSE;
       }
     }
@@ -2546,11 +2539,6 @@ connect_appsink (DvbPlayer *self)
 
   if (GST_PAD_LINK_OK != gst_pad_link (srcpad, sinkpad)) {
     UMMS_DEBUG ("Linking appsink failed");
-    goto failed;
-  }
-
-  if (GST_STATE_CHANGE_FAILURE == gst_element_set_state (appsink, GST_STATE_PLAYING)) {
-    UMMS_DEBUG ("Setting appsink to playing failed");
     goto failed;
   }
 
