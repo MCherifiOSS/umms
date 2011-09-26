@@ -48,6 +48,6 @@ AC_CONFIG_FILES([Makefile
 				 test/Makefile
 				 libummsclient/Makefile
 				 spec/Makefile
-				 ui/Makefile
+				 test/ui/Makefile
                  src/Makefile])
 AC_OUTPUT
