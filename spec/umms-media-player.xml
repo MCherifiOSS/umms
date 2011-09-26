@@ -250,6 +250,11 @@
 			<arg name="uri" type="s" direction="out"/>
 		</method>
 
+		<method name="GetAssociatedDataChannel">
+			<arg name="ip" type="s" direction="out"/>
+			<arg name="port" type="i" direction="out"/>
+		</method>
+
 		<signal name="Initialized">
 		</signal>
 

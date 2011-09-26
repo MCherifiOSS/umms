@@ -303,6 +303,9 @@ typedef gboolean (*meego_media_player_control_get_pmt_impl) (MeegoMediaPlayerCon
 void meego_media_player_control_implement_get_pmt (MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_get_pmt_impl impl);
 
+typedef gboolean (*meego_media_player_control_get_associated_data_channel_impl) (MeegoMediaPlayerControl *self, gchar **ip, gint *port);
+void meego_media_player_control_implement_get_associated_data_channel (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_associated_data_channel_impl impl);
 
 
 /*virtual function wrappers*/
@@ -369,6 +372,8 @@ gboolean meego_media_player_control_record (MeegoMediaPlayerControl *self, gbool
 gboolean meego_media_player_control_get_pat (MeegoMediaPlayerControl *self, GPtrArray **pat);
 gboolean meego_media_player_control_get_pmt (MeegoMediaPlayerControl *self, 
                                             guint *program_num, guint *pcr_pid, GPtrArray **stream_info);
+gboolean meego_media_player_control_get_associated_data_channel (MeegoMediaPlayerControl *self, gchar **ip, gint *port);
+
 
 
 /*signal emitter*/

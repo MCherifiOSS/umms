@@ -1350,3 +1350,11 @@ meego_media_player_get_pmt (MeegoMediaPlayer *player, guint *program_num, guint 
   meego_media_player_control_get_pmt (GET_CONTROL_IFACE (player), program_num, pcr_pid, stream_info);
   return TRUE;
 }
+
+gboolean 
+meego_media_player_get_associated_data_channel (MeegoMediaPlayer *player, gchar **ip, gint *port, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_associated_data_channel (GET_CONTROL_IFACE (player), ip, port);
+  return TRUE;
+}

@@ -86,6 +86,7 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_record_impl record;
   meego_media_player_control_get_pat_impl get_pat;
   meego_media_player_control_get_pmt_impl get_pmt;
+  meego_media_player_control_get_associated_data_channel_impl get_associated_data_channel;
 };
 
 enum {
@@ -1352,6 +1353,27 @@ void meego_media_player_control_implement_get_pmt(MeegoMediaPlayerControlClass *
 {
   klass->get_pmt = impl;
 }
+
+gboolean 
+meego_media_player_control_get_associated_data_channel (MeegoMediaPlayerControl *self, gchar **ip, gint *port)
+{
+  meego_media_player_control_get_associated_data_channel_impl impl =
+    (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_associated_data_channel);
+
+  if (impl != NULL) {
+    (impl) (self, ip, port);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_associated_data_channel (MeegoMediaPlayerControlClass *klass,
+    meego_media_player_control_get_associated_data_channel_impl impl)
+{
+  klass->get_associated_data_channel = impl;
+}
+
 void
 meego_media_player_control_emit_initialized (gpointer instance)
 {

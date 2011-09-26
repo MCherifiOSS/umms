@@ -154,7 +154,7 @@ gboolean meego_media_player_record (MeegoMediaPlayer *player, gboolean to_record
 gboolean meego_media_player_get_pat (MeegoMediaPlayer *player, GPtrArray **pat, GError **err);
 gboolean meego_media_player_get_pmt (MeegoMediaPlayer *player, guint *program_num, guint *pcr_pid, GPtrArray **stream_info, 
     GError **err);
-
+gboolean meego_media_player_get_associated_data_channel (MeegoMediaPlayer *player, gchar **ip, gint *port, GError **err);
 
 G_END_DECLS
 

@@ -102,9 +102,14 @@ struct _DvbPlayerPrivate {
   GList *elements;//decodarble and audio/video sink element factory
   guint32  elements_cookie;
 
+  //current program recording
   gboolean recording;
   gchar *file_location;
   GstPad *request_pad;
+
+  //associated data channel
+  gchar *ip;
+  gint  port;
 };
 
 static gboolean _stop_pipe (MeegoMediaPlayerControl *control);
@@ -2462,6 +2467,111 @@ out:
   return ret;
 }
 
+static gboolean 
+dvb_player_get_associated_data_channel (MeegoMediaPlayerControl *self, gchar **ip, gint *port)
+{
+  DvbPlayerPrivate *priv = NULL;
+  
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (ip, FALSE);
+  g_return_val_if_fail (port, FALSE);
+
+  priv = GET_PRIVATE (self);
+
+  //TODO: return the ip and port
+
+  return TRUE;
+}
+
+GstFlowReturn new_buffer_cb (GstAppSink *sink, gpointer user_data)
+{
+  GstBuffer *buf = NULL;
+  GstFlowReturn ret = GST_FLOW_OK;
+
+  buf = gst_app_sink_pull_buffer (sink);
+  if (!buf) {
+    UMMS_DEBUG ("pulling buffer failed");
+    ret = GST_FLOW_ERROR;
+    goto out;
+  }
+
+  //TODO: do something with the buf
+  {
+
+  }
+
+out:
+  if (buf)
+    gst_buffer_unref (buf);
+  return ret;
+}
+
+static gboolean 
+connect_appsink (DvbPlayer *self)
+{
+  GstElement *appsink;
+  GstPad *srcpad = NULL;
+  GstPad *sinkpad = NULL;
+  gboolean ret = FALSE;
+  DvbPlayerPrivate *priv = GET_PRIVATE (self);
+
+  if (!priv->tsdemux){
+    goto out;
+  }
+
+  if (!(appsink = gst_element_factory_make ("appsink", NULL))) {
+    UMMS_DEBUG ("Creating appsink failed");
+    goto out;
+  }
+
+  GstAppSinkCallbacks *callbacks = g_new0 (GstAppSinkCallbacks, 1);
+  callbacks->new_buffer = new_buffer_cb;
+  gst_app_sink_set_callbacks (GST_APP_SINK_CAST (appsink), callbacks, self, NULL);
+  g_free (callbacks);
+
+  gst_bin_add (GST_BIN(priv->pipeline), appsink);
+
+  if (!(sinkpad = gst_element_get_static_pad (appsink, "sink"))){
+    UMMS_DEBUG ("Getting program pad failed");
+    goto failed;
+  }
+
+  g_object_set (priv->tsdemux, "pids", INIT_PIDS, NULL);
+  if (!(srcpad = gst_element_get_request_pad (priv->tsdemux, "rawts"))){
+    UMMS_DEBUG ("Getting rawts pad failed");
+    goto failed;
+  }
+
+
+  if (GST_PAD_LINK_OK != gst_pad_link (srcpad, sinkpad)) {
+    UMMS_DEBUG ("Linking appsink failed");
+    goto failed;
+  }
+
+  if (GST_STATE_CHANGE_FAILURE == gst_element_set_state (appsink, GST_STATE_PLAYING)) {
+    UMMS_DEBUG ("Setting appsink to playing failed");
+    goto failed;
+  }
+
+  ret = TRUE;
+
+out:
+  if (sinkpad)
+    gst_object_unref (sinkpad);
+  if (srcpad)
+    gst_object_unref (srcpad);
+
+  if (!ret) {
+    UMMS_DEBUG ("failed!!!");
+  }
+
+  return ret;
+
+failed:
+  gst_bin_remove (GST_BIN(priv->pipeline), appsink);
+  goto out;
+}
 
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
@@ -2582,6 +2692,8 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
       dvb_player_get_pat);
   meego_media_player_control_implement_get_pmt (klass,
       dvb_player_get_pmt);
+  meego_media_player_control_implement_get_associated_data_channel (klass,
+      dvb_player_get_associated_data_channel);
 }
 
 static void
@@ -3109,6 +3221,10 @@ dvb_player_init (DvbPlayer *self)
 #else
   gst_element_link_many (source, front_queue, tsdemux, NULL);
 #endif
+
+  //TODO:Create socket thread
+  
+  connect_appsink (self);
 
   priv->player_state = PlayerStateNull;
   priv->res_mngr = umms_resource_manager_new ();

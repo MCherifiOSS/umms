@@ -2,7 +2,7 @@ libexec_PROGRAMS = umms-server
 
 umms_server_CFLAGS = $(UMMS_CFLAGS)
 
-umms_server_LDADD = $(UMMS_LIBS)
+umms_server_LDADD = $(UMMS_LIBS) -lgstapp-0.10
 
 
 GLUE = \
