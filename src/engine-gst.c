@@ -3406,6 +3406,20 @@ _set_proxy (MeegoMediaPlayerControl *self)
 }
 
 static void
+_uri_parser_source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data)
+{
+  GstElement *source;
+  EngineGstPrivate *priv = GET_PRIVATE (data);
+
+  g_object_get(priv->uri_parse_pipe, "source", &source, NULL);
+  gst_object_replace((GstObject**) &priv->source, (GstObject*) source);
+  UMMS_DEBUG ("source changed");
+  _set_proxy ((MeegoMediaPlayerControl *)data);
+
+  return;
+}
+
+static void
 _source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data)
 {
   GstElement *source;
@@ -3587,6 +3601,7 @@ parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
     return FALSE;
   }
 
+  g_signal_connect(uridecodebin, "notify::source", G_CALLBACK(_uri_parser_source_changed_cb), self);
   g_object_set (G_OBJECT(uridecodebin), "uri", priv->uri, NULL);
 
   g_signal_connect (uridecodebin, "autoplug-continue",
