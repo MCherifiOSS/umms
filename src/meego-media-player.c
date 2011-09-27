@@ -98,10 +98,10 @@ struct _MeegoMediaPlayerPrivate {
   gchar    *name;
   gboolean attended;
 
+  /*Parameters need to be cached due to the unavailable of underlying player.*/
   gchar    *uri;
   gchar    *sub_uri;
 
-  //member fields to stroe default params
   gint     volume;
   gint     mute;
   gint     scale_mode;
@@ -109,6 +109,9 @@ struct _MeegoMediaPlayerPrivate {
   gint     y;
   guint    w;
   guint    h;
+  gint        target_type;
+  GHashTable *target_params;
+  GHashTable *http_proxy_params;
 
   //For client existence checking.
   guint    no_reply_time;
@@ -117,9 +120,7 @@ struct _MeegoMediaPlayerPrivate {
   //Media player "snapshot", for suspend/restore operation.
   gint64   position;
 
-  gint        target_type;
-  GHashTable *target_params;
-};
+  };
 
 static void
 connect_signals(MeegoMediaPlayer *player, MeegoMediaPlayerControl *control);
@@ -267,6 +268,8 @@ gboolean meego_media_player_load_engine (MeegoMediaPlayer *player, const gchar *
   meego_media_player_control_set_volume (player->player_control, priv->volume);
   meego_media_player_control_set_mute (player->player_control, priv->mute);
   meego_media_player_control_set_scale_mode (player->player_control, priv->scale_mode);
+  if (priv->http_proxy_params)
+    meego_media_player_control_set_proxy (player->player_control, priv->http_proxy_params);
   if (priv->target_params)
     meego_media_player_control_set_target (player->player_control, priv->target_type, priv->target_params);
   if (priv->sub_uri)
@@ -657,9 +660,18 @@ meego_media_player_set_proxy (MeegoMediaPlayer *player,
     GHashTable *params,
     GError **err)
 {
-  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
-  meego_media_player_control_set_proxy (GET_CONTROL_IFACE (player), params);
-  return TRUE;
+  gboolean ret = TRUE;
+  MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
+
+  if (player->player_control) {
+    meego_media_player_control_set_proxy (GET_CONTROL_IFACE (player), params);
+  } else {
+    if (priv->http_proxy_params)
+      g_hash_table_unref (priv->http_proxy_params);
+    priv->http_proxy_params = g_hash_table_ref (params);
+  }
+
+  return ret;
 }
 
 //Stop player, so that all resources occupied will be released.
@@ -969,6 +981,9 @@ meego_media_player_dispose (GObject *object)
     meego_media_player_control_stop (player_control);
     g_object_unref (player_control);
   }
+
+  if (priv->http_proxy_params)
+    g_hash_table_unref (priv->http_proxy_params);
 
   if (priv->target_params)
     g_hash_table_unref (priv->target_params);
