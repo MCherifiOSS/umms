@@ -126,7 +126,7 @@ static void update_elements_list (DvbPlayer *player);
 static gboolean autoplug_dec_element (DvbPlayer *player, GstElement * element);
 static gboolean link_sink (DvbPlayer *player, GstPad *pad);
 static GstPad *get_sink_pad (GstElement * element);
-static gboolean start_recording (MeegoMediaPlayerControl *self);
+static gboolean start_recording (MeegoMediaPlayerControl *self, gchar *location);
 static gboolean stop_recording (MeegoMediaPlayerControl *self);
 
 enum {
@@ -2188,14 +2188,14 @@ dvb_player_get_artist(MeegoMediaPlayerControl *self, gchar ** artist)
   return TRUE;
 }
 
-static gboolean start_recording (MeegoMediaPlayerControl *self)
+static gboolean start_recording (MeegoMediaPlayerControl *self, gchar *location)
 {
 
   gboolean ret = FALSE;
   GstPad *srcpad = NULL;
   GstPad *sinkpad = NULL;
   GstElement *filesink = NULL;
-  gchar *location = NULL;
+  gchar *file_location = NULL;
 
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
 
@@ -2210,11 +2210,12 @@ static gboolean start_recording (MeegoMediaPlayerControl *self)
   gst_object_ref_sink (filesink);
 
 #define DEFAULT_FILE_LOCATION "/tmp/record.ts"
-  if (priv->file_location)
-    location = priv->file_location;
+  UMMS_DEBUG ("location: '%s'", location);
+  if (location && location[0] != '\0')
+    file_location = location;
   else 
-    location = DEFAULT_FILE_LOCATION;
-  g_object_set (filesink, "location", location, NULL);
+    file_location = DEFAULT_FILE_LOCATION;
+  g_object_set (filesink, "location", file_location, NULL);
 
   gst_bin_add (GST_BIN(priv->pipeline), filesink);
 
@@ -2285,7 +2286,7 @@ static gboolean stop_recording (MeegoMediaPlayerControl *self)
 }
 
 static gboolean 
-dvb_player_record (MeegoMediaPlayerControl *self, gboolean to_record)
+dvb_player_record (MeegoMediaPlayerControl *self, gboolean to_record, gchar *location)
 {
   DvbPlayerPrivate *priv = NULL;
   
@@ -2299,7 +2300,7 @@ dvb_player_record (MeegoMediaPlayerControl *self, gboolean to_record)
   }
   
   if (to_record) 
-    return start_recording (self);
+    return start_recording (self, location);
   else 
     return stop_recording (self);
 }

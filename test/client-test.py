@@ -425,7 +425,11 @@ class CmdHandler(threading.Thread):
 		        #    print "pid : %4u, stream-type: %4u" % (streams[i]['pid'], streams[i]['stream-type'])
         elif mid == Record:
             to_record = int (raw_input ("0: stop recording, 1: start recording "))
-            self.player.Record (to_record)
+            if to_record == 1:
+                location = raw_input ("Specify the location of recorded file: ")
+                self.player.Record (to_record, location); 
+            else: 
+                self.player.Record (to_record, "");
         elif mid == ChangeProgram:
             num = raw_input("Input program number: ")
             dvburi = "dvb://?program-number="+num+"&type=0&modulation=1&trans-mod=0&bandwidth=0&frequency=578000000&code-rate-lp=0&code-rate-hp=3&guard=0&hierarchy=0"

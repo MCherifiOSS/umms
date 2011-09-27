@@ -1296,13 +1296,13 @@ void meego_media_player_control_implement_get_artist(MeegoMediaPlayerControlClas
   klass->get_artist = impl;
 }
 
-gboolean meego_media_player_control_record (MeegoMediaPlayerControl *self, gboolean to_record)
+gboolean meego_media_player_control_record (MeegoMediaPlayerControl *self, gboolean to_record, gchar *location)
 {
   meego_media_player_control_record_impl impl =
     (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->record);
 
   if (impl != NULL) {
-    (impl) (self, to_record);
+    (impl) (self, to_record, location);
   } else {
     g_warning ("Method not implemented\n");
   }

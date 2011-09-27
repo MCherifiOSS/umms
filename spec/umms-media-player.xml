@@ -234,6 +234,7 @@
 
 		<method name="Record">
 			<arg name="record" type="b"/>
+			<arg name="location" type="s"/>
 		</method>
 
     <method name="GetPat">
