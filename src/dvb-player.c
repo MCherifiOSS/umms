@@ -2516,7 +2516,6 @@ GstFlowReturn new_buffer_cb (GstAppSink *sink, gpointer user_data)
   }
 
   //Send the buf data from socket.
-  UMMS_DEBUG("Socket has data to send");
   send_socket_data(buf, user_data);
 
 out:

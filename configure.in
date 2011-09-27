@@ -19,6 +19,7 @@ AM_PROG_CC_C_O
 
 PKG_CHECK_MODULES(UMMS, 			\
 		  glib-2.0 >= 2.24 	\
+          gstreamer-0.10 >= 0.10.32 \
           gstreamer-interfaces-0.10 \
           x11 \
 		  dbus-glib-1)
