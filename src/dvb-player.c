@@ -2230,11 +2230,11 @@ static gboolean start_recording (MeegoMediaPlayerControl *self, gchar *location)
   gst_object_ref_sink (filesink);
 
 #define DEFAULT_FILE_LOCATION "/tmp/record.ts"
-  UMMS_DEBUG ("location: '%s'", location);
   if (location && location[0] != '\0')
     file_location = location;
   else 
     file_location = DEFAULT_FILE_LOCATION;
+  UMMS_DEBUG ("location: '%s'", file_location);
   g_object_set (filesink, "location", file_location, NULL);
 
   gst_bin_add (GST_BIN(priv->pipeline), filesink);
