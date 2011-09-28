@@ -202,6 +202,7 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
   priv->hw_viddec = 0;
   priv->has_audio = FALSE;
   priv->hw_auddec = FALSE;
+  priv->is_live = IS_LIVE_URI(priv->uri);
 
   if (priv->tag_list)
     gst_tag_list_free(priv->tag_list);
@@ -211,7 +212,7 @@ engine_gst_set_uri (MeegoMediaPlayerControl *self,
 
   //URI is one of metadatas whose change should be notified.
   meego_media_player_control_emit_metadata_changed (self);
-  return parse_uri_async(self, priv->uri);
+  return TRUE;
 }
 
 static gboolean
@@ -944,6 +945,10 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
 
   old_pending = priv->pending_state;
   priv->pending_state = ((target_state == GST_STATE_PAUSED) ? PlayerStatePaused : PlayerStatePlaying);
+
+  if (!(ret = parse_uri_async(self, priv->uri))) {
+    goto OUT;
+  }
 
   if (!priv->uri_parsed) {
     goto uri_not_parsed;
@@ -3588,17 +3593,21 @@ static gboolean
 parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
 {
   GstElement *uridecodebin;
+  gboolean ret = FALSE;
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
   g_return_val_if_fail (uri, FALSE);
-  g_return_val_if_fail ((!priv->uri_parse_pipe), TRUE);
 
-  priv->is_live = IS_LIVE_URI(priv->uri);
+  if (priv->uri_parsed)
+    return TRUE;
+  if (priv->uri_parse_pipe)
+    return TRUE;
 
   //use uridecodebin to automatically detect streams.
   priv->uri_parse_pipe = uridecodebin = gst_element_factory_make ("uridecodebin", NULL);
   if (!uridecodebin) {
-    return FALSE;
+    UMMS_DEBUG ("Creating uridecodebin failed");
+    goto out;
   }
 
   g_signal_connect(uridecodebin, "notify::source", G_CALLBACK(_uri_parser_source_changed_cb), self);
@@ -3612,14 +3621,22 @@ parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
 
   if (priv->is_live) {
     if (gst_element_set_state (uridecodebin, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
-      TEARDOWN_ELEMENT (priv->uri_parse_pipe);
-      return FALSE;
+      goto out;
     }
   } else {
     if (gst_element_set_state (uridecodebin, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
-      TEARDOWN_ELEMENT (priv->uri_parse_pipe);
-      return FALSE;
+      goto out;
     }
   }
-  return TRUE;
+
+  ret = TRUE;
+out:
+  if (!ret) {
+    UMMS_DEBUG ("Failed");
+    if (priv->uri_parse_pipe) {
+      TEARDOWN_ELEMENT (priv->uri_parse_pipe);
+    }
+  }
+
+  return ret;
 }
