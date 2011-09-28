@@ -30,6 +30,7 @@
 static void meego_media_player_control_init (MeegoMediaPlayerControl* iface);
 static gpointer socket_listen_thread(DvbPlayer* dvd_player);
 static void socket_thread_join(MeegoMediaPlayerControl* dvd_player);
+static void send_socket_data(GstBuffer* buf, gpointer user_data);
 
 G_DEFINE_TYPE_WITH_CODE (DvbPlayer, dvb_player, G_TYPE_OBJECT,
     G_IMPLEMENT_INTERFACE (MEEGO_TYPE_MEDIA_PLAYER_CONTROL, meego_media_player_control_init))
@@ -95,7 +96,7 @@ struct _DvbPlayerPrivate {
   Display  *disp;
   GThread  *event_thread;
   gboolean event_thread_running;
-  
+
   //resource management
   UmmsResourceManager *res_mngr;//no need to unref, since it is global singleton.
   GList    *res_list;
@@ -156,37 +157,37 @@ enum {
 
 #define DVBT_PARAMS_NUM 8
 const gchar *dvbt_param_name[] = {
- "modulation",
- "trans-mode",
- "bandwidth",
- "frequency",
- "code-rate-lp",
- "code-rate-hp",
- "guard",
- "hierarchy"
+  "modulation",
+  "trans-mode",
+  "bandwidth",
+  "frequency",
+  "code-rate-lp",
+  "code-rate-hp",
+  "guard",
+  "hierarchy"
 };
 
 guint dvbt_param_val[DVBT_PARAMS_NUM] = {0, };
 
 /*
- * URI pattern: 
+ * URI pattern:
  * dvb://?program-number=x&type=x&modulation=x&trans-mod=x&bandwidth=x&frequency=x&code-rate-lp=x&
  * code-rate-hp=x&guard=x&hierarchy=x
  */
 enum dvb_type {
- DVB_T,
- DVB_C,
- DVB_S,
- DVB_TYPE_NUM
+  DVB_T,
+  DVB_C,
+  DVB_S,
+  DVB_TYPE_NUM
 };
 
 static gchar *dvb_type_name[] = {
- "DVB-T",
- "DVB-C",
- "DVB-S"
+  "DVB-T",
+  "DVB-C",
+  "DVB-S"
 };
 
-static gboolean 
+static gboolean
 set_properties(DvbPlayer *player, const gchar *location)
 {
   gint i;
@@ -202,7 +203,7 @@ set_properties(DvbPlayer *player, const gchar *location)
   g_return_val_if_fail (location, FALSE);
   UMMS_DEBUG ("location = '%s'", location);
 
-  if (!priv->source || !priv->tsdemux) 
+  if (!priv->source || !priv->tsdemux)
     goto out;
 
   if (!(part = g_strsplit (location, "?", 0))) {
@@ -255,7 +256,7 @@ out:
   if (invalid_params) {
     UMMS_DEBUG ("Incorrect params string");
   }
-    
+
   if (!ret) {
     UMMS_DEBUG ("failed");
   }
@@ -316,7 +317,7 @@ dvb_player_set_uri (MeegoMediaPlayerControl *self,
   priv->uri = g_strdup (uri);
 
 #ifdef DVB_SRC
-  return dvb_player_parse_uri (DVB_PLAYER (self), uri); 
+  return dvb_player_parse_uri (DVB_PLAYER (self), uri);
 #else
   return TRUE;
 #endif
@@ -342,13 +343,13 @@ get_video_rectangle (MeegoMediaPlayerControl *self, gint *ax, gint *ay, gint *w,
     return FALSE;
   }
 
-  (void) XTranslateCoordinates (priv->disp, priv->app_win_id, app_win_attr.root, 
+  (void) XTranslateCoordinates (priv->disp, priv->app_win_id, app_win_attr.root,
       -app_win_attr.border_width,
       -app_win_attr.border_width,
       &app_x, &app_y, &junkwin);
   UMMS_DEBUG ("app window app_absolute_x = %d, app_absolute_y = %d", app_x, app_y);
 
-  (void) XTranslateCoordinates (priv->disp, priv->video_win_id, video_win_attr.root, 
+  (void) XTranslateCoordinates (priv->disp, priv->video_win_id, video_win_attr.root,
       -video_win_attr.border_width,
       -video_win_attr.border_width,
       ax, ay, &junkwin);
@@ -371,7 +372,7 @@ cutout (MeegoMediaPlayerControl *self, gint x, gint y, gint w, gint h)
   gchar data[256];
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
 
-  property = XInternAtom (priv->disp,"_MUTTER_HINTS",0);
+  property = XInternAtom (priv->disp, "_MUTTER_HINTS", 0);
   if (!property) {
     UMMS_DEBUG ("XInternAtom failed");
     return FALSE;
@@ -388,7 +389,7 @@ cutout (MeegoMediaPlayerControl *self, gint x, gint y, gint w, gint h)
 }
 
 
-static Window 
+static Window
 get_app_win (MeegoMediaPlayerControl *self, Window win)
 {
 
@@ -400,7 +401,7 @@ get_app_win (MeegoMediaPlayerControl *self, Window win)
   Display *dpy = priv->disp;
 
   if (!XQueryTree(dpy, win, &root_win, &parent_win, &child_list,
-        &num_children)) {
+                  &num_children)) {
     UMMS_DEBUG("Can't query window(%lx)'s parent.", win);
     return 0;
   }
@@ -412,7 +413,7 @@ get_app_win (MeegoMediaPlayerControl *self, Window win)
   }
 
   if (!XQueryTree(dpy, parent_win, &root_win, &grandparent_win, &child_list,
-        &num_children)) {
+                  &num_children)) {
     UMMS_DEBUG("Can't query window(%lx)'s grandparent.", win);
     return 0;
   }
@@ -444,14 +445,14 @@ static void
 dvb_player_handle_xevents (MeegoMediaPlayerControl *control)
 {
   XEvent e;
-  gint x,y,w,h,rx,ry;
+  gint x, y, w, h, rx, ry;
   DvbPlayerPrivate *priv = GET_PRIVATE (control);
 
   g_return_if_fail (control);
 
   /* Handle Expose */
   while (XCheckWindowEvent (priv->disp,
-          priv->app_win_id, StructureNotifyMask, &e)) {
+         priv->app_win_id, StructureNotifyMask, &e)) {
     switch (e.type) {
       case ConfigureNotify:
         get_video_rectangle (control, &x, &y, &w, &h, &rx, &ry);
@@ -493,10 +494,10 @@ create_xevent_handle_thread (MeegoMediaPlayerControl *self)
 
   UMMS_DEBUG ("Begin");
   if (!priv->event_thread) {
-      /* Setup our event listening thread */
-      UMMS_DEBUG ("run xevent thread");
-      priv->event_thread_running = TRUE;
-      priv->event_thread = g_thread_create (
+    /* Setup our event listening thread */
+    UMMS_DEBUG ("run xevent thread");
+    priv->event_thread_running = TRUE;
+    priv->event_thread = g_thread_create (
           (GThreadFunc) dvb_player_event_thread, self, TRUE, NULL);
   }
   return TRUE;
@@ -509,9 +510,9 @@ destroy_xevent_handle_thread (MeegoMediaPlayerControl *self)
 
   UMMS_DEBUG ("Begin");
   if (priv->event_thread) {
-      priv->event_thread_running = FALSE;
-      g_thread_join (priv->event_thread);
-      priv->event_thread = NULL;
+    priv->event_thread_running = FALSE;
+    g_thread_join (priv->event_thread);
+    priv->event_thread = NULL;
   }
   UMMS_DEBUG ("End");
   return TRUE;
@@ -530,7 +531,7 @@ static gboolean setup_ismd_vbin(MeegoMediaPlayerControl *self, gchar *rect, gint
     ret = FALSE;
     goto OUT;
   }
-  //sinking it 
+  //sinking it
   gst_object_ref_sink (new_vsink);
   UMMS_DEBUG ("new ismd_vidrend_bin: %p, name: %s", new_vsink, GST_ELEMENT_NAME(new_vsink));
   gst_object_replace ((GstObject **)cur_vsink_p, (GstObject *)new_vsink);
@@ -564,7 +565,7 @@ static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTabl
     plane = g_value_get_int (val);
     UMMS_DEBUG ("gdl plane = '%d'", plane);
   }
-  
+
   return setup_ismd_vbin (self, rect, plane);
 }
 
@@ -596,7 +597,7 @@ static Window get_top_level_win (MeegoMediaPlayerControl *self, Window sub_win)
 
   cur_win = sub_win;
   while (!done) {
-    if (!XQueryTree(disp, cur_win, &root_win, &parent_win, &child_list,&num_children)) {
+    if (!XQueryTree(disp, cur_win, &root_win, &parent_win, &child_list, &num_children)) {
       UMMS_DEBUG ("Can't query window tree.");
       return 0;
     }
@@ -604,7 +605,7 @@ static Window get_top_level_win (MeegoMediaPlayerControl *self, Window sub_win)
     UMMS_DEBUG ("cur_win(%lx), parent_win(%lx)", cur_win, parent_win);
     if (child_list) XFree((char *)child_list);
 
-    if (!FROM_THE_SAME_PROC(cur_win, parent_win)){
+    if (!FROM_THE_SAME_PROC(cur_win, parent_win)) {
       UMMS_DEBUG ("Got the top-level window(%lx)", cur_win);
       top_win = cur_win;
       done = TRUE;
@@ -623,7 +624,7 @@ static gboolean setup_datacopy_target (MeegoMediaPlayerControl *self, GHashTable
   GstElement *shmvbin = NULL;
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
   GstElement **cur_vsink_p = &priv->vsink;
-  
+
   UMMS_DEBUG ("setting up datacopy target");
   shmvbin = gst_element_factory_make ("shmvidrendbin", NULL);
   if (!shmvbin) {
@@ -648,9 +649,9 @@ static gboolean setup_datacopy_target (MeegoMediaPlayerControl *self, GHashTable
 }
 
 static int x_print_error(
-    Display *dpy,
-    XErrorEvent *event,
-    FILE *fp)
+  Display *dpy,
+  XErrorEvent *event,
+  FILE *fp)
 {
   char buffer[BUFSIZ];
   char mesg[BUFSIZ];
@@ -686,15 +687,15 @@ static int x_print_error(
     }
 
   } else if ((event->error_code == BadWindow) ||
-      (event->error_code == BadPixmap) ||
-      (event->error_code == BadCursor) ||
-      (event->error_code == BadFont) ||
-      (event->error_code == BadDrawable) ||
-      (event->error_code == BadColor) ||
-      (event->error_code == BadGC) ||
-      (event->error_code == BadIDChoice) ||
-      (event->error_code == BadValue) ||
-      (event->error_code == BadAtom)) {
+             (event->error_code == BadPixmap) ||
+             (event->error_code == BadCursor) ||
+             (event->error_code == BadFont) ||
+             (event->error_code == BadDrawable) ||
+             (event->error_code == BadColor) ||
+             (event->error_code == BadGC) ||
+             (event->error_code == BadIDChoice) ||
+             (event->error_code == BadValue) ||
+             (event->error_code == BadAtom)) {
     if (event->error_code == BadValue)
       XGetErrorDatabaseText(dpy, mtype, "Value", "Value 0x%x",
           mesg, BUFSIZ);
@@ -721,14 +722,14 @@ static int x_print_error(
 
 //Mostly the same as default handler, but not exit process.
 static int xerror_handler (
-	Display *dpy,
-	XErrorEvent *event)
+  Display *dpy,
+  XErrorEvent *event)
 {
-    return x_print_error (dpy, event, stderr);
+  return x_print_error (dpy, event, stderr);
 }
 
 
-/* 
+/*
  * 1. Calculate top-level window according to video window.
  * 2. Cutout video window geometry according to its relative position to top-level window.
  * 3. Setup underlying ismd_vidrend_bin element.
@@ -781,7 +782,7 @@ static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable 
 
   //Monitor top-level window's structure change event.
   XSelectInput (priv->disp, priv->app_win_id,
-      StructureNotifyMask);
+                StructureNotifyMask);
   create_xevent_handle_thread (self);
 
   priv->target_type = XWindow;
@@ -830,7 +831,7 @@ dvb_player_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *par
 
   /*
    * Set target can only happen at Null or Stopped. Two reasons:
-   * 1. Gstreamer don't support switching sink on the fly. 
+   * 1. Gstreamer don't support switching sink on the fly.
    * 2. PlayerStateNull/PlayerStateStopped means all target related resources have been released.
    *    It is more convenience for resource management implementing.
    */
@@ -877,7 +878,7 @@ dvb_player_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *par
   return ret;
 }
 
-static gboolean 
+static gboolean
 prepare_plane (MeegoMediaPlayerControl *self)
 {
   GstElement *vsink_bin;
@@ -907,7 +908,7 @@ prepare_plane (MeegoMediaPlayerControl *self)
       g_object_set (G_OBJECT(vsink_bin), "gdl-plane", res->handle, NULL);
       UMMS_DEBUG ("Plane changed '%d'==>'%d'", plane,  res->handle);
     } else {
-      //Do nothing;  
+      //Do nothing;
     }
 
     priv->res_list = g_list_append (priv->res_list, res);
@@ -938,7 +939,7 @@ prepare_plane (MeegoMediaPlayerControl *self)
     priv->res_list = g_list_append (priv->res_list, res);                     \
     }while(0)
 
-  
+
 static gboolean
 request_resource (MeegoMediaPlayerControl *self)
 {
@@ -946,7 +947,7 @@ request_resource (MeegoMediaPlayerControl *self)
 
   if (priv->resource_prepared)
     return TRUE;
-  
+
   //FIXME:For now, just request HW clock and Tuner resources. How to know we need HW decoder?
   REQUEST_RES(self, ResourceTypeHwClock, INVALID_RES_HANDLE, "No HW clock resource");
   REQUEST_RES(self, ResourceTypeTuner, INVALID_RES_HANDLE, "No tuner resource");
@@ -973,7 +974,7 @@ release_resource (MeegoMediaPlayerControl *self)
 }
 
 //Unref returned clock after usage
-static GstClock * 
+static GstClock *
 get_hw_clock(void)
 {
   GstClock* clock = NULL;
@@ -985,7 +986,7 @@ get_hw_clock(void)
     return NULL;
 
   clock = gst_element_provide_clock (vsink);
-  
+
   if (clock)
     g_object_ref (clock);
 
@@ -998,15 +999,15 @@ get_hw_clock(void)
 static gboolean
 dvb_player_play (MeegoMediaPlayerControl *self)
 {
-    DvbPlayerPrivate *priv = GET_PRIVATE(self);
+  DvbPlayerPrivate *priv = GET_PRIVATE(self);
 
-    if (request_resource(self)) {
-      if (gst_element_set_state(priv->pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
-        UMMS_DEBUG ("Set pipeline to paused failed");
-        return FALSE;
-      }
+  if (request_resource(self)) {
+    if (gst_element_set_state(priv->pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
+      UMMS_DEBUG ("Set pipeline to paused failed");
+      return FALSE;
     }
-    return TRUE;
+  }
+  return TRUE;
 }
 
 static gboolean
@@ -1296,7 +1297,7 @@ dvb_player_get_player_state (MeegoMediaPlayerControl *self,
   return TRUE;
 }
 
-static gboolean 
+static gboolean
 dvb_player_get_current_audio (MeegoMediaPlayerControl *self, gint *cur_audio)
 {
   DvbPlayerPrivate *priv = NULL;
@@ -1316,7 +1317,7 @@ dvb_player_get_current_audio (MeegoMediaPlayerControl *self, gint *cur_audio)
   return TRUE;
 }
 
-static gboolean 
+static gboolean
 dvb_player_set_current_video (MeegoMediaPlayerControl *self, gint cur_video)
 {
   DvbPlayerPrivate *priv = NULL;
@@ -1355,7 +1356,7 @@ dvb_player_set_current_audio (MeegoMediaPlayerControl *self, gint cur_audio)
      we need to get the total number and check valid for cur_audio ourselves.*/
   g_object_get (G_OBJECT (pipeline), "n-audio", &n_audio, NULL);
   UMMS_DEBUG ("The total audio numeber is %d, we want to set to %d", n_audio, cur_audio);
-  if((cur_audio< 0) || (cur_audio >= n_audio)) {
+  if ((cur_audio < 0) || (cur_audio >= n_audio)) {
     UMMS_DEBUG ("The audio we want to set is %d, invalid one.", cur_audio);
     return FALSE;
   }
@@ -1461,7 +1462,7 @@ dvb_player_set_current_subtitle (MeegoMediaPlayerControl *self, gint cur_sub)
      we need to get the total number and check valid for cur_sub ourselves.*/
   g_object_get (G_OBJECT (pipeline), "n-text", &n_sub, NULL);
   UMMS_DEBUG ("The total subtitle numeber is %d, we want to set to %d", n_sub, cur_sub);
-  if((cur_sub < 0) || (cur_sub >= n_sub)) {
+  if ((cur_sub < 0) || (cur_sub >= n_sub)) {
     UMMS_DEBUG ("The subtitle we want to set is %d, invalid one.", cur_sub);
     return FALSE;
   }
@@ -1472,7 +1473,7 @@ dvb_player_set_current_subtitle (MeegoMediaPlayerControl *self, gint cur_sub)
 }
 
 static gboolean
-dvb_player_set_mute (MeegoMediaPlayerControl *self, gint mute) 
+dvb_player_set_mute (MeegoMediaPlayerControl *self, gint mute)
 {
   GstElement *pipeline;
   DvbPlayerPrivate *priv;
@@ -1492,7 +1493,7 @@ dvb_player_set_mute (MeegoMediaPlayerControl *self, gint mute)
 
 
 static gboolean
-dvb_player_is_mute (MeegoMediaPlayerControl *self, gint *mute) 
+dvb_player_is_mute (MeegoMediaPlayerControl *self, gint *mute)
 {
   GstElement *pipeline;
   DvbPlayerPrivate *priv;
@@ -1516,7 +1517,7 @@ dvb_player_is_mute (MeegoMediaPlayerControl *self, gint *mute)
 
 
 static gboolean
-dvb_player_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode) 
+dvb_player_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode)
 {
   GstElement *pipeline;
   DvbPlayerPrivate *priv;
@@ -1535,7 +1536,7 @@ dvb_player_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode)
   g_return_val_if_fail (GST_IS_ELEMENT (pipeline), FALSE);
 
   /* We assume that the video-sink is just ismd_vidrend_bin, because if not
-     the scale mode is not supported yet in gst sink bins. */ 
+     the scale mode is not supported yet in gst sink bins. */
   g_object_get (G_OBJECT(pipeline), "video-sink", &vsink_bin, NULL);
   if (vsink_bin) {
     pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (vsink_bin), "scale-mode");
@@ -1586,7 +1587,7 @@ dvb_player_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode)
   }
 
 OUT:
-  if(vsink_bin)
+  if (vsink_bin)
     gst_object_unref (vsink_bin);
   return ret;
 }
@@ -1604,7 +1605,7 @@ dvb_player_get_scale_mode (MeegoMediaPlayerControl *self, gint *scale_mode)
   GParamSpec *pspec = NULL;
   GEnumClass *eclass = NULL;
 
-  *scale_mode = ScaleModeInvalid; 
+  *scale_mode = ScaleModeInvalid;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
@@ -1614,7 +1615,7 @@ dvb_player_get_scale_mode (MeegoMediaPlayerControl *self, gint *scale_mode)
   g_return_val_if_fail (GST_IS_ELEMENT (pipeline), FALSE);
 
   /* We assume that the video-sink is just ismd_vidrend_bin, because if not
-     the scale mode is not supported yet in gst sink bins. */ 
+     the scale mode is not supported yet in gst sink bins. */
   g_object_get (G_OBJECT(pipeline), "video-sink", &vsink_bin, NULL);
   if (vsink_bin) {
     pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (vsink_bin), "scale-mode");
@@ -1660,7 +1661,7 @@ dvb_player_get_scale_mode (MeegoMediaPlayerControl *self, gint *scale_mode)
   }
 
 OUT:
-  if(vsink_bin)
+  if (vsink_bin)
     gst_object_unref (vsink_bin);
   return ret;
 }
@@ -1685,42 +1686,42 @@ dvb_player_get_video_codec (MeegoMediaPlayerControl *self, gint channel, gchar *
   pipeline = priv->pipeline;
 
   g_object_get (G_OBJECT (pipeline), "n-video", &tol_channel, NULL);
-  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d",
+              tol_channel, channel);
 
-  if(channel >= tol_channel || channel < 0) {
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipeline, "get-video-tags", channel, &tag_list);
-  if(tag_list == NULL) {
+  if (tag_list == NULL) {
     UMMS_DEBUG ("No tags about stream: %d", channel);
     return TRUE;
   }
 
-  if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
-    gchar *st = NULL;        
+  if (size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
+    gchar *st = NULL;
 
     for (i = 0; i < size; ++i) {
-      if(gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
+      if (gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
         UMMS_DEBUG("Channel: %d provide the video codec named: %s", channel, st);
-        if(codec_name) {
+        if (codec_name) {
           codec_name = g_strconcat(codec_name, st);
         } else {
           codec_name = g_strdup(st);
         }
-        g_free (st);  
+        g_free (st);
       }
     }
 
     UMMS_DEBUG("%s", codec_name);
   }
 
-  if(codec_name)
+  if (codec_name)
     *video_codec = codec_name;
 
-  if(tag_list)
+  if (tag_list)
     gst_tag_list_free (tag_list);
 
   return TRUE;
@@ -1747,42 +1748,42 @@ dvb_player_get_audio_codec (MeegoMediaPlayerControl *self, gint channel, gchar *
   pipeline = priv->pipeline;
 
   g_object_get (G_OBJECT (pipeline), "n-audio", &tol_channel, NULL);
-  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
-  
-  if(channel >= tol_channel || channel < 0) {
+  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d",
+              tol_channel, channel);
+
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipeline, "get-audio-tags", channel, &tag_list);
-  if(tag_list == NULL) {
+  if (tag_list == NULL) {
     UMMS_DEBUG ("No tags about stream: %d", channel);
     return TRUE;
   }
 
-  if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
-    gchar *st = NULL;        
+  if (size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
+    gchar *st = NULL;
 
     for (i = 0; i < size; ++i) {
-      if(gst_tag_list_get_string_index (tag_list, GST_TAG_AUDIO_CODEC, i, &st) && st) {
+      if (gst_tag_list_get_string_index (tag_list, GST_TAG_AUDIO_CODEC, i, &st) && st) {
         UMMS_DEBUG("Channel: %d provide the audio codec named: %s", channel, st);
-        if(codec_name) {
+        if (codec_name) {
           codec_name = g_strconcat(codec_name, st);
         } else {
           codec_name = g_strdup(st);
         }
-        g_free (st);  
+        g_free (st);
       }
     }
 
     UMMS_DEBUG("%s", codec_name);
   }
 
-  if(codec_name)
+  if (codec_name)
     *audio_codec = codec_name;
 
-  if(tag_list)
+  if (tag_list)
     gst_tag_list_free (tag_list);
 
   return TRUE;
@@ -1807,31 +1808,31 @@ dvb_player_get_video_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
   pipeline = priv->pipeline;
 
   g_object_get (G_OBJECT (pipeline), "n-video", &tol_channel, NULL);
-  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
-  
-  if(channel >= tol_channel || channel < 0) {
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d",
+              tol_channel, channel);
+
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipeline, "get-video-tags", channel, &tag_list);
-  if(tag_list == NULL) {
+  if (tag_list == NULL) {
     UMMS_DEBUG ("No tags about stream: %d", channel);
     return TRUE;
   }
 
-  if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
+  if (gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
     UMMS_DEBUG ("bit rate for channel: %d is %d", channel, bit_rate);
-    *video_rate = bit_rate/1000;
-  } else if(gst_tag_list_get_uint(tag_list, GST_TAG_NOMINAL_BITRATE, &bit_rate) && bit_rate > 0) {
+    *video_rate = bit_rate / 1000;
+  } else if (gst_tag_list_get_uint(tag_list, GST_TAG_NOMINAL_BITRATE, &bit_rate) && bit_rate > 0) {
     UMMS_DEBUG ("nominal bit rate for channel: %d is %d", channel, bit_rate);
-    *video_rate = bit_rate/1000;
+    *video_rate = bit_rate / 1000;
   } else {
     UMMS_DEBUG ("No bit rate for channel: %d", channel);
   }
 
-  if(tag_list)
+  if (tag_list)
     gst_tag_list_free (tag_list);
 
   return TRUE;
@@ -1847,7 +1848,7 @@ dvb_player_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
   GstTagList * tag_list = NULL;
   gint size = 0;
   guint32 bit_rate = 0;
-  
+
   *audio_rate = 0;
 
   g_return_val_if_fail (self != NULL, FALSE);
@@ -1857,31 +1858,31 @@ dvb_player_get_audio_bitrate (MeegoMediaPlayerControl *self, gint channel, gint 
   pipeline = priv->pipeline;
 
   g_object_get (G_OBJECT (pipeline), "n-audio", &tol_channel, NULL);
-  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
+  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d",
+              tol_channel, channel);
 
-  if(channel >= tol_channel || channel < 0) {
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipeline, "get-audio-tags", channel, &tag_list);
-  if(tag_list == NULL) {
+  if (tag_list == NULL) {
     UMMS_DEBUG ("No tags about stream: %d", channel);
     return TRUE;
   }
 
-  if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
+  if (gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
     UMMS_DEBUG ("bit rate for channel: %d is %d", channel, bit_rate);
-    *audio_rate = bit_rate/1000;
-  } else if(gst_tag_list_get_uint(tag_list, GST_TAG_NOMINAL_BITRATE, &bit_rate) && bit_rate > 0) {
+    *audio_rate = bit_rate / 1000;
+  } else if (gst_tag_list_get_uint(tag_list, GST_TAG_NOMINAL_BITRATE, &bit_rate) && bit_rate > 0) {
     UMMS_DEBUG ("nominal bit rate for channel: %d is %d", channel, bit_rate);
-    *audio_rate = bit_rate/1000;
+    *audio_rate = bit_rate / 1000;
   } else {
     UMMS_DEBUG ("No bit rate for channel: %d", channel);
   }
 
-  if(tag_list)
+  if (tag_list)
     gst_tag_list_free (tag_list);
 
   return TRUE;
@@ -1903,9 +1904,9 @@ dvb_player_get_encapsulation(MeegoMediaPlayerControl *self, gchar ** encapsulati
   priv = GET_PRIVATE (self);
   pipeline = priv->pipeline;
 
-  if(priv->tag_list) {
+  if (priv->tag_list) {
     gst_tag_list_get_string (priv->tag_list, GST_TAG_CONTAINER_FORMAT, &enca_name);
-    if(enca_name) {
+    if (enca_name) {
       UMMS_DEBUG("get the container name: %s", enca_name);
       *encapsulation = enca_name;
     } else {
@@ -1936,16 +1937,16 @@ dvb_player_get_audio_samplerate(MeegoMediaPlayerControl *self, gint channel, gin
   /* We get this kind of infomation from the caps of inputselector. */
 
   g_object_get (G_OBJECT (pipeline), "n-audio", &tol_channel, NULL);
-  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
+  UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d",
+              tol_channel, channel);
 
-  if(channel >= tol_channel || channel < 0) {
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipeline, "get-audio-pad", channel, &pad);
-  if(pad == NULL) {
+  if (pad == NULL) {
     UMMS_DEBUG ("No pad of stream: %d", channel);
     return FALSE;
   }
@@ -1957,7 +1958,7 @@ dvb_player_get_audio_samplerate(MeegoMediaPlayerControl *self, gint channel, gin
     gst_caps_unref (caps);
   }
 
-  if(pad)
+  if (pad)
     gst_object_unref (pad);
 
   return ret;
@@ -1965,8 +1966,8 @@ dvb_player_get_audio_samplerate(MeegoMediaPlayerControl *self, gint channel, gin
 
 
 static gboolean
-dvb_player_get_video_framerate(MeegoMediaPlayerControl *self, gint channel, 
-                               gint * frame_rate_num, gint * frame_rate_denom)
+dvb_player_get_video_framerate(MeegoMediaPlayerControl *self, gint channel,
+    gint * frame_rate_num, gint * frame_rate_denom)
 {
   DvbPlayerPrivate *priv = NULL;
   GstElement *pipeline = NULL;
@@ -1985,16 +1986,16 @@ dvb_player_get_video_framerate(MeegoMediaPlayerControl *self, gint channel,
   /* We get this kind of infomation from the caps of inputselector. */
 
   g_object_get (G_OBJECT (pipeline), "n-video", &tol_channel, NULL);
-  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d",
+              tol_channel, channel);
 
-  if(channel >= tol_channel || channel < 0) {
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipeline, "get-video-pad", channel, &pad);
-  if(pad == NULL) {
+  if (pad == NULL) {
     UMMS_DEBUG ("No pad of stream: %d", channel);
     return FALSE;
   }
@@ -2006,7 +2007,7 @@ dvb_player_get_video_framerate(MeegoMediaPlayerControl *self, gint channel,
     gst_caps_unref (caps);
   }
 
-  if(pad)
+  if (pad)
     gst_object_unref (pad);
 
   return ret;
@@ -2032,16 +2033,16 @@ dvb_player_get_video_resolution(MeegoMediaPlayerControl *self, gint channel, gin
   /* We get this kind of infomation from the caps of inputselector. */
 
   g_object_get (G_OBJECT (pipeline), "n-video", &tol_channel, NULL);
-  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d",
+              tol_channel, channel);
 
-  if(channel >= tol_channel || channel < 0) {
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipeline, "get-video-pad", channel, &pad);
-  if(pad == NULL) {
+  if (pad == NULL) {
     UMMS_DEBUG ("No pad of stream: %d", channel);
     return FALSE;
   }
@@ -2054,7 +2055,7 @@ dvb_player_get_video_resolution(MeegoMediaPlayerControl *self, gint channel, gin
     gst_caps_unref (caps);
   }
 
-  if(pad)
+  if (pad)
     gst_object_unref (pad);
 
   return TRUE;
@@ -2062,8 +2063,8 @@ dvb_player_get_video_resolution(MeegoMediaPlayerControl *self, gint channel, gin
 
 
 static gboolean
-dvb_player_get_video_aspect_ratio(MeegoMediaPlayerControl *self, gint channel, 
-                                  gint * ratio_num, gint * ratio_denom)
+dvb_player_get_video_aspect_ratio(MeegoMediaPlayerControl *self, gint channel,
+    gint * ratio_num, gint * ratio_denom)
 {
   DvbPlayerPrivate *priv = NULL;
   GstElement *pipeline = NULL;
@@ -2082,16 +2083,16 @@ dvb_player_get_video_aspect_ratio(MeegoMediaPlayerControl *self, gint channel,
   /* We get this kind of infomation from the caps of inputselector. */
 
   g_object_get (G_OBJECT (pipeline), "n-video", &tol_channel, NULL);
-  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d", 
-          tol_channel, channel);
+  UMMS_DEBUG ("the video number of the stream is %d, want to get: %d",
+              tol_channel, channel);
 
-  if(channel >= tol_channel || channel < 0) {
+  if (channel >= tol_channel || channel < 0) {
     UMMS_DEBUG ("Invalid Channel: %d", channel);
     return FALSE;
   }
 
   g_signal_emit_by_name (pipeline, "get-video-pad", channel, &pad);
-  if(pad == NULL) {
+  if (pad == NULL) {
     UMMS_DEBUG ("No pad of stream: %d", channel);
     return FALSE;
   }
@@ -2103,7 +2104,7 @@ dvb_player_get_video_aspect_ratio(MeegoMediaPlayerControl *self, gint channel,
     gst_caps_unref (caps);
   }
 
-  if(pad)
+  if (pad)
     gst_object_unref (pad);
 
   return ret;
@@ -2116,20 +2117,20 @@ dvb_player_get_protocol_name(MeegoMediaPlayerControl *self, gchar ** prot_name)
   DvbPlayerPrivate *priv = NULL;
   GstElement *pipeline = NULL;
   gchar * uri = NULL;
-  
+
   *prot_name = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   g_object_get (G_OBJECT (pipeline), "uri", &uri, NULL);
- 
-  if(!uri) {
+
+  if (!uri) {
     UMMS_DEBUG("Pipe %"GST_PTR_FORMAT" has no uri now!", pipeline);
     return FALSE;
   }
-  
-  if(!gst_uri_is_valid(uri)) {
+
+  if (!gst_uri_is_valid(uri)) {
     UMMS_DEBUG("uri: %s  is invalid", uri);
     g_free(uri);
     return FALSE;
@@ -2139,7 +2140,7 @@ dvb_player_get_protocol_name(MeegoMediaPlayerControl *self, gchar ** prot_name)
 
   *prot_name = gst_uri_get_protocol(uri);
   UMMS_DEBUG("Get the protocol name is %s", *prot_name);
-  
+
   g_free(uri);
   return TRUE;
 }
@@ -2151,7 +2152,7 @@ dvb_player_get_current_uri(MeegoMediaPlayerControl *self, gchar ** uri)
   DvbPlayerPrivate *priv = NULL;
   GstElement *pipeline = NULL;
   gchar * s_uri = NULL;
-  
+
   *uri = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
@@ -2160,13 +2161,13 @@ dvb_player_get_current_uri(MeegoMediaPlayerControl *self, gchar ** uri)
   priv = GET_PRIVATE (self);
   pipeline = priv->pipeline;
   g_object_get (G_OBJECT (pipeline), "uri", &s_uri, NULL);
- 
-  if(!s_uri) {
+
+  if (!s_uri) {
     UMMS_DEBUG("Pipe %"GST_PTR_FORMAT" has no uri now!", pipeline);
     return FALSE;
   }
 
-  if(!gst_uri_is_valid(s_uri)) {
+  if (!gst_uri_is_valid(s_uri)) {
     UMMS_DEBUG("uri: %s  is invalid", s_uri);
     g_free(s_uri);
     return FALSE;
@@ -2181,7 +2182,7 @@ dvb_player_get_title(MeegoMediaPlayerControl *self, gchar ** title)
 {
   DvbPlayerPrivate *priv = NULL;
   GstElement *pipeline = NULL;
-  
+
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
@@ -2197,7 +2198,7 @@ dvb_player_get_artist(MeegoMediaPlayerControl *self, gchar ** artist)
 {
   DvbPlayerPrivate *priv = NULL;
   GstElement *pipeline = NULL;
-  
+
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
@@ -2218,7 +2219,7 @@ static gboolean start_recording (MeegoMediaPlayerControl *self)
 
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
 
-  if ((priv->player_state != PlayerStatePlaying) || priv->tsfilesink || !priv->tsdemux){
+  if ((priv->player_state != PlayerStatePlaying) || priv->tsfilesink || !priv->tsdemux) {
     goto out;
   }
 
@@ -2231,18 +2232,18 @@ static gboolean start_recording (MeegoMediaPlayerControl *self)
 #define DEFAULT_FILE_LOCATION "/tmp/record.ts"
   if (priv->file_location)
     location = priv->file_location;
-  else 
+  else
     location = DEFAULT_FILE_LOCATION;
   g_object_set (filesink, "location", location, NULL);
 
   gst_bin_add (GST_BIN(priv->pipeline), filesink);
 
-  if (!(sinkpad = gst_element_get_static_pad (filesink, "sink"))){
+  if (!(sinkpad = gst_element_get_static_pad (filesink, "sink"))) {
     UMMS_DEBUG ("Getting program pad failed");
     goto failed;
   }
 
-  if (!(srcpad = gst_element_get_request_pad (priv->tsdemux, "program"))){
+  if (!(srcpad = gst_element_get_request_pad (priv->tsdemux, "program"))) {
     UMMS_DEBUG ("Getting program pad failed");
     goto failed;
   }
@@ -2265,22 +2266,22 @@ static gboolean start_recording (MeegoMediaPlayerControl *self)
   priv->request_pad = srcpad;
 
 out:
-    if (sinkpad)
-      gst_object_unref (sinkpad);
+  if (sinkpad)
+    gst_object_unref (sinkpad);
 
-    if (!ret) {
-      UMMS_DEBUG ("failed!!!");
-    }
+  if (!ret) {
+    UMMS_DEBUG ("failed!!!");
+  }
 
-    return ret;
+  return ret;
 
 failed:
-    gst_bin_remove (GST_BIN(priv->pipeline), filesink);
-    TEARDOWN_ELEMENT (filesink);
-    goto out;
+  gst_bin_remove (GST_BIN(priv->pipeline), filesink);
+  TEARDOWN_ELEMENT (filesink);
+  goto out;
 }
 
-static gboolean stop_recording (MeegoMediaPlayerControl *self) 
+static gboolean stop_recording (MeegoMediaPlayerControl *self)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
 
@@ -2303,11 +2304,11 @@ static gboolean stop_recording (MeegoMediaPlayerControl *self)
   return TRUE;
 }
 
-static gboolean 
+static gboolean
 dvb_player_record (MeegoMediaPlayerControl *self, gboolean to_record)
 {
   DvbPlayerPrivate *priv = NULL;
-  
+
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
@@ -2316,14 +2317,14 @@ dvb_player_record (MeegoMediaPlayerControl *self, gboolean to_record)
   if (to_record == priv->recording) {
     return TRUE;
   }
-  
-  if (to_record) 
+
+  if (to_record)
     return start_recording (self);
-  else 
+  else
     return stop_recording (self);
 }
 
-static gboolean 
+static gboolean
 dvb_player_get_pat (MeegoMediaPlayerControl *self, GPtrArray **pat)
 {
   GValueArray *pat_info = NULL;
@@ -2369,7 +2370,7 @@ dvb_player_get_pat (MeegoMediaPlayerControl *self, GPtrArray **pat)
     g_object_get (entry, "program-number", &program_num, "pid", &pid, NULL);
     UMMS_DEBUG ("program-number : %u, pid : %u", program_num, pid);
 
-    //fill the output 
+    //fill the output
     ht = g_hash_table_new (NULL, NULL);
     val_out = g_new0(GValue, 1);
     g_value_init (val_out, G_TYPE_UINT);
@@ -2391,7 +2392,7 @@ out:
     g_ptr_array_free (pat_out, FALSE);
   }
 
-  if (pat_info) 
+  if (pat_info)
     g_value_array_free (pat_info);
 
   return ret;
@@ -2409,8 +2410,8 @@ out:
  *    }
  * }
  *
- */ 
-static gboolean 
+ */
+static gboolean
 dvb_player_get_pmt (MeegoMediaPlayerControl *self, guint *program_num, guint *pcr_pid, GPtrArray **stream_info)
 {
   DvbPlayerPrivate *priv;
@@ -2471,7 +2472,7 @@ dvb_player_get_pmt (MeegoMediaPlayerControl *self, guint *program_num, guint *pc
 
   ret =  TRUE;
 
-out: 
+out:
   if (pmt_info)
     g_object_unref (pmt_info);
   if (stream_info_array)
@@ -2479,11 +2480,11 @@ out:
   return ret;
 }
 
-static gboolean 
+static gboolean
 dvb_player_get_associated_data_channel (MeegoMediaPlayerControl *self, gchar **ip, gint *port)
 {
   DvbPlayerPrivate *priv = NULL;
-  
+
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
   g_return_val_if_fail (ip, FALSE);
@@ -2491,8 +2492,13 @@ dvb_player_get_associated_data_channel (MeegoMediaPlayerControl *self, gchar **i
 
   priv = GET_PRIVATE (self);
 
-  //TODO: return the ip and port
+  if (priv->ip) {
+    *ip = g_strdup(priv->ip);
+  } else {
+    *ip = NULL;
+  }
 
+  *port = priv->port;
   return TRUE;
 }
 
@@ -2508,10 +2514,8 @@ GstFlowReturn new_buffer_cb (GstAppSink *sink, gpointer user_data)
     goto out;
   }
 
-  //TODO: do something with the buf
-  {
-
-  }
+  //Send the buf data from socket.
+  send_socket_data(buf, user_data);
 
 out:
   if (buf)
@@ -2519,7 +2523,7 @@ out:
   return ret;
 }
 
-static gboolean 
+static gboolean
 connect_appsink (DvbPlayer *self)
 {
   GstElement *appsink;
@@ -2528,7 +2532,7 @@ connect_appsink (DvbPlayer *self)
   gboolean ret = FALSE;
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
 
-  if (!priv->tsdemux){
+  if (!priv->tsdemux) {
     goto out;
   }
 
@@ -2544,13 +2548,13 @@ connect_appsink (DvbPlayer *self)
 
   gst_bin_add (GST_BIN(priv->pipeline), appsink);
 
-  if (!(sinkpad = gst_element_get_static_pad (appsink, "sink"))){
+  if (!(sinkpad = gst_element_get_static_pad (appsink, "sink"))) {
     UMMS_DEBUG ("Getting program pad failed");
     goto failed;
   }
 
   g_object_set (priv->tsdemux, "pids", INIT_PIDS, NULL);
-  if (!(srcpad = gst_element_get_request_pad (priv->tsdemux, "rawts"))){
+  if (!(srcpad = gst_element_get_request_pad (priv->tsdemux, "rawts"))) {
     UMMS_DEBUG ("Getting rawts pad failed");
     goto failed;
   }
@@ -2666,7 +2670,7 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
 //  meego_media_player_control_implement_set_scale_mode (klass,
 //      dvb_player_set_scale_mode);
 //  meego_media_player_control_implement_get_scale_mode (klass,
-//      dvb_player_get_scale_mode);      
+//      dvb_player_get_scale_mode);
 //  meego_media_player_control_implement_get_video_codec (klass,
 //      dvb_player_get_video_codec);
 //  meego_media_player_control_implement_get_audio_codec (klass,
@@ -2773,7 +2777,7 @@ dvb_player_dispose (GObject *object)
     priv->disp = NULL;
   }
 
-  if(priv->tag_list) 
+  if (priv->tag_list)
     gst_tag_list_free(priv->tag_list);
   priv->tag_list = NULL;
 
@@ -2829,7 +2833,7 @@ bus_message_state_change_cb (GstBus     *bus,
   old_player_state = priv->player_state;
   if (new_state == GST_STATE_PAUSED) {
     priv->player_state = PlayerStatePaused;
-  } else if(new_state == GST_STATE_PLAYING) {
+  } else if (new_state == GST_STATE_PLAYING) {
     priv->player_state = PlayerStatePlaying;
   } else {
     if (new_state < old_state)//down state change to GST_STATE_READY
@@ -2860,38 +2864,38 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, DvbPlayer  *self)
   gboolean metadata_changed = FALSE;
 
   src = GST_MESSAGE_SRC (message);
- 
-  if(message->type != GST_MESSAGE_TAG) {
+
+  if (message->type != GST_MESSAGE_TAG) {
     UMMS_DEBUG("not a tag message in a registered tag signal, strange");
     return;
   }
 
   gst_message_parse_tag_full (message, &src_pad, &tag_list);
-  if(src_pad) {
+  if (src_pad) {
     pad_name = g_strdup (GST_PAD_NAME (src_pad));
     UMMS_DEBUG("The pad name is %s", pad_name);
   }
 
-  if(message->src) {
+  if (message->src) {
     element_name = g_strdup (GST_ELEMENT_NAME (message->src));
     UMMS_DEBUG("The element name is %s", element_name);
   }
 
-  priv->tag_list = 
-      gst_tag_list_merge(priv->tag_list, tag_list, GST_TAG_MERGE_REPLACE);
+  priv->tag_list =
+    gst_tag_list_merge(priv->tag_list, tag_list, GST_TAG_MERGE_REPLACE);
 
   //cache the title
-  if(gst_tag_list_get_string_index (tag_list, GST_TAG_TITLE, 0, &title)) {
+  if (gst_tag_list_get_string_index (tag_list, GST_TAG_TITLE, 0, &title)) {
     UMMS_DEBUG("Element: %s, provide the title: %s", element_name, title);
-    RESET_STR(priv->title); 
+    RESET_STR(priv->title);
     priv->title = title;
     metadata_changed = TRUE;
   }
 
   //cache the artist
-  if(gst_tag_list_get_string_index (tag_list, GST_TAG_ARTIST, 0, &artist)) {
+  if (gst_tag_list_get_string_index (tag_list, GST_TAG_ARTIST, 0, &artist)) {
     UMMS_DEBUG("Element: %s, provide the artist: %s", element_name, artist);
-    RESET_STR(priv->artist); 
+    RESET_STR(priv->artist);
     priv->artist = artist;
     metadata_changed = TRUE;
   }
@@ -2906,22 +2910,22 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, DvbPlayer  *self)
   gchar * video_codec = NULL;
   gchar * audio_codec = NULL;
   int out_of_channel = 0;
-  
-  /* This logic may be used when the inputselector is not included. 
+
+  /* This logic may be used when the inputselector is not included.
      Now we just get the video and audio codec from inputselector's pad. *
 
   /* We are now interest in the codec, container format and bit rate. */
-  if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
+  if (size = gst_tag_list_get_tag_size(tag_list, GST_TAG_VIDEO_CODEC) > 0) {
     video_codec = g_strdup_printf("%s-->%s Video Codec: ",
-            element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+                  element_name ? element_name : "NULL", pad_name ? pad_name : "NULL");
 
     for (i = 0; i < size; ++i) {
-      gchar *st = NULL;        
+      gchar *st = NULL;
 
-      if(gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
+      if (gst_tag_list_get_string_index (tag_list, GST_TAG_VIDEO_CODEC, i, &st) && st) {
         UMMS_DEBUG("Element: %s, Pad: %s provide the video codec named: %s", element_name, pad_name, st);
         video_codec = g_strconcat(video_codec, st);
-        g_free (st);  
+        g_free (st);
       }
     }
 
@@ -2930,17 +2934,17 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, DvbPlayer  *self)
     UMMS_DEBUG("%s", video_codec);
   }
 
-  if(size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
+  if (size = gst_tag_list_get_tag_size(tag_list, GST_TAG_AUDIO_CODEC) > 0) {
     audio_codec = g_strdup_printf("%s-->%s Audio Codec: ",
-            element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+                  element_name ? element_name : "NULL", pad_name ? pad_name : "NULL");
 
     for (i = 0; i < size; ++i) {
-      gchar *st = NULL;        
+      gchar *st = NULL;
 
-      if(gst_tag_list_get_string_index (tag_list, GST_TAG_AUDIO_CODEC, i, &st) && st) {
+      if (gst_tag_list_get_string_index (tag_list, GST_TAG_AUDIO_CODEC, i, &st) && st) {
         UMMS_DEBUG("Element: %s, Pad: %s provide the audio codec named: %s", element_name, pad_name, st);
         audio_codec = g_strconcat(audio_codec, st);
-        g_free (st);  
+        g_free (st);
       }
     }
 
@@ -2948,10 +2952,10 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, DvbPlayer  *self)
 
     /* need to consider the multi-channel audio case. The demux and decoder
      * will both send this message. We prefer codec info from decoder now. Need to improve */
-    if(element_name && (g_strstr_len(element_name, strlen(element_name), "demux") ||
-                g_strstr_len(element_name, strlen(element_name), "Demux") ||
-                g_strstr_len(element_name, strlen(element_name), "DEMUX"))) {
-      if(priv->audio_codec_used < DVB_PLAYER_MAX_AUDIO_STREAM) {
+    if (element_name && (g_strstr_len(element_name, strlen(element_name), "demux") ||
+         g_strstr_len(element_name, strlen(element_name), "Demux") ||
+         g_strstr_len(element_name, strlen(element_name), "DEMUX"))) {
+      if (priv->audio_codec_used < DVB_PLAYER_MAX_AUDIO_STREAM) {
         g_strlcpy(priv->audio_codec[priv->audio_codec_used], audio_codec, DVB_PLAYER_MAX_AUDIOCODEC_SIZE);
         priv->audio_codec_used++;
       } else {
@@ -2963,26 +2967,26 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, DvbPlayer  *self)
     }
   }
 
-  if(gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
+  if (gst_tag_list_get_uint(tag_list, GST_TAG_BITRATE, &bit_rate) && bit_rate > 0) {
     /* Again, the bitrate info may come from demux and audio decoder, we use demux now. */
     UMMS_DEBUG("Element: %s, Pad: %s provide the bitrate: %d", element_name, pad_name, bit_rate);
-    if(element_name && (g_strstr_len(element_name, strlen(element_name), "demux") ||
-                g_strstr_len(element_name, strlen(element_name), "Demux") ||
-                g_strstr_len(element_name, strlen(element_name), "DEMUX"))) {
+    if (element_name && (g_strstr_len(element_name, strlen(element_name), "demux") ||
+         g_strstr_len(element_name, strlen(element_name), "Demux") ||
+         g_strstr_len(element_name, strlen(element_name), "DEMUX"))) {
       gchar * codec = NULL;
       int have_found = 0;
 
       /* first we check whether it is the bitrate of video. */
-      if(video_codec) { /* the bitrate sent with the video codec, easy one. */
+      if (video_codec) { /* the bitrate sent with the video codec, easy one. */
         have_found = 1;
         priv->video_bitrate = bit_rate;
         UMMS_DEBUG("we set the bitrate: %u for video", bit_rate);
       }
 
-      if(!have_found) { /* try to compare the element and pad name. */
+      if (!have_found) { /* try to compare the element and pad name. */
         codec = g_strdup_printf("%s-->%s Video Codec: ",
-                element_name? element_name: "NULL", pad_name? pad_name: "NULL");
-        if(g_strncasecmp(priv->video_codec, codec, strlen(codec))) {
+                element_name ? element_name : "NULL", pad_name ? pad_name : "NULL");
+        if (g_strncasecmp(priv->video_codec, codec, strlen(codec))) {
           have_found = 1;
           priv->video_bitrate = bit_rate;
           UMMS_DEBUG("we set the bitrate: %u for video", bit_rate);
@@ -2991,30 +2995,30 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, DvbPlayer  *self)
         g_free(codec);
       }
 
-      /* find it in the audio codec stream. */ 
-      if(!have_found) {
-        if(audio_codec) {
+      /* find it in the audio codec stream. */
+      if (!have_found) {
+        if (audio_codec) {
           /* the bitrate sent with the audio codec, easy one. */
           have_found = 1;
-          if(!out_of_channel) {
+          if (!out_of_channel) {
             priv->audio_bitrate[priv->audio_codec_used -1] = bit_rate;
-            UMMS_DEBUG("we set the bitrate: %u for audio stream: %d", bit_rate, priv->audio_codec_used -1);
+            UMMS_DEBUG("we set the bitrate: %u for audio stream: %d", bit_rate, priv->audio_codec_used - 1);
           } else {
             UMMS_DEBUG("audio bitrate need to discard because too many steams");
           }
         }
 
-        if(!have_found) {  /* last try, use audio element and pad to index. */
+        if (!have_found) { /* last try, use audio element and pad to index. */
           codec = g_strdup_printf("%s-->%s Audio Codec: ",
-                  element_name? element_name: "NULL", pad_name? pad_name: "NULL");
+                  element_name ? element_name : "NULL", pad_name ? pad_name : "NULL");
 
-          for(i=0; i<priv->audio_codec_used; i++) {
-            if(g_strncasecmp(priv->audio_codec[i], codec, strlen(codec)))
+          for (i = 0; i < priv->audio_codec_used; i++) {
+            if (g_strncasecmp(priv->audio_codec[i], codec, strlen(codec)))
               break;
           }
 
           have_found = 1; /* if not find, we use audio channel as defaule, so always find. */
-          if(i < priv->audio_codec_used) {
+          if (i < priv->audio_codec_used) {
             priv->audio_bitrate[i] = bit_rate;
             UMMS_DEBUG("we set the bitrate: %u for audio stream: %d", bit_rate, i);
           } else {
@@ -3028,18 +3032,18 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, DvbPlayer  *self)
     }
   }
 
-  if(video_codec)
+  if (video_codec)
     g_free(video_codec);
-  if(audio_codec)
+  if (audio_codec)
     g_free(audio_codec);
 #endif
 
-  if(src_pad)
+  if (src_pad)
     g_object_unref(src_pad);
   gst_tag_list_free (tag_list);
-  if(pad_name)
+  if (pad_name)
     g_free(pad_name);
-  if(element_name)
+  if (element_name)
     g_free(element_name);
 
 }
@@ -3186,7 +3190,7 @@ dvb_player_init (DvbPlayer *self)
 
   gst_object_unref (GST_OBJECT (bus));
 
-/*frontend pipeline: dvbsrc --> queue --> ismd_clock_recovery_provider --> flutsdemux*/
+  /*frontend pipeline: dvbsrc --> queue --> ismd_clock_recovery_provider --> flutsdemux*/
 #ifdef DVB_SRC
   priv->source = source = gst_element_factory_make ("dvbsrc", "dvb-src");
   if (!source) {
@@ -3211,7 +3215,7 @@ dvb_player_init (DvbPlayer *self)
   if (clock) {
     gst_pipeline_use_clock (GST_PIPELINE_CAST(pipeline), clock);
     g_object_unref (clock);
-  } else { 
+  } else {
     UMMS_DEBUG ("Can't get HW clock");
     meego_media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, "Can't get HW clock for live source");
     goto failed;
@@ -3219,7 +3223,7 @@ dvb_player_init (DvbPlayer *self)
 #endif
   front_queue   = gst_element_factory_make ("queue", "front-queue");
   priv->tsdemux = tsdemux = gst_element_factory_make ("flutsdemux", NULL);
-  
+
   /*create default audio sink elements*/
   //FIXME: Consider the subtitle sink
   priv->asink = asink = gst_element_factory_make ("ismd_audio_sink", NULL);
@@ -3243,7 +3247,7 @@ dvb_player_init (DvbPlayer *self)
 
 
   /* Add and link frontend elements*/
-  gst_bin_add_many (GST_BIN (pipeline),source, front_queue, tsdemux, NULL);
+  gst_bin_add_many (GST_BIN (pipeline), source, front_queue, tsdemux, NULL);
 #ifdef DVB_SRC
   gst_bin_add (GST_BIN (pipeline), clock_provider);
   gst_element_link_many (source, front_queue, clock_provider, tsdemux, NULL);
@@ -3251,8 +3255,6 @@ dvb_player_init (DvbPlayer *self)
   gst_element_link_many (source, front_queue, tsdemux, NULL);
 #endif
 
-  //TODO:Create socket thread
-  
   connect_appsink (self);
 
   priv->player_state = PlayerStateNull;
@@ -3280,6 +3282,7 @@ dvb_player_init (DvbPlayer *self)
   priv->target_initialized = TRUE;
 
 
+  //Create socket thread
   priv->socks_lock = g_mutex_new ();
   priv->sock_exit_flag = 0;
   priv->port = SOCK_SOCKET_DEFAULT_PORT;
@@ -3287,7 +3290,7 @@ dvb_player_init (DvbPlayer *self)
   priv->listen_thread = g_thread_create ((GThreadFunc) socket_listen_thread, self, TRUE, NULL);
   //  priv->data_probe_id = gst_pad_add_data_probe (sink_pad,
   //      G_CALLBACK (_umms_send_socket_data), (gpointer) self);
-    //*/
+  //*/
   return;
 
 failed:
@@ -3349,15 +3352,16 @@ static GstStaticCaps hw_mpeg2_static_caps = GST_STATIC_CAPS (HW_MPEG2_CAPS);
 static GstStaticCaps hw_mpeg4_static_caps = GST_STATIC_CAPS (HW_MPEG4_CAPS);
 static GstStaticCaps hw_vc1_static_caps = GST_STATIC_CAPS (HW_VC1_CAPS);
 
-static GstStaticCaps *hw_static_caps[HW_FORMAT_NUM] = {&hw_h264_static_caps, 
-                                        &hw_mpeg2_static_caps, 
-                                        &hw_mpeg4_static_caps, 
-                                        &hw_vc1_static_caps};
+static GstStaticCaps *hw_static_caps[HW_FORMAT_NUM] = {&hw_h264_static_caps,
+    &hw_mpeg2_static_caps,
+    &hw_mpeg4_static_caps,
+    &hw_vc1_static_caps
+                                                      };
 
 static void
 pad_added_cb (GstElement *element,
-		GstPad     *pad,
-		gpointer    data)
+              GstPad     *pad,
+              gpointer    data)
 {
   GstPad *decoded_pad = NULL;
   GstPad *sinkpad = NULL;
@@ -3371,7 +3375,7 @@ pad_added_cb (GstElement *element,
     g_print ("pad(%s) added\n", GST_PAD_NAME(pad));
   } else if (!g_strcmp0 (name, "program")) {
     g_print ("pad(%s) added\n", GST_PAD_NAME(pad));
-  }else {
+  } else {
     UMMS_DEBUG ("autoplug elementary stream pad: %s", name);
     if (!priv->mq) {
       priv->mq = gst_element_factory_make ("multiqueue", NULL);
@@ -3394,7 +3398,7 @@ pad_added_cb (GstElement *element,
       //autoplug_pad (player, srcpad, CHAIN_TYPE_AUDIO);
       link_sink (player, srcpad);
     } else {
-      //FIXME: do we need to handle flustsdemux's subpicture/private pad? 
+      //FIXME: do we need to handle flustsdemux's subpicture/private pad?
     }
   }
 
@@ -3422,7 +3426,7 @@ no_more_pads_cb (GstElement *element, gpointer data)
   return;
 }
 
-/* 
+/*
  * autoplug the pad with a decoder and proceed to link a sink
  */
 static gboolean autoplug_pad(DvbPlayer *player, GstPad *pad, gint chain_type)
@@ -3438,7 +3442,7 @@ static gboolean autoplug_pad(DvbPlayer *player, GstPad *pad, gint chain_type)
   UMMS_DEBUG ("autoplugging pad: %s, caps: ", GST_PAD_NAME (pad));
   caps = gst_pad_get_caps (pad);
 
-  if (!caps || gst_caps_is_empty (caps)){
+  if (!caps || gst_caps_is_empty (caps)) {
     UMMS_DEBUG ("Unknow caps");
     ret = FALSE;
     goto out;
@@ -3452,18 +3456,18 @@ static gboolean autoplug_pad(DvbPlayer *player, GstPad *pad, gint chain_type)
   update_elements_list (player);
 
   compatible_elements =
-      gst_element_factory_list_filter (priv->elements, caps, GST_PAD_SINK,
-      FALSE);
+    gst_element_factory_list_filter (priv->elements, caps, GST_PAD_SINK,
+        FALSE);
   if (!compatible_elements) {
     UMMS_DEBUG ("no compatible element available for this pad:%s, caps : %"GST_PTR_FORMAT, GST_PAD_NAME(pad), caps);
     ret = FALSE;
     goto out;
   }
-  
+
   gst_plugin_feature_list_debug (compatible_elements);
 
   //make and connect element
-  for (walk = compatible_elements; walk; walk= walk->next) {
+  for (walk = compatible_elements; walk; walk = walk->next) {
     GstElementFactory *factory;
     GstElement *element;
     GstPad *sinkpad;
@@ -3472,7 +3476,7 @@ static gboolean autoplug_pad(DvbPlayer *player, GstPad *pad, gint chain_type)
 
     factory = GST_ELEMENT_FACTORY_CAST (walk->data);
 
-    /* 
+    /*
      * if it's a sink, we treat this pad as decoded pad,
      * and try to connnect this pad with our custom sink other than the auto-detected one
      */
@@ -3497,21 +3501,21 @@ static gboolean autoplug_pad(DvbPlayer *player, GstPad *pad, gint chain_type)
     /*it is not sink, autoplug the dec element*/
     if ((element = gst_element_factory_create (factory, NULL)) == NULL) {
       UMMS_DEBUG ("Could not create an element from %s",
-          gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (factory)));
+                  gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (factory)));
       continue;
     }
 
     if ((gst_element_set_state (element,
-                GST_STATE_READY)) == GST_STATE_CHANGE_FAILURE) {
+         GST_STATE_READY)) == GST_STATE_CHANGE_FAILURE) {
       UMMS_DEBUG ("Couldn't set %s to READY",
-          GST_ELEMENT_NAME (element));
+                  GST_ELEMENT_NAME (element));
       gst_object_unref (element);
       continue;
     }
 
     if (!(sinkpad = get_sink_pad (element))) {
       UMMS_DEBUG ("Element %s doesn't have a sink pad",
-          GST_ELEMENT_NAME (element));
+                  GST_ELEMENT_NAME (element));
       gst_element_set_state (element, GST_STATE_NULL);
       gst_object_unref (element);
       continue;
@@ -3519,7 +3523,7 @@ static gboolean autoplug_pad(DvbPlayer *player, GstPad *pad, gint chain_type)
 
     if (!(gst_bin_add (GST_BIN (priv->pipeline), element))) {
       UMMS_DEBUG ("Couldn't add %s to the bin",
-          GST_ELEMENT_NAME (element));
+                  GST_ELEMENT_NAME (element));
       gst_object_unref (sinkpad);
       gst_element_set_state (element, GST_STATE_NULL);
       gst_object_unref (element);
@@ -3528,7 +3532,7 @@ static gboolean autoplug_pad(DvbPlayer *player, GstPad *pad, gint chain_type)
 
     if ((gst_pad_link (pad, sinkpad)) != GST_PAD_LINK_OK) {
       UMMS_DEBUG ("Link failed on pad %s:%s",
-          GST_DEBUG_PAD_NAME (sinkpad));
+                  GST_DEBUG_PAD_NAME (sinkpad));
       gst_element_set_state (element, GST_STATE_NULL);
       gst_object_unref (sinkpad);
       gst_bin_remove (GST_BIN (priv->pipeline), element);
@@ -3544,10 +3548,10 @@ static gboolean autoplug_pad(DvbPlayer *player, GstPad *pad, gint chain_type)
 
     /* Bring the element to the state of the parent */
     if ((gst_element_set_state (element,
-                GST_STATE_PAUSED)) == GST_STATE_CHANGE_FAILURE) {
+         GST_STATE_PAUSED)) == GST_STATE_CHANGE_FAILURE) {
 
       UMMS_DEBUG ("Couldn't set %s to PAUSED",
-          GST_ELEMENT_NAME (element));
+                  GST_ELEMENT_NAME (element));
 
       /* Remove this element and the downstream one we just added.*/
       gst_element_set_state (element, GST_STATE_NULL);
@@ -3573,7 +3577,7 @@ out:
 
 /*
  * link the pad to multiqueue and return corresponding src pad.
- * unref the returned pad after usage. 
+ * unref the returned pad after usage.
  */
 static GstPad *link_multiqueue (DvbPlayer *player, GstPad *pad)
 {
@@ -3600,9 +3604,9 @@ static GstPad *link_multiqueue (DvbPlayer *player, GstPad *pad)
   it = gst_pad_iterate_internal_links (sinkpad);
 
   if (!it || (gst_iterator_next (it, (gpointer) & srcpad)) != GST_ITERATOR_OK
-      || srcpad == NULL) {
+       || srcpad == NULL) {
     UMMS_DEBUG ("Couldn't get corresponding srcpad from multiqueue for sinkpad %" GST_PTR_FORMAT,
-        sinkpad);
+                sinkpad);
     goto error;
   }
 
@@ -3628,19 +3632,19 @@ update_elements_list (DvbPlayer *player)
   DvbPlayerPrivate *priv = GET_PRIVATE (player);
 
   if (!priv->elements ||
-      priv->elements_cookie !=
-      gst_default_registry_get_feature_list_cookie ()) {
+       priv->elements_cookie !=
+       gst_default_registry_get_feature_list_cookie ()) {
     if (priv->elements)
       gst_plugin_feature_list_free (priv->elements);
     res =
-        gst_element_factory_list_get_elements
-        (GST_ELEMENT_FACTORY_TYPE_DECODABLE, GST_RANK_MARGINAL);
+      gst_element_factory_list_get_elements
+      (GST_ELEMENT_FACTORY_TYPE_DECODABLE, GST_RANK_MARGINAL);
     sinks =
-        gst_element_factory_list_get_elements
-        (GST_ELEMENT_FACTORY_TYPE_AUDIOVIDEO_SINKS, GST_RANK_MARGINAL);
+      gst_element_factory_list_get_elements
+      (GST_ELEMENT_FACTORY_TYPE_AUDIOVIDEO_SINKS, GST_RANK_MARGINAL);
     priv->elements = g_list_concat (res, sinks);
     priv->elements =
-        g_list_sort (priv->elements, gst_plugin_feature_rank_compare_func);
+      g_list_sort (priv->elements, gst_plugin_feature_rank_compare_func);
     priv->elements_cookie = gst_default_registry_get_feature_list_cookie ();
   }
 }
@@ -3669,10 +3673,10 @@ autoplug_dec_element (DvbPlayer *player, GstElement * element)
   gboolean ret;
 
   UMMS_DEBUG ("Attempting to connect element %s further",
-      GST_ELEMENT_NAME (element));
+              GST_ELEMENT_NAME (element));
 
   for (pads = GST_ELEMENT_GET_CLASS (element)->padtemplates; pads;
-      pads = g_list_next (pads)) {
+       pads = g_list_next (pads)) {
     GstPadTemplate *templ = GST_PAD_TEMPLATE (pads->data);
     const gchar *templ_name;
 
@@ -3685,8 +3689,7 @@ autoplug_dec_element (DvbPlayer *player, GstElement * element)
 
     /* We only care about always pad */
     switch (GST_PAD_TEMPLATE_PRESENCE (templ)) {
-      case GST_PAD_ALWAYS:
-      {
+      case GST_PAD_ALWAYS: {
         /* get the pad that we need to autoplug */
         GstPad *pad = gst_element_get_static_pad (element, templ_name);
         if (!pad) {
@@ -3697,9 +3700,9 @@ autoplug_dec_element (DvbPlayer *player, GstElement * element)
         }
 
         UMMS_DEBUG ("got the pad for always template %s",
-            templ_name);
-        /* 
-         * here is the pad, we need link it to sink. 
+                    templ_name);
+        /*
+         * here is the pad, we need link it to sink.
          * note that we just autoplug the first found always pad unless autoplugging failed.
          */
         ret = link_sink (player, pad);
@@ -3711,8 +3714,7 @@ autoplug_dec_element (DvbPlayer *player, GstElement * element)
         break;
       }
       case GST_PAD_SOMETIMES:
-      case GST_PAD_REQUEST:
-      {
+      case GST_PAD_REQUEST: {
         UMMS_DEBUG ("ignoring sometimes and request padtemplate %s", templ_name);
         break;
       }
@@ -3724,7 +3726,7 @@ autoplug_dec_element (DvbPlayer *player, GstElement * element)
 
 static gboolean link_sink (DvbPlayer *player, GstPad *pad)
 {
-  DvbPlayerPrivate *priv; 
+  DvbPlayerPrivate *priv;
   GstStructure *s;
   const gchar *name;
   GstPad *sinkpad = NULL;
@@ -3751,7 +3753,7 @@ static gboolean link_sink (DvbPlayer *player, GstPad *pad)
       sink = priv->vsink;
       g_print ("Found video decoded pad: %p, linking it\n", pad);
 
-    } else if(g_str_has_prefix (name, "audio")) {
+    } else if (g_str_has_prefix (name, "audio")) {
       g_print ("Found audio decoded pad: %p, linking it\n", pad);
       sink = priv->asink;
 
@@ -3791,13 +3793,13 @@ static gboolean link_sink (DvbPlayer *player, GstPad *pad)
       gst_element_set_state (queue, GST_STATE_PAUSED);
       gst_element_set_state (sink, GST_STATE_PAUSED);
       g_print ("pad: %p linked\n", pad);
-    } 
+    }
   } else {
     g_print ("Getting caps structure failed\n");
     ret = FALSE;
     goto out;
   }
- 
+
 out:
 
   if (caps)
@@ -3843,47 +3845,43 @@ socket_thread_join(MeegoMediaPlayerControl* dvd_player)
 
 
 static void
-send_socket_data(GstPad * pad, GstMiniObject * mini_obj, gpointer user_data)
+send_socket_data(GstBuffer* buf, gpointer user_data)
 {
   int i = 0;
   int write_num = -1;
   DvbPlayerPrivate *priv = GET_PRIVATE (user_data);
 
-  if (GST_IS_BUFFER (mini_obj)) {
-    GstBuffer *buf = GST_BUFFER_CAST (mini_obj);
+  g_mutex_lock (priv->socks_lock);
+  if (priv->sock_exit_flag) {
+    g_mutex_unlock (priv->socks_lock);
+    UMMS_DEBUG("Skip the work because exit.");
+    return;
+  }
 
-    g_mutex_lock (priv->socks_lock);
-    if (priv->sock_exit_flag) {
-      g_mutex_unlock (priv->socks_lock);
-      UMMS_DEBUG("Skip the work because exit.");
-      return;
-    }
+  /* Now write the data. */
+  for (i = 0; i < SOCK_MAX_SERV_CONNECTS; i++) {
+    if (priv->serv_fds[i] != -1) {
+      UMMS_DEBUG("Send the data for i:%d, fd:%d", i, priv->serv_fds[i]);
 
-    /* Now write the data. */
-    for (i = 0; i < SOCK_MAX_SERV_CONNECTS; i++) {
-      if (priv->serv_fds[i] != -1) {
-        UMMS_DEBUG("Send the data for i:%d, fd:%d", i, priv->serv_fds[i]);
+      /* Do not send the signal because the socket closed.
+       * Use MSG_NOSIGNAL flag */
+      write_num = send(priv->serv_fds[i], GST_BUFFER_DATA(buf), GST_BUFFER_SIZE(buf), MSG_NOSIGNAL);
 
-        /* Do not send the signal because the socket closed.
-         * Use MSG_NOSIGNAL flag */
-        write_num = send(priv->serv_fds[i], GST_BUFFER_DATA(buf), GST_BUFFER_SIZE(buf), MSG_NOSIGNAL);
+      if (write_num == -1) {
+        UMMS_DEBUG("write data failed, because %s", strerror(errno));
+        close(priv->serv_fds[i]);
+        priv->serv_fds[i] = -1; /* mark invalid and not use again. */
+      } else if (write_num > 0 && write_num !=
+                 GST_BUFFER_SIZE(buf)) { // write some bytes but not the whole because we set NO_BLOCK.
 
-        if (write_num == -1) {
-          UMMS_DEBUG("write data failed, because %s", strerror(errno));
-          close(priv->serv_fds[i]);
-          priv->serv_fds[i] = -1; /* mark invalid and not use again. */
-        } else if (write_num > 0 && write_num !=
-                   GST_BUFFER_SIZE(buf)) { // write some bytes but not the whole because we set NO_BLOCK.
-
-          /* TODO: We need to handle the data size problem here. Because
-           * the funciton is called in signal context and can not block,
-           * we has set the fd to NO_BLOCK and the write may failed
-           * because the data is to big. We may need to ref the buffer and
-           * send it from the current offset next time. */
-          UMMS_DEBUG("The socket just write part of the data, notice!!!");
-        } else {
-          UMMS_DEBUG("write data %d bytes to socket fd:%d.", GST_BUFFER_SIZE(buf), priv->serv_fds[i]);
-        }
+        /* TODO: We need to handle the data size problem here. Because
+         * the funciton is called in signal context and can not block,
+         * we has set the fd to NO_BLOCK and the write may failed
+         * because the data is to big. We may need to ref the buffer and
+         * send it from the current offset next time. */
+        UMMS_DEBUG("The socket just write part of the data, notice!!!");
+      } else {
+        UMMS_DEBUG("write data %d bytes to socket fd:%d.", GST_BUFFER_SIZE(buf), priv->serv_fds[i]);
       }
     }
 
