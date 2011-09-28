@@ -29,7 +29,7 @@
 
 static void meego_media_player_control_init (MeegoMediaPlayerControl* iface);
 static gpointer socket_listen_thread(DvbPlayer* dvd_player);
-static void socket_thread_join(DvbPlayer* dvd_player);
+static void socket_thread_join(MeegoMediaPlayerControl* dvd_player);
 
 G_DEFINE_TYPE_WITH_CODE (DvbPlayer, dvb_player, G_TYPE_OBJECT,
     G_IMPLEMENT_INTERFACE (MEEGO_TYPE_MEDIA_PLAYER_CONTROL, meego_media_player_control_init))
@@ -3811,7 +3811,7 @@ out:
 
 
 static void
-socket_thread_join(DvbPlayer* dvd_player)
+socket_thread_join(MeegoMediaPlayerControl* dvd_player)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (dvd_player);
   struct sockaddr_in server_addr;
