@@ -1,26 +1,32 @@
-/* 
+/*
  * UMMS (Unified Multi Media Service) provides a set of DBus APIs to support
  * playing Audio and Video as well as DVB playback.
  *
  * Authored by Zhiwen Wu <zhiwen.wu@intel.com>
  *             Junyan He <junyan.he@intel.com>
  * Copyright (c) 2011 Intel Corp.
- * 
+ *
  * UMMS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * UMMS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with UMMS; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <netinet/in.h>
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <gtk/gtk.h>
@@ -44,6 +50,48 @@ static GtkWidget *progressbar;
 static GtkWidget *progress_time;
 static GtkWidget *image_play;
 static GtkWidget *image_pause;
+
+int get_raw_data(void)
+{
+    int sockfd;
+    char buffer[1024];
+    struct sockaddr_in server_addr;
+    int portnumber, nbytes;
+    struct hostent *host;
+    int i;
+
+    host = gethostbyname("localhost");
+
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        fprintf(stderr, "Socket Error:%s\a\n", strerror(errno));
+        return;
+    }
+
+    bzero(&server_addr, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(112131);
+    server_addr.sin_addr = *((struct in_addr*)host->h_addr);
+
+    if (connect (sockfd, (struct sockaddr*)(&server_addr), sizeof(struct sockaddr)) == -1) {
+        fprintf(stderr, "Connect Error:%s\a\n", strerror(errno));
+        close(sockfd);
+        return;
+    }
+
+    for (i = 0; i < 3; i++) {
+        nbytes = read(sockfd, buffer, 1024);
+        printf( "received:%d bytes\n", nbytes);
+        if (nbytes >= 0) {
+            buffer[nbytes] = '\0 ';
+            printf( "I have received:%x %x %x %x %x %x %x %x\n",
+                    buffer[0], buffer[1], buffer[2], buffer[3], buffer[4],
+                    buffer[5], buffer[6], buffer[7]);
+        }
+    }
+
+    close(sockfd);
+}
+
 
 static void ui_pause_bt_cb(GtkWidget *widget, gpointer data)
 {
@@ -81,11 +129,11 @@ static void ui_fileopen_dlg(GtkWidget *widget, gpointer data)
     gchar *filename;
 
     fileopen_dlg = gtk_file_chooser_dialog_new("Select media file",
-            GTK_WINDOW(window),
-            GTK_FILE_CHOOSER_ACTION_OPEN,
-            GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-            GTK_STOCK_OK, GTK_RESPONSE_OK,
-            NULL);
+                   GTK_WINDOW(window),
+                   GTK_FILE_CHOOSER_ACTION_OPEN,
+                   GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                   GTK_STOCK_OK, GTK_RESPONSE_OK,
+                   NULL);
     result = gtk_dialog_run(GTK_DIALOG(fileopen_dlg));
     if (GTK_RESPONSE_OK == result) {
         filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(fileopen_dlg));
@@ -106,9 +154,9 @@ static void ui_progressbar_vchange_cb( GtkAdjustment *get,
 
     g_print("fasfafafasfafsa:%f\n", get->value);
     if (ply_get_state() == PLY_MAIN_STATE_RUN ||
-            ply_get_state() == PLY_MAIN_STATE_PAUSE) {
+         ply_get_state() == PLY_MAIN_STATE_PAUSE) {
         ply_maindata = ply_get_maindata();
-        ply_seek_stream_from_beginging((get->value/get->upper) * ply_maindata->duration_nanosecond);
+        ply_seek_stream_from_beginging((get->value / get->upper) * ply_maindata->duration_nanosecond);
     }
 }
 
@@ -123,18 +171,16 @@ void ui_update_progressbar(gint64 pos, gint64 len)
     gchar label_str[30];
 
     GtkAdjustment *adj = gtk_range_get_adjustment(GTK_RANGE(progressbar));
-    if( (len/GST_SECOND) != 0)
-    {
-        adj->value = ((pos/GST_SECOND) * 1000) / (len/GST_SECOND);
+    if ( (len / GST_SECOND) != 0) {
+        adj->value = ((pos / GST_SECOND) * 1000) / (len / GST_SECOND);
     }
-    if ( (len/GST_SECOND) == 0 ||
-            adj->value > 1000)
-    {
+    if ( (len / GST_SECOND) == 0 ||
+         adj->value > 1000) {
         adj->value = 1000;
         pos = len;
     }
 
-    if (ply_get_state()== PLY_MAIN_STATE_READY) {
+    if (ply_get_state() == PLY_MAIN_STATE_READY) {
         pos = 0;
         adj->value = 0;
     }
@@ -143,8 +189,8 @@ void ui_update_progressbar(gint64 pos, gint64 len)
     ply_maindata->duration_nanosecond = len;
 
     gtk_signal_emit_by_name(GTK_OBJECT(adj), "changed");
-    g_sprintf(label_str, "%02u:%02u:%02u/%02u:%02u:%02u", 
-            MY_GST_TIME_ARGS(pos), MY_GST_TIME_ARGS(len));
+    g_sprintf(label_str, "%02u:%02u:%02u/%02u:%02u:%02u",
+              MY_GST_TIME_ARGS(pos), MY_GST_TIME_ARGS(len));
     gtk_label_set_text(GTK_LABEL(progress_time), label_str);
     g_print("%s\n", label_str);
     gtk_widget_show_all(progress_time);
@@ -157,7 +203,7 @@ gint ui_create(void)
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_widget_set_size_request(window, 640, 480);
-    gtk_window_set_title(GTK_WINDOW(window), "AdvPlayer");
+    gtk_window_set_title(GTK_WINDOW(window), "UMMS Player");
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
     g_signal_connect(G_OBJECT(window), "delete_event", G_CALLBACK(gtk_main_quit), NULL);
 
@@ -174,31 +220,12 @@ gint ui_create(void)
     GtkWidget *file_menu;
     GtkWidget *play_menu;
     GtkWidget *help_menu;
-    menubar  = gtk_menu_bar_new();
-    gtk_box_pack_start(GTK_BOX(topvbox), menubar, FALSE, TRUE, 0);
-    menuitem_file = gtk_menu_item_new_with_mnemonic("File(_F)");
-    gtk_menu_bar_append(GTK_MENU_BAR(menubar), menuitem_file);
-    file_menu = gtk_menu_new();
-    gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem_file), file_menu);
-    GtkWidget *menuitem_file1 = gtk_menu_item_new_with_mnemonic("File(_F)");
-    gtk_container_add(GTK_CONTAINER(file_menu), menuitem_file1);
 
-    menuitem_play = gtk_menu_item_new_with_mnemonic("Play(_P)");
-    //gtk_container_add(GTK_CONTAINER(menubar), menuitem_play);
-    gtk_menu_bar_append(GTK_MENU_BAR(menubar), menuitem_play);
-    play_menu = gtk_menu_new();
-    gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem_play), play_menu);
-
-    menuitem_help = gtk_menu_item_new_with_label("Help(_P)");
-    //gtk_container_add(GTK_CONTAINER(menubar), menuitem_help);
-    gtk_menu_bar_append(GTK_MENU_BAR(menubar), menuitem_help);
-    help_menu = gtk_menu_new();
-    gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem_help), help_menu);
     gtk_widget_show_all(window);
 
     /* image widget */
     video_window = gtk_drawing_area_new();
-    gtk_widget_set_size_request(video_window,640,380); 
+    gtk_widget_set_size_request(video_window, 640, 380);
     gtk_box_pack_start(GTK_BOX(topvbox), video_window, FALSE, FALSE, 0);
 
     /* progress widget */

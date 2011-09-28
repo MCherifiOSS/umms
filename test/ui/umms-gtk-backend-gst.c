@@ -1,21 +1,21 @@
-/* 
+/*
  * UMMS (Unified Multi Media Service) provides a set of DBus APIs to support
  * playing Audio and Video as well as DVB playback.
  *
  * Authored by Zhiwen Wu <zhiwen.wu@intel.com>
  *             Junyan He <junyan.he@intel.com>
  * Copyright (c) 2011 Intel Corp.
- * 
+ *
  * UMMS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * UMMS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with UMMS; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -25,22 +25,22 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <gst/gst.h>
-#include <gdk/gdkx.h> 
-#include <gst/interfaces/xoverlay.h> 
+#include <gdk/gdkx.h>
+#include <gst/interfaces/xoverlay.h>
 #include "umms-gtk-backend.h"
 #include "umms-gtk-ui.h"
 
 static GstElement *pipeline;
 static GstElement *video_sink;
 
-static gboolean expose_cb(GtkWidget *widget,GdkEventExpose *event,gpointer data)
-{ 
+static gboolean expose_cb(GtkWidget *widget, GdkEventExpose *event, gpointer data)
+{
     g_print("---->\n");
-    gst_x_overlay_set_xwindow_id(GST_X_OVERLAY(data),GDK_WINDOW_XWINDOW(widget->window)); 
+    gst_x_overlay_set_xwindow_id(GST_X_OVERLAY(data), GDK_WINDOW_XWINDOW(widget->window));
     //gulong video_window_xid = GDK_WINDOW_XID (widget->window);
-    //gst_x_overlay_set_window_handle(GST_X_OVERLAY(data), video_window_xid); 
-    //gst_x_overlay_set_render_rectangle(GST_X_OVERLAY(data), 0,0, 480,320); 
-    return FALSE; 
+    //gst_x_overlay_set_window_handle(GST_X_OVERLAY(data), video_window_xid);
+    //gst_x_overlay_set_render_rectangle(GST_X_OVERLAY(data), 0,0, 480,320);
+    return FALSE;
 }
 
 static gboolean avdec_bus_call(GstBus *bus, GstMessage *msg, gpointer data)
@@ -98,7 +98,7 @@ gint avdec_init(void)
     pipeline = gst_element_factory_make("playbin", "playerbin");
     g_object_get(G_OBJECT(pipeline), "video-sink", &video_sink, NULL);
     gst_bin_remove(GST_BIN(pipeline), video_sink);
-    video_sink = gst_element_factory_make("ximagesink","video- sink"); 
+    video_sink = gst_element_factory_make("ximagesink", "video- sink");
     if (!pipeline || !video_sink) {
         g_printerr("One element can not be created!\n");
         return -1;
@@ -112,9 +112,9 @@ gint avdec_init(void)
     g_object_set(G_OBJECT(pipeline), "video-sink", video_sink, NULL);
 
     //gst_x_overlay_set_xwindow_id(GST_X_OVERLAY(video_sink),
-    //        GDK_WINDOW_XWINDOW(video_image)); 
-    g_signal_connect(video_window, "expose-event", 
-            G_CALLBACK(expose_cb), video_sink); 
+    //        GDK_WINDOW_XWINDOW(video_image));
+    g_signal_connect(video_window, "expose-event",
+                     G_CALLBACK(expose_cb), video_sink);
 
 
     return 0;
@@ -169,8 +169,8 @@ gint avdec_resume(void)
 gint avdec_seek_from_beginning(gint64 nanosecond)
 {
     gst_element_seek(pipeline, 1.0, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH,
-            GST_SEEK_TYPE_SET, nanosecond,
-            GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
+                     GST_SEEK_TYPE_SET, nanosecond,
+                     GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
     return 0;
 }
 
