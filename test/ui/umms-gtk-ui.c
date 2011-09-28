@@ -63,11 +63,11 @@ int get_raw_data(void)
     host = gethostbyname("localhost");
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        fprintf(stderr, "Socket Error:%s\a\n", strerror(errno));
+        fprintf(stderr, "Socket Error:%s\a\n", (char *)strerror(errno));
         return;
     }
 
-    bzero(&server_addr, sizeof(server_addr));
+    memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(112131);
     server_addr.sin_addr = *((struct in_addr*)host->h_addr);
@@ -121,6 +121,17 @@ static void ui_stop_bt_cb(GtkWidget *widget, gpointer data)
         ply_stop_stream();
     }
 }
+
+static void ui_forward_bt_cb(GtkWidget *widget, gpointer data)
+{
+}
+
+
+static void ui_rewind_bt_cb(GtkWidget *widget, gpointer data)
+{
+
+}
+
 
 static void ui_fileopen_dlg(GtkWidget *widget, gpointer data)
 {
@@ -202,7 +213,7 @@ gint ui_create(void)
     GtkWidget *topvbox;
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_widget_set_size_request(window, 640, 480);
+    gtk_widget_set_size_request(window, 720, 670);
     gtk_window_set_title(GTK_WINDOW(window), "UMMS Player");
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
     g_signal_connect(G_OBJECT(window), "delete_event", G_CALLBACK(gtk_main_quit), NULL);
@@ -225,7 +236,7 @@ gint ui_create(void)
 
     /* image widget */
     video_window = gtk_drawing_area_new();
-    gtk_widget_set_size_request(video_window, 640, 380);
+    gtk_widget_set_size_request(video_window, 720, 576);
     gtk_box_pack_start(GTK_BOX(topvbox), video_window, FALSE, FALSE, 0);
 
     /* progress widget */
@@ -242,6 +253,42 @@ gint ui_create(void)
     progress_time = gtk_label_new("00:00:00/00:00:00");
     gtk_box_pack_start(GTK_BOX(progress_hbox), progress_time, FALSE, FALSE, 0);
 
+    /* AV/Text streams select and volume */
+    GtkWidget *switch_hbox;
+    switch_hbox = gtk_hbox_new(FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(topvbox), switch_hbox, TRUE, TRUE, 0);
+    GtkWidget *video_combo;
+    GtkWidget *audio_combo;
+    GtkWidget *text_combo;
+    GtkWidget *volume_bar;
+    GList * c_list = NULL;
+
+    video_combo = gtk_combo_new();
+    c_list = g_list_append(c_list, "video0: h264");
+    c_list = g_list_append(c_list, "video1: mpeg2");
+    gtk_combo_set_popdown_strings (GTK_COMBO (video_combo), c_list);
+    gtk_box_pack_start(GTK_BOX(switch_hbox), video_combo, TRUE, TRUE, 0);        
+
+    g_list_free(c_list);
+    c_list = NULL;
+    audio_combo = gtk_combo_new();
+    c_list = g_list_append(c_list, "audio0: AAC");
+    c_list = g_list_append(c_list, "audio1: AC3");
+    gtk_combo_set_popdown_strings (GTK_COMBO (audio_combo), c_list);
+    gtk_box_pack_start(GTK_BOX(switch_hbox), audio_combo, TRUE, TRUE, 0);        
+
+    g_list_free(c_list);
+    c_list = NULL;
+    text_combo = gtk_combo_new();
+    c_list = g_list_append(c_list, "text0");
+    c_list = g_list_append(c_list, "text1");
+    gtk_combo_set_popdown_strings (GTK_COMBO (text_combo), c_list);
+    gtk_box_pack_start(GTK_BOX(switch_hbox), text_combo, TRUE, TRUE, 0);        
+
+    volume_bar = gtk_hscale_new_with_range(0, 100, 1);
+    gtk_box_pack_start(GTK_BOX(switch_hbox), volume_bar, TRUE, TRUE, 0);
+    gtk_widget_set_size_request(progressbar, 32, 20);
+
     /* Control Button */
     GtkWidget *button_hbox;
     GtkWidget *button_rewind;
@@ -252,25 +299,28 @@ gint ui_create(void)
     GtkWidget *image_stop;
     GtkWidget *image_forward;
     GtkWidget *image_fileopen;
+    GtkWidget *button_info;
+    GtkWidget *button_option;
+    
     button_hbox = gtk_hbox_new(FALSE, 0);
     gtk_box_pack_start(GTK_BOX(topvbox), button_hbox, FALSE, FALSE, 0);
     button_rewind = gtk_button_new();
-    image_rewind = gtk_image_new_from_stock("gtk-media-rewind", GTK_ICON_SIZE_BUTTON);
+    image_rewind = gtk_image_new_from_stock(GTK_STOCK_MEDIA_REWIND, GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_rewind), image_rewind);
     gtk_box_pack_start(GTK_BOX(button_hbox), button_rewind, TRUE, TRUE, 0);
     button_play = gtk_button_new();
-    image_play = gtk_image_new_from_stock("gtk-media-play", GTK_ICON_SIZE_BUTTON);
-    image_pause = gtk_image_new_from_stock("gtk-media-pause", GTK_ICON_SIZE_BUTTON);
+    image_play = gtk_image_new_from_stock(GTK_STOCK_MEDIA_PLAY, GTK_ICON_SIZE_BUTTON);
+    image_pause = gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE, GTK_ICON_SIZE_BUTTON);
     g_object_ref((gpointer)image_play);
     g_object_ref((gpointer)image_pause);
     gtk_container_add(GTK_CONTAINER(button_play), image_play);
     gtk_box_pack_start(GTK_BOX(button_hbox), button_play, TRUE, TRUE, 0);
     button_stop = gtk_button_new();
-    image_stop = gtk_image_new_from_stock("gtk-media-stop", GTK_ICON_SIZE_BUTTON);
+    image_stop = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP, GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_stop), image_stop);
     gtk_box_pack_start(GTK_BOX(button_hbox), button_stop, TRUE, TRUE, 0);
     button_forward = gtk_button_new();
-    image_forward = gtk_image_new_from_stock("gtk-media-forward", GTK_ICON_SIZE_BUTTON);
+    image_forward = gtk_image_new_from_stock(GTK_STOCK_MEDIA_FORWARD, GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_forward), image_forward);
     gtk_box_pack_start(GTK_BOX(button_hbox), button_forward, TRUE, TRUE, 0);
     button_fileopen = gtk_button_new();
@@ -281,9 +331,15 @@ gint ui_create(void)
     g_signal_connect((gpointer)button_fileopen, "clicked", G_CALLBACK(ui_fileopen_dlg), NULL);
     g_signal_connect((gpointer)button_play, "clicked", G_CALLBACK(ui_pause_bt_cb), NULL);
     g_signal_connect((gpointer)button_stop, "clicked", G_CALLBACK(ui_stop_bt_cb), NULL);
+    g_signal_connect((gpointer)button_rewind, "clicked", G_CALLBACK(ui_rewind_bt_cb), NULL);
+    g_signal_connect((gpointer)button_forward, "clicked", G_CALLBACK(ui_forward_bt_cb), NULL);
+
+    button_info = gtk_button_new();
+    button_option = gtk_button_new();
+    gtk_box_pack_start(GTK_BOX(button_hbox), button_info, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(button_hbox), button_option, TRUE, TRUE, 0);
 
     gtk_widget_show_all(window);
-
 
     return 0;
 }
