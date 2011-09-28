@@ -2232,7 +2232,7 @@ static gboolean start_recording (MeegoMediaPlayerControl *self, gchar *location)
 #define DEFAULT_FILE_LOCATION "/tmp/record.ts"
   if (location && location[0] != '\0')
     file_location = location;
-  else 
+  else
     file_location = DEFAULT_FILE_LOCATION;
   UMMS_DEBUG ("location: '%s'", file_location);
   g_object_set (filesink, "location", file_location, NULL);
@@ -2305,7 +2305,7 @@ static gboolean stop_recording (MeegoMediaPlayerControl *self)
   return TRUE;
 }
 
-static gboolean 
+static gboolean
 dvb_player_record (MeegoMediaPlayerControl *self, gboolean to_record, gchar *location)
 {
   DvbPlayerPrivate *priv = NULL;
@@ -2318,10 +2318,10 @@ dvb_player_record (MeegoMediaPlayerControl *self, gboolean to_record, gchar *loc
   if (to_record == priv->recording) {
     return TRUE;
   }
-  
-  if (to_record) 
+
+  if (to_record)
     return start_recording (self, location);
-  else 
+  else
     return stop_recording (self);
 }
 
@@ -2516,6 +2516,7 @@ GstFlowReturn new_buffer_cb (GstAppSink *sink, gpointer user_data)
   }
 
   //Send the buf data from socket.
+  UMMS_DEBUG("Socket has data to send");
   send_socket_data(buf, user_data);
 
 out:
@@ -3289,9 +3290,6 @@ dvb_player_init (DvbPlayer *self)
   priv->port = SOCK_SOCKET_DEFAULT_PORT;
   priv->ip = SOCK_SOCKET_DEFAULT_ADDR;
   priv->listen_thread = g_thread_create ((GThreadFunc) socket_listen_thread, self, TRUE, NULL);
-  //  priv->data_probe_id = gst_pad_add_data_probe (sink_pad,
-  //      G_CALLBACK (_umms_send_socket_data), (gpointer) self);
-  //*/
   return;
 
 failed:
@@ -3862,7 +3860,8 @@ send_socket_data(GstBuffer* buf, gpointer user_data)
   /* Now write the data. */
   for (i = 0; i < SOCK_MAX_SERV_CONNECTS; i++) {
     if (priv->serv_fds[i] != -1) {
-      UMMS_DEBUG("Send the data for i:%d, fd:%d", i, priv->serv_fds[i]);
+      UMMS_DEBUG("Send the data for i:%d, fd:%d, data size is %d",
+                 i, priv->serv_fds[i], GST_BUFFER_SIZE(buf));
 
       /* Do not send the signal because the socket closed.
        * Use MSG_NOSIGNAL flag */
@@ -3885,9 +3884,9 @@ send_socket_data(GstBuffer* buf, gpointer user_data)
         UMMS_DEBUG("write data %d bytes to socket fd:%d.", GST_BUFFER_SIZE(buf), priv->serv_fds[i]);
       }
     }
-
-    g_mutex_unlock (priv->socks_lock);
   }
+
+  g_mutex_unlock (priv->socks_lock);
 }
 
 
