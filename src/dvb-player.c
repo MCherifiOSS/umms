@@ -1,5 +1,11 @@
 #include <string.h>
 #include <stdio.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <netinet/in.h>
+#include <fcntl.h>
 #include <gst/gst.h>
 #include <gst/interfaces/xoverlay.h>
 /* for the volume property */
@@ -22,6 +28,8 @@
 #define DVB_SRC
 
 static void meego_media_player_control_init (MeegoMediaPlayerControl* iface);
+static gpointer socket_listen_thread(DvbPlayer* dvd_player);
+static void socket_thread_join(DvbPlayer* dvd_player);
 
 G_DEFINE_TYPE_WITH_CODE (DvbPlayer, dvb_player, G_TYPE_OBJECT,
     G_IMPLEMENT_INTERFACE (MEEGO_TYPE_MEDIA_PLAYER_CONTROL, meego_media_player_control_init))
@@ -45,6 +53,11 @@ G_DEFINE_TYPE_WITH_CODE (DvbPlayer, dvb_player, G_TYPE_OBJECT,
     }
 
 #define INVALID_PLANE_ID -1
+
+#define SOCK_MAX_SERV_CONNECTS 5
+#define SOCK_SOCKET_DEFAULT_PORT 112131
+#define SOCK_SOCKET_DEFAULT_ADDR NULL
+
 
 static const gchar *gst_state[] = {
   "GST_STATE_VOID_PENDING",
@@ -114,7 +127,7 @@ struct _DvbPlayerPrivate {
   GMutex *socks_lock; // protect the sockets FD.
   int listen_fd;
   GThread *listen_thread;
-  gint serv_fds[UMMS_MAX_SERV_CONNECTS];
+  gint serv_fds[SOCK_MAX_SERV_CONNECTS];
   gint sock_exit_flag;
 };
 
@@ -2742,11 +2755,11 @@ dvb_player_dispose (GObject *object)
   TEARDOWN_ELEMENT(priv->pipeline);
 
   if (priv->listen_thread) {
-    _umms_socket_thread_join((MeegoMediaPlayerControl *)object);
+    socket_thread_join((MeegoMediaPlayerControl *)object);
     priv->listen_thread = NULL;
   }
 
-  for (i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
+  for (i = 0; i < SOCK_MAX_SERV_CONNECTS; i++) {
     if (priv->serv_fds[i] != -1) {
       close(priv->serv_fds[i]);
     }
@@ -2758,7 +2771,7 @@ dvb_player_dispose (GObject *object)
     priv->socks_lock = NULL;
   }
 
-  if (priv->ip && priv->ip != UMMS_SOCKET_DEFAULT_ADDR) {
+  if (priv->ip && priv->ip != SOCK_SOCKET_DEFAULT_ADDR) {
     g_free(priv->ip);
     priv->ip = NULL;
   }
@@ -3278,12 +3291,11 @@ dvb_player_init (DvbPlayer *self)
   priv->target_type = ReservedType0;
   priv->target_initialized = TRUE;
 
-  
-  ///* Not used now
+
   priv->socks_lock = g_mutex_new ();
   priv->sock_exit_flag = 0;
-  priv->port = UMMS_SOCKET_DEFAULT_PORT;
-  priv->address = UMMS_SOCKET_DEFAULT_ADDR;
+  priv->port = SOCK_SOCKET_DEFAULT_PORT;
+  priv->ip = SOCK_SOCKET_DEFAULT_ADDR;
   priv->listen_thread = g_thread_create ((GThreadFunc) socket_listen_thread, self, TRUE, NULL);
   //  priv->data_probe_id = gst_pad_add_data_probe (sink_pad,
   //      G_CALLBACK (_umms_send_socket_data), (gpointer) self);
@@ -3811,9 +3823,9 @@ out:
 
 
 static void
-socket_thread_join(MeegoMediaPlayerControl* control)
+socket_thread_join(DvbPlayer* dvd_player)
 {
-  EngineGstPrivate *priv = GET_PRIVATE (control);
+  DvbPlayerPrivate *priv = GET_PRIVATE (dvd_player);
   struct sockaddr_in server_addr;
 
   g_mutex_lock (priv->socks_lock);
@@ -3847,7 +3859,7 @@ send_socket_data(GstPad * pad, GstMiniObject * mini_obj, gpointer user_data)
 {
   int i = 0;
   int write_num = -1;
-  EngineGstPrivate *priv = GET_PRIVATE (user_data);
+  DvbPlayerPrivate *priv = GET_PRIVATE (user_data);
 
   if (GST_IS_BUFFER (mini_obj)) {
     GstBuffer *buf = GST_BUFFER_CAST (mini_obj);
@@ -3860,7 +3872,7 @@ send_socket_data(GstPad * pad, GstMiniObject * mini_obj, gpointer user_data)
     }
 
     /* Now write the data. */
-    for (i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
+    for (i = 0; i < SOCK_MAX_SERV_CONNECTS; i++) {
       if (priv->serv_fds[i] != -1) {
         UMMS_DEBUG("Send the data for i:%d, fd:%d", i, priv->serv_fds[i]);
 
@@ -3893,7 +3905,7 @@ send_socket_data(GstPad * pad, GstMiniObject * mini_obj, gpointer user_data)
 
 
 static gpointer
-socket_listen_thread(MeegoMediaPlayerControl* control)
+socket_listen_thread(DvbPlayer* dvd_player)
 {
   struct sockaddr_in cli_addr;
   struct sockaddr_in serv_addr;
@@ -3901,10 +3913,10 @@ socket_listen_thread(MeegoMediaPlayerControl* control)
   socklen_t cli_len;
   socklen_t serv_len;
   int i = 0;
-  EngineGstPrivate *priv = GET_PRIVATE (control);
+  DvbPlayerPrivate *priv = GET_PRIVATE (dvd_player);
 
   g_mutex_lock (priv->socks_lock);
-  for (i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
+  for (i = 0; i < SOCK_MAX_SERV_CONNECTS; i++) {
     if (priv->serv_fds[i] != -1) {
       close(priv->serv_fds[i]);
     }
@@ -3924,7 +3936,7 @@ socket_listen_thread(MeegoMediaPlayerControl* control)
   serv_addr.sin_port = htons(priv->port);
   if (bind(priv->listen_fd, (struct sockaddr*)&serv_addr, sizeof(struct sockaddr)) == -1) {
     UMMS_DEBUG("try to binding to %s:%d Failed, error is %s",
-               priv->address, priv->port, strerror(errno));
+               priv->ip, priv->port, strerror(errno));
     close(priv->listen_fd);
     priv->listen_fd = -1;
     return NULL;
@@ -3954,12 +3966,12 @@ socket_listen_thread(MeegoMediaPlayerControl* control)
     }
 
     g_mutex_lock (priv->socks_lock);
-    for (i = 0; i < UMMS_MAX_SERV_CONNECTS; i++) {
+    for (i = 0; i < SOCK_MAX_SERV_CONNECTS; i++) {
       if (priv->serv_fds[i] == -1)
         break;
     }
 
-    if (i < UMMS_MAX_SERV_CONNECTS) {
+    if (i < SOCK_MAX_SERV_CONNECTS) {
       priv->serv_fds[i] = new_fd;
       fcntl(priv->serv_fds[i], F_SETFL, O_NONBLOCK);
     } else {
