@@ -354,7 +354,7 @@ gboolean meego_media_player_activate (MeegoMediaPlayer *player, PlayerState stat
       break;
   }
 
-  UMMS_DEBUG ("setting state: %d %s", state, (ret ? "succeed" : "failed"));
+  UMMS_DEBUG ("setting engine to state: %d ", state);
   return ret;
 }
 

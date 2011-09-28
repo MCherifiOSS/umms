@@ -162,7 +162,7 @@ static gboolean create_xevent_handle_thread (MeegoMediaPlayerControl *self);
 static gboolean destroy_xevent_handle_thread (MeegoMediaPlayerControl *self);
 static gboolean parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri);
 static void release_resource (MeegoMediaPlayerControl *self);
-
+static void uri_parser_bus_message_error_cb (GstBus *bus, GstMessage *message, EngineGst  *self);
 
 static gboolean
 engine_gst_set_uri (MeegoMediaPlayerControl *self,
@@ -3592,7 +3592,9 @@ static void no_more_pads_cb (GstElement * uridecodebin, MeegoMediaPlayerControl 
 static gboolean
 parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
 {
-  GstElement *uridecodebin;
+  GstElement *uridecodebin = NULL;
+  GstElement *uri_parse_pipe = NULL;
+  GstBus *bus = NULL;
   gboolean ret = FALSE;
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
@@ -3604,13 +3606,31 @@ parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
     return TRUE;
 
   //use uridecodebin to automatically detect streams.
-  priv->uri_parse_pipe = uridecodebin = gst_element_factory_make ("uridecodebin", NULL);
+  uridecodebin = gst_element_factory_make ("uridecodebin", NULL);
   if (!uridecodebin) {
     UMMS_DEBUG ("Creating uridecodebin failed");
-    goto out;
+    return FALSE;
+  }
+  
+  uri_parse_pipe = gst_pipeline_new ("uri-parse-pipe");
+  if (!uri_parse_pipe) {
+    UMMS_DEBUG ("Creating pipeline failed");
+    gst_object_unref (uridecodebin);
+    return FALSE;
   }
 
   g_signal_connect(uridecodebin, "notify::source", G_CALLBACK(_uri_parser_source_changed_cb), self);
+
+  gst_bin_add (GST_BIN (uri_parse_pipe), uridecodebin);
+
+  bus = gst_pipeline_get_bus (GST_PIPELINE (uri_parse_pipe));
+  gst_bus_add_signal_watch (bus);
+  g_signal_connect_object (bus, "message::error",
+      G_CALLBACK (uri_parser_bus_message_error_cb),
+      self,
+      0);
+  gst_object_unref (bus);
+
   g_object_set (G_OBJECT(uridecodebin), "uri", priv->uri, NULL);
 
   g_signal_connect (uridecodebin, "autoplug-continue",
@@ -3620,23 +3640,35 @@ parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
                     G_CALLBACK (no_more_pads_cb), self);
 
   if (priv->is_live) {
-    if (gst_element_set_state (uridecodebin, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
-      goto out;
+    if (gst_element_set_state (uri_parse_pipe, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
+      UMMS_DEBUG ("setting uri parse pipeline to  playing failed");
     }
   } else {
-    if (gst_element_set_state (uridecodebin, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
-      goto out;
+    if (gst_element_set_state (uri_parse_pipe, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
+      UMMS_DEBUG ("setting uri parse pipeline to paused failed");
     }
   }
 
-  ret = TRUE;
-out:
-  if (!ret) {
-    UMMS_DEBUG ("Failed");
-    if (priv->uri_parse_pipe) {
-      TEARDOWN_ELEMENT (priv->uri_parse_pipe);
-    }
-  }
+  priv->uri_parse_pipe = uri_parse_pipe;
+  return TRUE;
+}
 
-  return ret;
+static void
+uri_parser_bus_message_error_cb (GstBus     *bus,
+    GstMessage *message,
+    EngineGst  *self)
+{
+  GError *error = NULL;
+  EngineGstPrivate *priv = GET_PRIVATE (self);
+
+  UMMS_DEBUG ("message::URI parsing error received on bus");
+
+  gst_message_parse_error (message, &error, NULL);
+
+  TEARDOWN_ELEMENT (priv->uri_parse_pipe);
+  meego_media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, error->message);
+
+  UMMS_DEBUG ("URI Parsing error emitted with message = %s", error->message);
+
+  g_clear_error (&error);
 }
