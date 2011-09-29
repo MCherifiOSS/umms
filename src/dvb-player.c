@@ -909,8 +909,9 @@ request_resource (MeegoMediaPlayerControl *self)
   if (priv->resource_prepared)
     return TRUE;
 
-  //FIXME:For now, just request HW clock and Tuner resources. How to know we need HW decoder?
   REQUEST_RES(self, ResourceTypeHwClock, INVALID_RES_HANDLE, "No HW clock resource");
+  //FIXME: request the HW viddec resource according to added pad and its caps.
+  REQUEST_RES(self, ResourceTypeHwViddec, INVALID_RES_HANDLE, "No HW viddec resource");
   REQUEST_RES(self, ResourceTypeTuner, INVALID_RES_HANDLE, "No tuner resource");
 
   priv->resource_prepared = TRUE;
