@@ -51,6 +51,10 @@ static GtkWidget *progress_time;
 static GtkWidget *image_play;
 static GtkWidget *image_pause;
 
+GtkWidget *video_combo;
+GtkWidget *audio_combo;
+GtkWidget *text_combo;
+
 int get_raw_data(void)
 {
     int sockfd;
@@ -132,6 +136,46 @@ static void ui_rewind_bt_cb(GtkWidget *widget, gpointer data)
 
 }
 
+static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
+{
+    GtkWidget *info_dlg;
+    GtkWidget *lab;
+    GtkWidget *frame;
+
+    info_dlg = gtk_dialog_new_with_buttons("Media Info",
+               gtk_widget_get_toplevel (window),
+               GTK_DIALOG_MODAL,
+               GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE,
+               NULL);
+
+    gtk_window_set_default_size (GTK_WINDOW (info_dlg), 400, 400);
+
+    g_signal_connect (info_dlg, "destroy",
+                      G_CALLBACK (gtk_widget_destroyed),
+                      &info_dlg);
+
+    g_signal_connect (info_dlg, "response",
+                      G_CALLBACK (gtk_widget_destroy),
+                      NULL);
+
+    /* Add the media info here. */
+    frame = gtk_frame_new ("Container Type");
+    lab = gtk_label_new(NULL);
+    gtk_label_set_text(GTK_LABEL(lab), "ASF");
+    gtk_label_set_justify(GTK_LABEL(lab), GTK_JUSTIFY_FILL);
+    gtk_label_set_line_wrap (GTK_LABEL(lab), TRUE);
+    gtk_container_add (GTK_CONTAINER (frame), lab);
+    gtk_box_pack_start (GTK_BOX (GTK_DIALOG (info_dlg)->vbox),
+                        frame, FALSE, FALSE, 0);
+
+    gtk_widget_show_all (info_dlg);
+}
+
+
+static void ui_options_bt_cb(GtkWidget *widget, gpointer data)
+{
+
+}
 
 static void ui_fileopen_dlg(GtkWidget *widget, gpointer data)
 {
@@ -257,33 +301,30 @@ gint ui_create(void)
     GtkWidget *switch_hbox;
     switch_hbox = gtk_hbox_new(FALSE, 0);
     gtk_box_pack_start(GTK_BOX(topvbox), switch_hbox, TRUE, TRUE, 0);
-    GtkWidget *video_combo;
-    GtkWidget *audio_combo;
-    GtkWidget *text_combo;
     GtkWidget *volume_bar;
     GList * c_list = NULL;
 
     video_combo = gtk_combo_new();
-    c_list = g_list_append(c_list, "video0: h264");
-    c_list = g_list_append(c_list, "video1: mpeg2");
+    //c_list = g_list_append(c_list, "video0: h264");
+    //c_list = g_list_append(c_list, "video1: mpeg2");
     gtk_combo_set_popdown_strings (GTK_COMBO (video_combo), c_list);
-    gtk_box_pack_start(GTK_BOX(switch_hbox), video_combo, TRUE, TRUE, 0);        
+    gtk_box_pack_start(GTK_BOX(switch_hbox), video_combo, TRUE, TRUE, 0);
 
     g_list_free(c_list);
     c_list = NULL;
     audio_combo = gtk_combo_new();
-    c_list = g_list_append(c_list, "audio0: AAC");
-    c_list = g_list_append(c_list, "audio1: AC3");
+    //c_list = g_list_append(c_list, "audio0: AAC");
+    //c_list = g_list_append(c_list, "audio1: AC3");
     gtk_combo_set_popdown_strings (GTK_COMBO (audio_combo), c_list);
-    gtk_box_pack_start(GTK_BOX(switch_hbox), audio_combo, TRUE, TRUE, 0);        
+    gtk_box_pack_start(GTK_BOX(switch_hbox), audio_combo, TRUE, TRUE, 0);
 
     g_list_free(c_list);
     c_list = NULL;
     text_combo = gtk_combo_new();
-    c_list = g_list_append(c_list, "text0");
-    c_list = g_list_append(c_list, "text1");
+    //c_list = g_list_append(c_list, "text0");
+    //c_list = g_list_append(c_list, "text1");
     gtk_combo_set_popdown_strings (GTK_COMBO (text_combo), c_list);
-    gtk_box_pack_start(GTK_BOX(switch_hbox), text_combo, TRUE, TRUE, 0);        
+    gtk_box_pack_start(GTK_BOX(switch_hbox), text_combo, TRUE, TRUE, 0);
 
     volume_bar = gtk_hscale_new_with_range(0, 100, 1);
     gtk_box_pack_start(GTK_BOX(switch_hbox), volume_bar, TRUE, TRUE, 0);
@@ -301,7 +342,7 @@ gint ui_create(void)
     GtkWidget *image_fileopen;
     GtkWidget *button_info;
     GtkWidget *button_option;
-    
+
     button_hbox = gtk_hbox_new(FALSE, 0);
     gtk_box_pack_start(GTK_BOX(topvbox), button_hbox, FALSE, FALSE, 0);
     button_rewind = gtk_button_new();
@@ -334,10 +375,12 @@ gint ui_create(void)
     g_signal_connect((gpointer)button_rewind, "clicked", G_CALLBACK(ui_rewind_bt_cb), NULL);
     g_signal_connect((gpointer)button_forward, "clicked", G_CALLBACK(ui_forward_bt_cb), NULL);
 
-    button_info = gtk_button_new();
-    button_option = gtk_button_new();
+    button_info = gtk_button_new_with_label("Info");
+    button_option = gtk_button_new_with_label("Options");
     gtk_box_pack_start(GTK_BOX(button_hbox), button_info, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(button_hbox), button_option, TRUE, TRUE, 0);
+    g_signal_connect((gpointer)button_info, "clicked", G_CALLBACK(ui_info_bt_cb), NULL);
+    g_signal_connect((gpointer)button_option, "clicked", G_CALLBACK(ui_options_bt_cb), NULL);
 
     gtk_widget_show_all(window);
 
