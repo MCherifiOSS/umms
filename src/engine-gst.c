@@ -135,6 +135,7 @@ struct _EngineGstPrivate {
   gboolean resource_prepared;
   gboolean uri_parsed;
   GstElement *uri_parse_pipe;
+  GstElement *uridecodebin;
   //flags to indicate resource needed by uri, should be reset before setting a new uri.
   gboolean has_video;
   gint     hw_viddec;//number of HW viddec needed
@@ -3376,7 +3377,7 @@ _uri_parser_source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data
   GstElement *source;
   EngineGstPrivate *priv = GET_PRIVATE (data);
 
-  g_object_get(priv->uri_parse_pipe, "source", &source, NULL);
+  g_object_get(priv->uridecodebin, "source", &source, NULL);
   gst_object_replace((GstObject**) &priv->source, (GstObject*) source);
   UMMS_DEBUG ("source changed");
   _set_proxy ((MeegoMediaPlayerControl *)data);
@@ -3555,7 +3556,6 @@ parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
   GstElement *uridecodebin = NULL;
   GstElement *uri_parse_pipe = NULL;
   GstBus *bus = NULL;
-  gboolean ret = FALSE;
   EngineGstPrivate *priv = GET_PRIVATE (self);
 
   g_return_val_if_fail (uri, FALSE);
@@ -3579,6 +3579,8 @@ parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
     return FALSE;
   }
 
+  priv->uri_parse_pipe = uri_parse_pipe;
+  priv->uridecodebin = uridecodebin;
   g_signal_connect(uridecodebin, "notify::source", G_CALLBACK(_uri_parser_source_changed_cb), self);
 
   gst_bin_add (GST_BIN (uri_parse_pipe), uridecodebin);
@@ -3609,7 +3611,6 @@ parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
     }
   }
 
-  priv->uri_parse_pipe = uri_parse_pipe;
   return TRUE;
 }
 
