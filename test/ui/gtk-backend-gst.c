@@ -20,6 +20,7 @@
  * License along with UMMS; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
+#if 0
 
 #include <string.h>
 #include <glib.h>
@@ -27,7 +28,7 @@
 #include <gst/gst.h>
 #include <gdk/gdkx.h>
 #include <gst/interfaces/xoverlay.h>
-#include "umms-gtk-backend.h"
+#include "gtk-backend.h"
 #include "umms-gtk-ui.h"
 
 static GstElement *pipeline;
@@ -194,3 +195,4 @@ gint avdec_seek_from_beginning(gint64 nanosecond)
     return 0;
 }
 
+#endif
