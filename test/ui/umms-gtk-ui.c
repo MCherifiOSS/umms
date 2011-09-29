@@ -219,27 +219,27 @@ static void ui_progressbar_vchange_cb( GtkAdjustment *get,
 void ui_update_channels(void)
 {
 
-if (av_sub_update_flag) {
-    GList * c_list = NULL;
-    c_list = g_list_append(c_list, "video0: h264");
-    c_list = g_list_append(c_list, "video1: mpeg2");
-    gtk_combo_set_popdown_strings (GTK_COMBO (video_combo), c_list);
-    g_list_free(c_list);
+    if (av_sub_update_flag) {
+        GList * c_list = NULL;
+        c_list = g_list_append(c_list, "video0: h264");
+        c_list = g_list_append(c_list, "video1: mpeg2");
+        gtk_combo_set_popdown_strings (GTK_COMBO (video_combo), c_list);
+        g_list_free(c_list);
 
-    c_list = NULL;
-    c_list = g_list_append(c_list, "audio0: AAC");
-    c_list = g_list_append(c_list, "audio1: AC3");
-    gtk_combo_set_popdown_strings (GTK_COMBO (audio_combo), c_list);
-    g_list_free(c_list);
+        c_list = NULL;
+        c_list = g_list_append(c_list, "audio0: AAC");
+        c_list = g_list_append(c_list, "audio1: AC3");
+        gtk_combo_set_popdown_strings (GTK_COMBO (audio_combo), c_list);
+        g_list_free(c_list);
 
-    c_list = NULL;
-    c_list = g_list_append(c_list, "text0");
-    c_list = g_list_append(c_list, "text1");
-    gtk_combo_set_popdown_strings (GTK_COMBO (text_combo), c_list);
-    g_list_free(c_list);
+        c_list = NULL;
+        c_list = g_list_append(c_list, "text0");
+        c_list = g_list_append(c_list, "text1");
+        gtk_combo_set_popdown_strings (GTK_COMBO (text_combo), c_list);
+        g_list_free(c_list);
 
-    av_sub_update_flag = 0;
-}
+        av_sub_update_flag = 0;
+    }
 }
 
 

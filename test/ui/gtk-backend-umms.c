@@ -24,7 +24,8 @@
 #include <glib.h>
 #include <dbus/dbus-glib.h>
 #include <glib-object.h>
-
+#include <gobject/gvaluecollector.h>
+#include <gdk/gdkx.h>
 #include "umms-gtk-ui.h"
 #include "gtk-backend.h"
 #include "../../src/umms-marshals.h"
@@ -158,8 +159,71 @@ connect_sigs(DBusGProxy *player)
 }
 
 
+static void
+__val_release (gpointer data)
+{
+    GValue *val = (GValue *)data;
+    g_value_unset(val);
+    g_free (val);
+}
+
+static void __param_table_release (GHashTable *param)
+{
+    g_return_if_fail (param);
+    g_hash_table_destroy (param);
+}
+
+static GHashTable *
+__param_table_create (const gchar* key1, ...)
+{
+    GHashTable  *params;
+    const gchar *key;
+    GValue      *val;
+    GType       valtype;
+    const char  *collect_err;
+    va_list     args;
+
+    params = g_hash_table_new_full (g_str_hash, NULL, NULL, __val_release);
+
+    va_start (args, key1);
+
+    key = key1;
+    while (key != NULL) {
+        valtype = va_arg (args, GType);
+        val = g_new0(GValue, 1);
+        g_value_init (val, valtype);
+        collect_err = NULL;
+        G_VALUE_COLLECT (val, args, G_VALUE_NOCOPY_CONTENTS, &collect_err);
+        g_hash_table_insert(params, (gpointer)key, val);
+        key = va_arg (args, gpointer);
+    }
+
+    va_end (args);
+
+    return params;
+}
+
+
 static gboolean umms_expose_cb(GtkWidget *widget, GdkEventExpose *event, gpointer data)
 {
+    GHashTable * para_hash;
+    GError *error = NULL;
+
+    para_hash = __param_table_create("window-id",
+                G_TYPE_INT,
+                GDK_WINDOW_XWINDOW(widget->window),
+                NULL);
+
+    if (!dbus_g_proxy_call (player, "SetTarget", &error,
+            G_TYPE_INT, 0,
+            dbus_g_type_get_map("GHashTable", G_TYPE_STRING, G_TYPE_VALUE),
+            para_hash,
+            G_TYPE_INVALID,
+            G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to SetTarget", error);
+        return -1;
+    }
+    __param_table_release(para_hash);
     return FALSE;
 }
 
@@ -172,7 +236,7 @@ gint avdec_init(void)
     umms_client_obj = umms_client_object_new();
 
     g_signal_connect(video_window, "expose-event",
-            G_CALLBACK(umms_expose_cb), NULL);
+                     G_CALLBACK(umms_expose_cb), NULL);
 
     player = umms_client_object_request_player (umms_client_obj, TRUE, 0, &obj_path);
     add_sigs (player);
@@ -185,38 +249,76 @@ gint avdec_set_source(gchar *filename)
     GError *error = NULL;
     gchar * file_name;
 
-    file_name = g_printf("file://%s", filename);
+    file_name = g_strdup_printf("file://%s", filename);
+    printf("file_name is %s\n", file_name);
     if (!dbus_g_proxy_call (player, "SetUri", &error,
-                G_TYPE_STRING, filename, G_TYPE_INVALID,
-                G_TYPE_INVALID)) {
+            G_TYPE_STRING, file_name, G_TYPE_INVALID,
+            G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to SetUri", error);
+        return -1;
+    }
+    g_free(file_name);
+    return 0;
+}
+
+gint avdec_start(void)
+{
+    GError *error = NULL;
+
+    if (!dbus_g_proxy_call (player, "Play", &error,
+            G_TYPE_INVALID, G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to SetUri", error);
         return -1;
     }
     return 0;
 }
 
-gint avdec_start(void)
-{
-    return 0;
-}
-
 gint avdec_stop(void)
 {
+    GError *error = NULL;
+
+    if (!dbus_g_proxy_call (player, "Stop", &error,
+            G_TYPE_INVALID, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to SetUri", error);
+        return -1;
+    }
     return 0;
 }
 
 gint avdec_pause(void)
 {
+    GError *error = NULL;
+
+    if (!dbus_g_proxy_call (player, "Pause", &error,
+            G_TYPE_INVALID, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to SetUri", error);
+        return -1;
+    }
     return 0;
 }
 
 gint avdec_resume(void)
 {
+    GError *error = NULL;
+
+    if (!dbus_g_proxy_call (player, "Play", &error,
+            G_TYPE_INVALID, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to SetUri", error);
+        return -1;
+    }
     return 0;
 }
 
 gint avdec_seek_from_beginning(gint64 nanosecond)
 {
+    GError *error = NULL;
+
+    if (!dbus_g_proxy_call (player, "SetPosition", &error,
+            G_TYPE_INT64, nanosecond,
+            G_TYPE_INVALID, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to SetUri", error);
+        return -1;
+    }
     return 0;
 }
 
