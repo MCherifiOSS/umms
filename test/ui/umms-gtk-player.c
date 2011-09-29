@@ -24,7 +24,7 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #include "umms-gtk-player.h"
-#include "umms-gtk-backend.h"
+#include "gtk-backend.h"
 
 gchar dbg_state_name[][30] = {
     "PLY_MAIN_STATE_IDLE",

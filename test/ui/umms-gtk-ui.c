@@ -29,7 +29,6 @@
 #include <netinet/in.h>
 #include <glib.h>
 #include <glib/gprintf.h>
-#include <gtk/gtk.h>
 #include <gst/gst.h>
 #include "umms-gtk-player.h"
 #include "umms-gtk-ui.h"

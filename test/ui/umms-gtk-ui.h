@@ -23,6 +23,7 @@
 
 #ifndef UI_H_
 #define UI_H_
+#include <gtk/gtk.h>
 
 extern GtkWidget *video_window;
 extern GtkWidget *window;

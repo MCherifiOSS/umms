@@ -22,10 +22,10 @@
  */
 #include <string.h>
 
-#include "gtk-backend.h"
 #include "umms-gtk-ui.h"
+#include "gtk-backend.h"
 
-static gboolean expose_cb(GtkWidget *widget, GdkEventExpose *event, gpointer data)
+static gboolean umms_expose_cb(GtkWidget *widget, GdkEventExpose *event, gpointer data)
 {
     return FALSE;
 }
