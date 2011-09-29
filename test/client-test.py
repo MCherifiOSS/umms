@@ -22,9 +22,13 @@ method_name = (
     "GetPlaybackRate",
     "SetVolume",
     "GetVolume",
+    "SetMute",
+    "IsMute",
     "SetWindowId",#10
     "SetVideoSize",
     "GetVideoSize",
+    "SetScaleMode",
+    "GetScaleMode",
     "GetBufferedTime",
     "GetBufferedBytes",
     "GetMediaSizeTime",#15
@@ -72,9 +76,13 @@ method_name = (
     GetPlaybackRate,
     SetVolume,
     GetVolume,
+    SetMute,
+    IsMute,
     SetWindowId,
     SetVideoSize,
     GetVideoSize,
+    SetScaleMode,
+    GetScaleMode,
     GetBufferedTime,
     GetBufferedBytes,
     GetMediaSizeTime,
@@ -305,6 +313,12 @@ class CmdHandler(threading.Thread):
         elif mid == GetVolume:
         	vol = self.player.GetVolume()
         	print "Current vol is '%d'" % vol
+        elif mid == SetMute:
+            mute = int(raw_input ("0: unmute, 1: mute "))
+            self.player.SetMute(mute)
+        elif mid == IsMute:
+            mute = self.player.IsMute()
+            print "mute : %d" % mute
         elif mid == SetWindowId:
         	print "TODO:"
         elif mid == SetVideoSize:
@@ -316,6 +330,8 @@ class CmdHandler(threading.Thread):
             h = int(rectangle[3])
             print "SetVideoSize (%d,%d,%d,%d)" % (x,y,w,h) 
             self.player.SetVideoSize(x,y,w,h)
+        elif mid == SetScaleMode:
+        elif mid == GetScaleMode:
         elif mid == GetVideoSize:
         	(width, height) = self.player.GetVideoSize()
         	print "width=%d, height=%d" % (width, height)

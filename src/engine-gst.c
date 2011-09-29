@@ -280,46 +280,6 @@ cutout (MeegoMediaPlayerControl *self, gint x, gint y, gint w, gint h)
   return TRUE;
 }
 
-
-static Window
-get_app_win (MeegoMediaPlayerControl *self, Window win)
-{
-
-  Window root_win, parent_win, grandparent_win;
-  unsigned int num_children;
-  Window *child_list;
-
-  EngineGstPrivate *priv = GET_PRIVATE (self);
-  Display *dpy = priv->disp;
-
-  if (!XQueryTree(dpy, win, &root_win, &parent_win, &child_list,
-                  &num_children)) {
-    UMMS_DEBUG("Can't query window(%lx)'s parent.", win);
-    return 0;
-  }
-  UMMS_DEBUG("root=(%lx),window(%lx)'s parent = (%lx)", root_win, win, parent_win);
-  if (child_list) XFree((gchar *)child_list);
-  if (root_win == parent_win) {
-    UMMS_DEBUG("Parent is root, so we got the app window(%lx)", win);
-    return win;
-  }
-
-  if (!XQueryTree(dpy, parent_win, &root_win, &grandparent_win, &child_list,
-                  &num_children)) {
-    UMMS_DEBUG("Can't query window(%lx)'s grandparent.", win);
-    return 0;
-  }
-  if (child_list) XFree((gchar *)child_list);
-  UMMS_DEBUG("root=(%lx),window(%lx)'s grandparent = (%lx)", root_win, win, grandparent_win);
-
-  if (grandparent_win == root_win) {
-    UMMS_DEBUG("Grandpa is root, so we got the app window(%lx)", win);
-    return win;
-  } else {
-    return get_app_win (self, parent_win);
-  }
-}
-
 static gboolean
 unset_xwindow_target (MeegoMediaPlayerControl *self)
 {
