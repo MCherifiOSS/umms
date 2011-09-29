@@ -331,7 +331,9 @@ class CmdHandler(threading.Thread):
             print "SetVideoSize (%d,%d,%d,%d)" % (x,y,w,h) 
             self.player.SetVideoSize(x,y,w,h)
         elif mid == SetScaleMode:
+            print "Do nothing"
         elif mid == GetScaleMode:
+            print "Do nothing"
         elif mid == GetVideoSize:
         	(width, height) = self.player.GetVideoSize()
         	print "width=%d, height=%d" % (width, height)
