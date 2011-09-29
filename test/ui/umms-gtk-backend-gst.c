@@ -86,6 +86,24 @@ static gint avdec_getduration(GstElement *pipeline)
     return 0;
 }
 
+
+static gint avdec_getinfo(GstElement *pipeline)
+{
+    GstFormat fmt = GST_FORMAT_TIME;
+    GstState current, pending;
+
+    gst_element_get_state(pipeline, &current, &pending, 0);
+
+    ui_update_channels();
+
+    if (current == GST_STATE_PLAYING) {
+        g_timeout_add(5000, (GSourceFunc)avdec_getinfo, pipeline);
+    }
+
+    return 0;
+}
+
+
 gint avdec_init(void)
 {
     GstBus *bus;
@@ -139,6 +157,7 @@ gint avdec_start(void)
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
     g_timeout_add(500, (GSourceFunc)avdec_getduration, pipeline);
+    g_timeout_add(2000, (GSourceFunc)avdec_getinfo, pipeline);
 
     gtk_window_set_focus(GTK_WINDOW(window), video_window);
 
@@ -163,6 +182,7 @@ gint avdec_resume(void)
 {
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
     g_timeout_add(500, (GSourceFunc)avdec_getduration, pipeline);
+    g_timeout_add(2000, (GSourceFunc)avdec_getinfo, pipeline);
     return 0;
 }
 

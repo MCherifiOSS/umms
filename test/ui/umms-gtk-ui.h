@@ -48,5 +48,7 @@ void ui_main_loop(void);
  */
 void ui_send_stop_signal(void);
 void ui_update_progressbar(gint64 pos, gint64 len);
+void ui_update_channels(void);
+
 
 #endif /* UI_H_ */
