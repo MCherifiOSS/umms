@@ -21,9 +21,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 #include <string.h>
+#include <glib.h>
+#include <dbus/dbus-glib.h>
+#include <glib-object.h>
 
 #include "umms-gtk-ui.h"
 #include "gtk-backend.h"
+#include "../../src/umms-marshals.h"
+#include "../../libummsclient/umms-client-object.h"
+
+static UmmsClientObject *umms_client_obj = NULL;
+static DBusGProxy *player = NULL;
 
 static gboolean umms_expose_cb(GtkWidget *widget, GdkEventExpose *event, gpointer data)
 {
@@ -32,6 +40,11 @@ static gboolean umms_expose_cb(GtkWidget *widget, GdkEventExpose *event, gpointe
 
 gint avdec_init(void)
 {
+    g_type_init ();
+
+    umms_client_obj = umms_client_object_new();
+
+
     g_signal_connect(video_window, "expose-event",
             G_CALLBACK(umms_expose_cb), NULL);
 }
