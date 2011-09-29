@@ -198,6 +198,7 @@ static void ui_fileopen_dlg(GtkWidget *widget, gpointer data)
         ply_reload_file(filename);
         ui_pause_bt_cb(widget, data);
         g_free(filename);
+        av_sub_update_flag = 1;
     } else {
         gtk_widget_destroy(fileopen_dlg);
     }
@@ -222,9 +223,10 @@ static void ui_progressbar_vchange_cb( GtkAdjustment *get,
         gtk_combo_set_popdown_strings (GTK_COMBO (video_combo), c_list);
         g_list_free(c_list);
 
+        c_list = NULL;
         c_list = g_list_append(c_list, "audio0: AAC");
         c_list = g_list_append(c_list, "audio1: AC3");
-        gtk_combo_set_popdown_strings (GTK_COMBO (video_combo), c_list);
+        gtk_combo_set_popdown_strings (GTK_COMBO (audio_combo), c_list);
         g_list_free(c_list);
 
         c_list = NULL;
