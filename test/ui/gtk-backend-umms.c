@@ -29,6 +29,7 @@
 #include "gtk-backend.h"
 #include "../../src/umms-marshals.h"
 #include "../../libummsclient/umms-client-object.h"
+#include "../../src/umms-debug.h"
 
 static UmmsClientObject *umms_client_obj = NULL;
 static DBusGProxy *player = NULL;
