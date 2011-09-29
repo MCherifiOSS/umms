@@ -51,9 +51,10 @@ static GtkWidget *progress_time;
 static GtkWidget *image_play;
 static GtkWidget *image_pause;
 
-GtkWidget *video_combo;
-GtkWidget *audio_combo;
-GtkWidget *text_combo;
+static int av_sub_update_flag;
+static GtkWidget *video_combo;
+static GtkWidget *audio_combo;
+static GtkWidget *text_combo;
 
 int get_raw_data(void)
 {
@@ -77,7 +78,7 @@ int get_raw_data(void)
     server_addr.sin_addr = *((struct in_addr*)host->h_addr);
 
     if (connect (sockfd, (struct sockaddr*)(&server_addr), sizeof(struct sockaddr)) == -1) {
-        fprintf(stderr, "Connect Error:%s\a\n", strerror(errno));
+        printf("Connect Error: %s\a\n", strerror(errno));
         close(sockfd);
         return;
     }
@@ -86,7 +87,7 @@ int get_raw_data(void)
         nbytes = read(sockfd, buffer, 1024);
         printf( "received:%d bytes\n", nbytes);
         if (nbytes >= 0) {
-            buffer[nbytes] = '\0 ';
+            buffer[nbytes] = '\0';
             printf( "I have received:%x %x %x %x %x %x %x %x\n",
                     buffer[0], buffer[1], buffer[2], buffer[3], buffer[4],
                     buffer[5], buffer[6], buffer[7]);
@@ -143,7 +144,7 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
     GtkWidget *frame;
 
     info_dlg = gtk_dialog_new_with_buttons("Media Info",
-               gtk_widget_get_toplevel (window),
+               GTK_WINDOW(gtk_widget_get_toplevel (window)),
                GTK_DIALOG_MODAL,
                GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE,
                NULL);
@@ -213,6 +214,28 @@ static void ui_progressbar_vchange_cb( GtkAdjustment *get,
         ply_maindata = ply_get_maindata();
         ply_seek_stream_from_beginging((get->value / get->upper) * ply_maindata->duration_nanosecond);
     }
+
+    if (av_sub_update_flag) {
+        GList * c_list = NULL;
+        c_list = g_list_append(c_list, "video0: h264");
+        c_list = g_list_append(c_list, "video1: mpeg2");
+        gtk_combo_set_popdown_strings (GTK_COMBO (video_combo), c_list);
+        g_list_free(c_list);
+
+        c_list = g_list_append(c_list, "audio0: AAC");
+        c_list = g_list_append(c_list, "audio1: AC3");
+        gtk_combo_set_popdown_strings (GTK_COMBO (video_combo), c_list);
+        g_list_free(c_list);
+
+        c_list = NULL;
+        c_list = g_list_append(c_list, "text0");
+        c_list = g_list_append(c_list, "text1");
+        gtk_combo_set_popdown_strings (GTK_COMBO (text_combo), c_list);
+        g_list_free(c_list);
+
+        av_sub_update_flag = 0;
+    }
+    
 }
 
 void ui_send_stop_signal(void)
@@ -302,28 +325,17 @@ gint ui_create(void)
     switch_hbox = gtk_hbox_new(FALSE, 0);
     gtk_box_pack_start(GTK_BOX(topvbox), switch_hbox, TRUE, TRUE, 0);
     GtkWidget *volume_bar;
-    GList * c_list = NULL;
 
     video_combo = gtk_combo_new();
-    //c_list = g_list_append(c_list, "video0: h264");
-    //c_list = g_list_append(c_list, "video1: mpeg2");
-    gtk_combo_set_popdown_strings (GTK_COMBO (video_combo), c_list);
+    gtk_combo_set_popdown_strings (GTK_COMBO (video_combo), NULL);
     gtk_box_pack_start(GTK_BOX(switch_hbox), video_combo, TRUE, TRUE, 0);
 
-    g_list_free(c_list);
-    c_list = NULL;
     audio_combo = gtk_combo_new();
-    //c_list = g_list_append(c_list, "audio0: AAC");
-    //c_list = g_list_append(c_list, "audio1: AC3");
-    gtk_combo_set_popdown_strings (GTK_COMBO (audio_combo), c_list);
+    gtk_combo_set_popdown_strings (GTK_COMBO (audio_combo), NULL);
     gtk_box_pack_start(GTK_BOX(switch_hbox), audio_combo, TRUE, TRUE, 0);
 
-    g_list_free(c_list);
-    c_list = NULL;
     text_combo = gtk_combo_new();
-    //c_list = g_list_append(c_list, "text0");
-    //c_list = g_list_append(c_list, "text1");
-    gtk_combo_set_popdown_strings (GTK_COMBO (text_combo), c_list);
+    gtk_combo_set_popdown_strings (GTK_COMBO (text_combo), NULL);
     gtk_box_pack_start(GTK_BOX(switch_hbox), text_combo, TRUE, TRUE, 0);
 
     volume_bar = gtk_hscale_new_with_range(0, 100, 1);
