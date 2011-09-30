@@ -44,6 +44,20 @@ gint ply_init(void)
     return 0;
 }
 
+static void ply_update_duration(void * dummy)
+{
+    gint64 pos, len;
+
+    if(ply_get_state() == PLY_MAIN_STATE_RUN) {
+        avdec_get_duration(&len);
+        avdec_get_position(&pos);
+        ui_update_progressbar(pos, len);
+
+        g_timeout_add(500, (GSourceFunc)ply_update_duration, NULL);
+    }
+}
+
+
 PlyMainState ply_get_state(void)
 {
     g_mutex_lock (ply_main_data.state_lock);
@@ -59,6 +73,10 @@ void ply_set_state(PlyMainState state)
     ply_main_data.state = state;
     g_print("%s\n", dbg_state_name[ply_main_data.state]);
     g_mutex_unlock (ply_main_data.state_lock);
+
+    if(state == PLY_MAIN_STATE_RUN) {
+        g_timeout_add(500, (GSourceFunc)ply_update_duration, NULL);
+    }
 }
 
 
@@ -75,6 +93,23 @@ void ply_set_speed(gint speed)
 {
     g_mutex_lock (ply_main_data.state_lock);
     ply_main_data.play_speed = speed;
+    g_mutex_unlock (ply_main_data.state_lock);
+}
+
+
+gint64 ply_get_duration(void)
+{
+    g_mutex_lock (ply_main_data.state_lock);
+    gint64 len = ply_main_data.duration_nanosecond;
+    g_mutex_unlock (ply_main_data.state_lock);
+    return len;
+}
+
+
+void ply_set_duration(gint64 len)
+{
+    g_mutex_lock (ply_main_data.state_lock);
+    ply_main_data.duration_nanosecond = len;
     g_mutex_unlock (ply_main_data.state_lock);
 }
 

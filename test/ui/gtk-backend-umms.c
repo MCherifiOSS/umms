@@ -65,7 +65,6 @@ add_sigs(DBusGProxy *player)
     dbus_g_proxy_add_signal (player, "PlayerStateChanged", G_TYPE_INT, G_TYPE_INT, G_TYPE_INVALID);
 }
 
-
 static void __initialized_cb(DBusGProxy *player, gpointer user_data)
 {
     UMMS_DEBUG ("MeidaPlayer initialized");
@@ -339,7 +338,7 @@ gint avdec_set_speed(int speed)
     if (!dbus_g_proxy_call (player, "SetPlaybackRate", &error,
             G_TYPE_DOUBLE, (gdouble)speed,
             G_TYPE_INVALID, G_TYPE_INVALID)) {
-        UMMS_GERROR ("Failed to SetPlaybackRate", error);
+        UMMS_GERROR ("Failed to set_speed", error);
         return -1;
     }
     return 0;
@@ -354,9 +353,46 @@ gint avdec_get_speed(void)
     if (!dbus_g_proxy_call (player, "GetPlaybackRate", &error,
                 G_TYPE_INVALID, G_TYPE_DOUBLE, &speed,
                 G_TYPE_INVALID)) {
-        UMMS_GERROR ("Failed to SetPlaybackRate", error);
-        return (gint)speed;
+        UMMS_GERROR ("Failed to get_speed", error);
+        return 1;
     }
-    return 1;
+    return (gint)speed;
 }
+
+
+gint avdec_get_duration(gint64 * len)
+{
+    GError *error = NULL;
+    gint64 dur;
+
+    if (!dbus_g_proxy_call (player, "GetMediaSizeTime", &error,
+                G_TYPE_INVALID, G_TYPE_INT64, &dur,
+                G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to get_duration", error);
+        return -1;
+    }
+
+    //printf("Current duration = %lli\n", dur);
+    *len = dur;
+    return 0;
+}
+
+avdec_get_position(gint64 * pos)
+{
+    GError *error = NULL;
+    gint64 cur_pos;
+
+    if (!dbus_g_proxy_call (player, "GetPosition", &error,
+                G_TYPE_INVALID, G_TYPE_INT64, &cur_pos,
+                G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to get_position", error);
+        return -1;
+    }
+
+    //printf("Current pos = %lli\n", cur_pos);
+    *pos = cur_pos;
+    return 0;
+}
+
+
 

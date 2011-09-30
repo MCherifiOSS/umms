@@ -50,7 +50,6 @@ static GtkWidget *progress_time;
 static GtkWidget *image_play;
 static GtkWidget *image_pause;
 
-static int av_sub_update_flag;
 static GtkWidget *video_combo;
 static GtkWidget *audio_combo;
 static GtkWidget *text_combo;
@@ -276,7 +275,6 @@ static void ui_fileopen_dlg(GtkWidget *widget, gpointer data)
         ply_reload_file(filename);
         ui_pause_bt_cb(widget, data);
         g_free(filename);
-        av_sub_update_flag = 1;
     } else {
         gtk_widget_destroy(fileopen_dlg);
     }
@@ -297,7 +295,7 @@ static void ui_progressbar_vchange_cb( GtkAdjustment *get,
 
 void ui_update_channels(void)
 {
-
+/*
     if (av_sub_update_flag) {
         GList * c_list = NULL;
         c_list = g_list_append(c_list, "video0: h264");
@@ -318,7 +316,7 @@ void ui_update_channels(void)
         g_list_free(c_list);
 
         av_sub_update_flag = 0;
-    }
+    } */
 }
 
 
@@ -333,11 +331,12 @@ void ui_update_progressbar(gint64 pos, gint64 len)
     PlyMainData *ply_maindata;
     gchar label_str[30];
 
+    //printf("##### pos = %lld, len = %lld\n", pos, len);
     GtkAdjustment *adj = gtk_range_get_adjustment(GTK_RANGE(progressbar));
-    if ( (len / GST_SECOND) != 0) {
-        adj->value = ((pos / GST_SECOND) * 1000) / (len / GST_SECOND);
+    if ( (len) != 0) {
+        adj->value = ((pos) * 1000) / (len);
     }
-    if ( (len / GST_SECOND) == 0 ||
+    if ( (len) == 0 ||
          adj->value > 1000) {
         adj->value = 1000;
         pos = len;
@@ -348,12 +347,11 @@ void ui_update_progressbar(gint64 pos, gint64 len)
         adj->value = 0;
     }
 
-    //ply_maindata = ply_get_maindata();
-    ply_maindata->duration_nanosecond = len;
+    ply_set_duration(len);
 
     gtk_signal_emit_by_name(GTK_OBJECT(adj), "changed");
     g_sprintf(label_str, "%02u:%02u:%02u/%02u:%02u:%02u",
-              MY_GST_TIME_ARGS(pos), MY_GST_TIME_ARGS(len));
+              MY_GST_TIME_ARGS(pos*GST_SECOND/1000), MY_GST_TIME_ARGS(len*GST_SECOND/1000));
     gtk_label_set_text(GTK_LABEL(progress_time), label_str);
     g_print("%s\n", label_str);
     gtk_widget_show_all(progress_time);

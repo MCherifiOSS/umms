@@ -47,8 +47,6 @@ typedef struct _PlyMainData {
  */
 gint ply_init(void);
 
-PlyMainData *ply_get_maindata(void);
-
 /***
  * @brief Get player main state
  *
