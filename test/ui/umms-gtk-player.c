@@ -57,8 +57,27 @@ void ply_set_state(PlyMainState state)
 {
     g_mutex_lock (ply_main_data.state_lock);
     ply_main_data.state = state;
+    g_print("%s\n", dbg_state_name[ply_main_data.state]);
     g_mutex_unlock (ply_main_data.state_lock);
 }
+
+
+gint ply_get_speed(void)
+{
+    g_mutex_lock (ply_main_data.state_lock);
+    gint speed = ply_main_data.play_speed;
+    g_mutex_unlock (ply_main_data.state_lock);
+    return speed;
+}
+
+
+void ply_set_speed(gint speed)
+{
+    g_mutex_lock (ply_main_data.state_lock);
+    ply_main_data.play_speed = speed;
+    g_mutex_unlock (ply_main_data.state_lock);
+}
+
 
 gint ply_reload_file(gchar *filename)
 {
@@ -78,44 +97,25 @@ gint ply_reload_file(gchar *filename)
 gint ply_play_stream(void)
 {
     avdec_start();
-    ply_main_data.state = PLY_MAIN_STATE_RUN;
 
-    g_print("%s\n", dbg_state_name[ply_main_data.state]);
     return 0;
 }
 
 gint ply_stop_stream(void)
 {
-    /* If main state is idle or ready, remain its current state */
-    if (ply_main_data.state != PLY_MAIN_STATE_IDLE &&
-         ply_main_data.state != PLY_MAIN_STATE_READY) {
-        avdec_stop();
-        ply_main_data.state = PLY_MAIN_STATE_READY;
-    }
-
-    g_print("%s\n", dbg_state_name[ply_main_data.state]);
+    avdec_stop();
     return 0;
 }
 
 gint ply_pause_stream(void)
 {
-    if (ply_main_data.state == PLY_MAIN_STATE_RUN) {
-        ply_main_data.state = PLY_MAIN_STATE_PAUSE;
-        avdec_pause();
-    }
-
-    g_print("%s\n", dbg_state_name[ply_main_data.state]);
+    avdec_pause();
     return 0;
 }
 
 gint ply_resume_stream(void)
 {
-    if (ply_main_data.state == PLY_MAIN_STATE_PAUSE) {
-        ply_main_data.state = PLY_MAIN_STATE_RUN;
-        avdec_resume();
-    }
-
-    g_print("%s\n", dbg_state_name[ply_main_data.state]);
+    avdec_resume();
     return 0;
 }
 
@@ -126,13 +126,15 @@ gint ply_seek_stream_from_beginging(gint64 nanosecond)
 }
 
 
-gint ply_forward_stream(int speed)
+gint ply_forward_rewind(gint speed)
 {
-    if (ply_main_data.state == PLY_MAIN_STATE_RUN && speed > 0) {
-        avdec_set_speed(speed);
-        return 0;
-    }
+    avdec_set_speed(speed);
+    return 0;
+}
 
-    return -1;
+
+gint ply_get_play_speed(void)
+{
+    return avdec_get_speed();
 }
 

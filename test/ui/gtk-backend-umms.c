@@ -346,3 +346,17 @@ gint avdec_set_speed(int speed)
 }
 
 
+gint avdec_get_speed(void)
+{
+    GError *error = NULL;
+    gdouble speed;
+
+    if (!dbus_g_proxy_call (player, "GetPlaybackRate", &error,
+                G_TYPE_INVALID, G_TYPE_DOUBLE, &speed,
+                G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to SetPlaybackRate", error);
+        return (gint)speed;
+    }
+    return 1;
+}
+

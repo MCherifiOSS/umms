@@ -94,9 +94,24 @@ void ui_callbacks_for_reason(UI_CALLBACK_REASONS reason, void * data1, void * da
             break;
 
         case UI_CALLBACK_SEEKED:
+            {
+            char *str;
+            gint play_speed;
+
+            play_speed = ply_get_play_speed();
+            
+            str = g_strdup_printf("  Play Speed: X %d   ", play_speed);
+            gtk_label_set_text(GTK_LABEL(speed_lab), str);
+            g_free(str);
+            ply_set_speed(play_speed);
+            }
             break;
 
         case UI_CALLBACK_STOPPED:
+            gtk_label_set_text(GTK_LABEL(speed_lab), "  Play Speed: X 0   ");
+            gtk_container_remove(GTK_CONTAINER(button_play), image_pause);
+            gtk_container_add(GTK_CONTAINER(button_play), image_play);
+            ply_set_state(PLY_MAIN_STATE_IDLE);
             break;
 
         case UI_CALLBACK_ERROR:
@@ -168,55 +183,36 @@ static void ui_pause_bt_cb(GtkWidget *widget, gpointer data)
 
 static void ui_stop_bt_cb(GtkWidget *widget, gpointer data)
 {
-    if (ply_get_state() == PLY_MAIN_STATE_RUN) {
-        ply_stop_stream();
-    } else if (ply_get_state() == PLY_MAIN_STATE_PAUSE) {
-        ply_stop_stream();
-    }
+    /* can stop anyway. */
+    ply_stop_stream();
 }
 
 static void ui_forward_bt_cb(GtkWidget *widget, gpointer data)
 {
-    int speed = 0;
-/*
+    gint speed = ply_get_speed();
+    if (speed <= 0) {
+        speed = 1;
+    } else {
+        speed = speed*2;
+    }
+
     if (ply_get_state() == PLY_MAIN_STATE_RUN) {
-        if (play_speed <= 0) {
-            speed = 1;
-        } else {
-            speed = play_speed + 1;
-        }
-        
-        if(!ply_forward_stream(speed)) {
-            char *str;
-            
-            play_speed++;
-            str = g_strdup_printf("  Play Speed: X %d   ", play_speed);
-            gtk_label_set_text(GTK_LABEL(speed_lab), str);
-            g_free(str);
-        }
-    }*/
+        ply_forward_rewind(speed);
+    }
 }
 
 static void ui_rewind_bt_cb(GtkWidget *widget, gpointer data)
 {
-  /*  int speed = 0;
-    
+    gint speed = ply_get_speed();
+    if (speed >= 0) {
+        speed = -1;
+    } else {
+        speed = speed*2;
+    }
+
     if (ply_get_state() == PLY_MAIN_STATE_RUN) {
-        if (play_speed >= 0) {
-            speed = -1;
-        } else {
-            speed = play_speed - 1;
-        }
-        
-        if(!ply_forward_stream(speed)) {
-            char *str;
-            
-            play_speed = speed;
-            str = g_strdup_printf("  Play Speed: X %d   ", speed);
-            gtk_label_set_text(GTK_LABEL(speed_lab), str);
-            g_free(str);
-        }
-    }*/
+        ply_forward_rewind(speed);
+    }
 }
 
 static void ui_info_bt_cb(GtkWidget *widget, gpointer data)

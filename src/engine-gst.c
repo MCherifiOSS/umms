@@ -1227,6 +1227,7 @@ engine_gst_set_playback_rate (MeegoMediaPlayerControl *self, gdouble in_rate)
 {
   GstElement *pipe;
   EngineGstPrivate *priv;
+  gboolean ret = TRUE;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
@@ -1236,10 +1237,13 @@ engine_gst_set_playback_rate (MeegoMediaPlayerControl *self, gdouble in_rate)
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
   UMMS_DEBUG ("set playback rate to %f ", in_rate);
-  return gst_element_seek (pipe, in_rate,
+  ret = gst_element_seek (pipe, in_rate,
          GST_FORMAT_TIME, GST_SEEK_FLAG_NONE,
          GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE,
          GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
+         
+  if (ret)
+    meego_media_player_control_emit_seeked (self);
 }
 
 static gboolean
