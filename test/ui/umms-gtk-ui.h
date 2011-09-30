@@ -25,6 +25,19 @@
 #define UI_H_
 #include <gtk/gtk.h>
 
+typedef enum _UI_CALLBACK_REASONS 
+{
+    UI_CALLBACK_STATE_CHANGE,
+    UI_CALLBACK_EOF,
+    UI_CALLBACK_SEEKED,
+    UI_CALLBACK_BUFFERING,
+    UI_CALLBACK_BUFFERED,
+    UI_CALLBACK_STOPPED,
+    UI_CALLBACK_ERROR,
+
+}UI_CALLBACK_REASONS;
+
+
 extern GtkWidget *video_window;
 extern GtkWidget *window;
 
@@ -51,5 +64,6 @@ void ui_send_stop_signal(void);
 void ui_update_progressbar(gint64 pos, gint64 len);
 void ui_update_channels(void);
 
+void ui_callbacks_for_reason(UI_CALLBACK_REASONS reason, void * data1, void * data2);
 
 #endif /* UI_H_ */

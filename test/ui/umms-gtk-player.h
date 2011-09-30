@@ -33,9 +33,11 @@ typedef enum _PlyMainState {
 }PlyMainState;
 
 typedef struct _PlyMainData {
+    GMutex *state_lock; 
     PlyMainState state;
     GString filename;
     gint64 duration_nanosecond;
+    gint play_speed;
 }PlyMainData;
 
 /***

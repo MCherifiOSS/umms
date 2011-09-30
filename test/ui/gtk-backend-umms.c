@@ -60,7 +60,9 @@ add_sigs(DBusGProxy *player)
 
     dbus_g_object_register_marshaller (umms_marshal_VOID__UINT_STRING, G_TYPE_NONE, G_TYPE_UINT, G_TYPE_STRING, G_TYPE_INVALID);
     dbus_g_proxy_add_signal (player, "Error", G_TYPE_UINT, G_TYPE_STRING, G_TYPE_INVALID);
-    dbus_g_proxy_add_signal (player, "PlayerStateChanged", G_TYPE_INT, G_TYPE_INVALID);
+    
+    dbus_g_object_register_marshaller (umms_marshal_VOID__INT_INT, G_TYPE_NONE, G_TYPE_INT, G_TYPE_INT, G_TYPE_INVALID);
+    dbus_g_proxy_add_signal (player, "PlayerStateChanged", G_TYPE_INT, G_TYPE_INT, G_TYPE_INVALID);
 }
 
 
@@ -72,35 +74,43 @@ static void __initialized_cb(DBusGProxy *player, gpointer user_data)
 static void __player_state_changed_cb(DBusGProxy *player, gint state, gpointer user_data)
 {
     UMMS_DEBUG("State changed to '%s'", state_name[state]);
+    ui_callbacks_for_reason(UI_CALLBACK_STATE_CHANGE, (void *)state, NULL);
 }
 
 static void __eof_cb(DBusGProxy *player, gpointer user_data)
 {
     UMMS_DEBUG( "EOF....");
+    ui_callbacks_for_reason(UI_CALLBACK_EOF, NULL, NULL);
 }
 
 static void __begin_buffering_cb(DBusGProxy *player, gpointer user_data)
 {
+    UMMS_DEBUG( "BUFFERING ....");
+    ui_callbacks_for_reason(UI_CALLBACK_BUFFERING, NULL, NULL);
 }
 
 static void __buffered_cb(DBusGProxy *player, gpointer user_data)
 {
-    UMMS_DEBUG( "Buffering completed");
+    UMMS_DEBUG( "Buffering completed");    
+    ui_callbacks_for_reason(UI_CALLBACK_BUFFERED, NULL, NULL);
 }
 
 static void __seeked_cb(DBusGProxy *player, gpointer user_data)
 {
     UMMS_DEBUG( "Seeking completed");
+    ui_callbacks_for_reason(UI_CALLBACK_SEEKED, NULL, NULL);
 }
 
 static void __stopped_cb(DBusGProxy *player, gpointer user_data)
 {
-    UMMS_DEBUG( "Player stopped");
+    UMMS_DEBUG( "Player stopped");    
+    ui_callbacks_for_reason(UI_CALLBACK_STOPPED, NULL, NULL);
 }
 
 static void __error_cb(DBusGProxy *player, guint err_id, gchar *msg, gpointer user_data)
 {
     UMMS_DEBUG( "Error Domain:'%s', msg='%s'", error_type[err_id], msg);
+    ui_callbacks_for_reason(UI_CALLBACK_ERROR, (void *)err_id, (void *)msg);
 }
 
 static void __request_window_cb(DBusGProxy *player, gpointer user_data)
@@ -327,7 +337,7 @@ gint avdec_set_speed(int speed)
     GError *error = NULL;
 
     if (!dbus_g_proxy_call (player, "SetPlaybackRate", &error,
-            G_TYPE_INT64, speed,
+            G_TYPE_DOUBLE, (gdouble)speed,
             G_TYPE_INVALID, G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to SetPlaybackRate", error);
         return -1;

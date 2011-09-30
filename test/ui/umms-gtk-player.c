@@ -37,26 +37,33 @@ static PlyMainData ply_main_data;
 
 gint ply_init(void)
 {
+    ply_main_data.state_lock = g_mutex_new ();
     ply_main_data.state = PLY_MAIN_STATE_IDLE;
+    ply_main_data.play_speed = 1;
     avdec_init();
     return 0;
 }
 
-PlyMainData *ply_get_maindata(void)
+PlyMainState ply_get_state(void)
 {
-    return &ply_main_data;
+    g_mutex_lock (ply_main_data.state_lock);
+    PlyMainState state = ply_main_data.state;
+    g_mutex_unlock (ply_main_data.state_lock);
+    return state;
 }
 
 
-PlyMainState ply_get_state(void)
+void ply_set_state(PlyMainState state)
 {
-    return ply_main_data.state;
+    g_mutex_lock (ply_main_data.state_lock);
+    ply_main_data.state = state;
+    g_mutex_unlock (ply_main_data.state_lock);
 }
 
 gint ply_reload_file(gchar *filename)
 {
     if (ply_main_data.state != PLY_MAIN_STATE_IDLE &&
-         ply_main_data.state != PLY_MAIN_STATE_READY) {
+            ply_main_data.state != PLY_MAIN_STATE_READY) {
         ply_stop_stream();
     }
 

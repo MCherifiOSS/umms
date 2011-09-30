@@ -237,14 +237,14 @@
 			<arg name="location" type="s"/>
 		</method>
 
-    <method name="GetPat">
-      <arg name="pat" type="aa{sv}" direction="out"/>
+		<method name="GetPat">
+			<arg name="pat" type="aa{sv}" direction="out"/>
 		</method>
 
-    <method name="GetPmt">
-      <arg name="program-number" type="u" direction="out"/>
-      <arg name="pcr-pid" type="u" direction="out"/>
-      <arg name="stream-info" type="aa{sv}" direction="out"/>
+		<method name="GetPmt">
+			<arg name="program-number" type="u" direction="out"/>
+			<arg name="pcr-pid" type="u" direction="out"/>
+			<arg name="stream-info" type="aa{sv}" direction="out"/>
 		</method>
 
 		<method name="GetCurrentUri">
