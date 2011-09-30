@@ -52,8 +52,6 @@ static void ply_update_duration(void * dummy)
         avdec_get_duration(&len);
         avdec_get_position(&pos);
         ui_update_progressbar(pos, len);
-
-        g_timeout_add(500, (GSourceFunc)ply_update_duration, NULL);
     }
 }
 
@@ -69,14 +67,24 @@ PlyMainState ply_get_state(void)
 
 void ply_set_state(PlyMainState state)
 {
+    static guint dur_timeout_id = 0;
+
     g_mutex_lock (ply_main_data.state_lock);
     ply_main_data.state = state;
     g_print("%s\n", dbg_state_name[ply_main_data.state]);
-    g_mutex_unlock (ply_main_data.state_lock);
 
-    if(state == PLY_MAIN_STATE_RUN) {
-        g_timeout_add(500, (GSourceFunc)ply_update_duration, NULL);
+    if(state == PLY_MAIN_STATE_RUN) {    
+        if(dur_timeout_id == 0) {
+            dur_timeout_id = g_timeout_add(1000, (GSourceFunc)ply_update_duration, NULL);
+        }
+    } else {
+        if(dur_timeout_id != 0) {
+            g_source_remove (dur_timeout_id);
+            dur_timeout_id = 0;
+        }
     }
+    
+    g_mutex_unlock (ply_main_data.state_lock);
 }
 
 

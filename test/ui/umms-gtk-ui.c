@@ -65,8 +65,14 @@ void ui_callbacks_for_reason(UI_CALLBACK_REASONS reason, void * data1, void * da
         case UI_CALLBACK_STATE_CHANGE:
             {
                 if((int)data1 == 2) {// Playing
+                    gint play_speed;
+                    char *str;
+                    
+                    play_speed = ply_get_play_speed();
+                    str = g_strdup_printf("  Play Speed: X %d   ", play_speed);
                     gtk_container_remove(GTK_CONTAINER(button_play), image_play);
                     gtk_container_add(GTK_CONTAINER(button_play), image_pause);
+                    gtk_label_set_text(GTK_LABEL(speed_lab), str);
                     ply_set_state(PLY_MAIN_STATE_RUN);
                 } else {
                     gtk_container_remove(GTK_CONTAINER(button_play), image_pause);
@@ -110,7 +116,7 @@ void ui_callbacks_for_reason(UI_CALLBACK_REASONS reason, void * data1, void * da
             gtk_label_set_text(GTK_LABEL(speed_lab), "  Play Speed: X 0   ");
             gtk_container_remove(GTK_CONTAINER(button_play), image_pause);
             gtk_container_add(GTK_CONTAINER(button_play), image_play);
-            ply_set_state(PLY_MAIN_STATE_IDLE);
+            ply_set_state(PLY_MAIN_STATE_READY);
             break;
 
         case UI_CALLBACK_ERROR:
@@ -170,6 +176,7 @@ int get_raw_data(void)
 
 static void ui_pause_bt_cb(GtkWidget *widget, gpointer data)
 {
+    //printf("the status is %d\n", ply_get_state());
     if (ply_get_state() == PLY_MAIN_STATE_READY) {
         ply_play_stream();
     } else if (ply_get_state() == PLY_MAIN_STATE_RUN) {
@@ -283,6 +290,7 @@ static void ui_fileopen_dlg(GtkWidget *widget, gpointer data)
 static void ui_progressbar_vchange_cb( GtkAdjustment *get,
         GtkAdjustment *set )
 {
+/*
     PlyMainData *ply_maindata;
 
     g_print("fasfafafasfafsa:%f\n", get->value);
@@ -290,7 +298,7 @@ static void ui_progressbar_vchange_cb( GtkAdjustment *get,
          ply_get_state() == PLY_MAIN_STATE_PAUSE) {
         //ply_maindata = ply_get_maindata();
         ply_seek_stream_from_beginging((get->value / get->upper) * ply_maindata->duration_nanosecond);
-    }
+    }*/
 }
 
 void ui_update_channels(void)

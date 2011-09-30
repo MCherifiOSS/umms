@@ -389,10 +389,8 @@ avdec_get_position(gint64 * pos)
         return -1;
     }
 
-    //printf("Current pos = %lli\n", cur_pos);
+    printf("Current pos = %lli\n", cur_pos);
     *pos = cur_pos;
     return 0;
 }
-
-
 
