@@ -118,3 +118,14 @@ gint ply_seek_stream_from_beginging(gint64 nanosecond)
     return 0;
 }
 
+
+gint ply_forward_stream(int speed)
+{
+    if (ply_main_data.state == PLY_MAIN_STATE_RUN && speed > 0) {
+        avdec_set_speed(speed);
+        return 0;
+    }
+
+    return -1;
+}
+

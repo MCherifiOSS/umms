@@ -55,6 +55,9 @@ static GtkWidget *video_combo;
 static GtkWidget *audio_combo;
 static GtkWidget *text_combo;
 
+GtkWidget *speed_lab;
+static int play_speed = 1;
+
 int get_raw_data(void)
 {
     int sockfd;
@@ -103,6 +106,8 @@ static void ui_pause_bt_cb(GtkWidget *widget, gpointer data)
         ply_play_stream();
         gtk_container_remove(GTK_CONTAINER(button_play), image_play);
         gtk_container_add(GTK_CONTAINER(button_play), image_pause);
+        gtk_label_set_text(GTK_LABEL(speed_lab), "  Play Speed: X 1   ");
+        play_speed = 1;
     } else if (ply_get_state() == PLY_MAIN_STATE_RUN) {
         ply_pause_stream();
         gtk_container_remove(GTK_CONTAINER(button_play), image_pause);
@@ -111,6 +116,8 @@ static void ui_pause_bt_cb(GtkWidget *widget, gpointer data)
         ply_resume_stream();
         gtk_container_remove(GTK_CONTAINER(button_play), image_play);
         gtk_container_add(GTK_CONTAINER(button_play), image_pause);
+        gtk_label_set_text(GTK_LABEL(speed_lab), "  Play Speed: X 1   ");
+        play_speed = 1;
     }
     gtk_widget_show_all(window);
 }
@@ -128,12 +135,46 @@ static void ui_stop_bt_cb(GtkWidget *widget, gpointer data)
 
 static void ui_forward_bt_cb(GtkWidget *widget, gpointer data)
 {
-}
+    int speed = 0;
 
+    if (ply_get_state() == PLY_MAIN_STATE_RUN) {
+        if (play_speed <= 0) {
+            speed = 1;
+        } else {
+            speed = play_speed + 1;
+        }
+        
+        if(!ply_forward_stream(speed)) {
+            char *str;
+            
+            play_speed++;
+            str = g_strdup_printf("  Play Speed: X %d   ", play_speed);
+            gtk_label_set_text(GTK_LABEL(speed_lab), str);
+            g_free(str);
+        }
+    }
+}
 
 static void ui_rewind_bt_cb(GtkWidget *widget, gpointer data)
 {
-
+    int speed = 0;
+    
+    if (ply_get_state() == PLY_MAIN_STATE_RUN) {
+        if (play_speed >= 0) {
+            speed = -1;
+        } else {
+            speed = play_speed - 1;
+        }
+        
+        if(!ply_forward_stream(speed)) {
+            char *str;
+            
+            play_speed = speed;
+            str = g_strdup_printf("  Play Speed: X %d   ", speed);
+            gtk_label_set_text(GTK_LABEL(speed_lab), str);
+            g_free(str);
+        }
+    }
 }
 
 static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
@@ -316,6 +357,13 @@ gint ui_create(void)
     GtkWidget *progress_hbox;
     progress_hbox = gtk_hbox_new(FALSE, 0);
     gtk_box_pack_start(GTK_BOX(topvbox), progress_hbox, TRUE, TRUE, 0);
+    speed_lab = gtk_label_new(NULL);
+    gtk_label_set_text(GTK_LABEL(speed_lab), "  Play Speed: X 1   ");
+    gtk_label_set_justify(GTK_LABEL(speed_lab), GTK_JUSTIFY_FILL);
+    gtk_label_set_line_wrap (GTK_LABEL(speed_lab), FALSE);
+    gtk_box_pack_start(GTK_BOX(progress_hbox), speed_lab, FALSE, FALSE, 0);
+    play_speed = 1;
+
     progressbar = gtk_hscale_new_with_range(0, 1000, 1);
     gtk_scale_set_digits(GTK_SCALE(progressbar), 0);
     gtk_scale_set_draw_value(GTK_SCALE(progressbar), FALSE);

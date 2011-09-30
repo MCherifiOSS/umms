@@ -97,4 +97,6 @@ gint ply_resume_stream(void);
  */
 gint ply_seek_stream_from_beginging(gint64 nanosecond);
 
+gint ply_forward_stream(int speed);
+
 #endif /* PLAYER_CORE_H_ */

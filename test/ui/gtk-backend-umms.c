@@ -322,3 +322,17 @@ gint avdec_seek_from_beginning(gint64 nanosecond)
     return 0;
 }
 
+gint avdec_set_speed(int speed)
+{
+    GError *error = NULL;
+
+    if (!dbus_g_proxy_call (player, "SetPlaybackRate", &error,
+            G_TYPE_INT64, speed,
+            G_TYPE_INVALID, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to SetPlaybackRate", error);
+        return -1;
+    }
+    return 0;
+}
+
+
