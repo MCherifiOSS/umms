@@ -22,6 +22,7 @@
  */
 
 #include "umms-debug.h"
+#include "umms-common.h"
 #include "meego-media-player-gstreamer.h"
 #include "meego-media-player-control.h"
 #include "engine-gst.h"
@@ -42,10 +43,18 @@ enum EngineType {
 
 struct _MeegoMediaPlayerGstreamerPrivate {
   enum EngineType engine_type;
+  PlatformType platform_type;
 };
 
 //implement load_engine vmethod
 #define TV_PREFIX "dvb:"
+
+/*property for object manager*/
+enum PROPTYPE{
+  PROP_0,
+  PROP_PLATFORM,
+  PROP_LAST
+};
 
 MeegoMediaPlayerControl *
 create_engine (gint type)
@@ -122,7 +131,14 @@ meego_media_player_gstreamer_set_property (GObject      *object,
     const GValue *value,
     GParamSpec   *pspec)
 {
+  MeegoMediaPlayerGstreamerPrivate *priv = GET_PRIVATE (object);
+  gint tmp;
   switch (property_id) {
+    case PROP_PLATFORM:
+      tmp = g_value_get_int(value);
+      priv->platform_type = tmp;
+      UMMS_DEBUG("platform type: %d", tmp);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
   }
@@ -156,6 +172,11 @@ meego_media_player_gstreamer_class_init (MeegoMediaPlayerGstreamerClass *klass)
   object_class->finalize = meego_media_player_gstreamer_finalize;
 
   p_class->load_engine = meego_media_player_gstreamer_load_engine;
+
+  g_object_class_install_property (object_class, PROP_PLATFORM,
+      g_param_spec_int ("platform", "platform type", "indication for platform type: Tv, netbook, etc",0,INVALID,
+          CETV, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
 }
 
 static void

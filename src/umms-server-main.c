@@ -300,7 +300,7 @@ main (int    argc,
 
   UmmsObjectManager *umms_object_manager = NULL;
   dbus_g_object_type_install_info (UMMS_TYPE_OBJECT_MANAGER, &dbus_glib_umms_object_manager_object_info);
-  umms_object_manager = umms_object_manager_new ();
+  umms_object_manager = umms_object_manager_new (platform_type);
 
   UmmsPlayingContentMetadataViewer *metadata_viewer = NULL;
   dbus_g_object_type_install_info (UMMS_TYPE_PLAYING_CONTENT_METADATA_VIEWER, &dbus_glib_umms_playing_content_metadata_viewer_object_info);
