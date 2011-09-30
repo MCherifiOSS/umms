@@ -70,7 +70,7 @@ struct _UmmsAudioManagerClass
 
 GType umms_audio_manager_get_type (void) G_GNUC_CONST;
 
-UmmsAudioManager *umms_audio_manager_new (void);
+UmmsAudioManager *umms_audio_manager_new (gint platform);
 gboolean umms_audio_manager_set_volume(UmmsAudioManager *self, gint type, gint vol, GError **error);
 gboolean umms_audio_manager_get_volume(UmmsAudioManager *self, gint type, gint *vol, GError **error);
 gboolean umms_audio_manager_set_state(UmmsAudioManager *self, gint type, gint state, GError **error);

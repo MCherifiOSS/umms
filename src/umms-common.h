@@ -98,5 +98,12 @@ enum {
  AUDIO_OUTPUT_STATE_NUM
 }AudioOutputState;
 
+/*platform type */
+typedef enum {
+  CETV,
+  NETBOOK,
+  INVALID
+}PlatformType;
+
 #endif /* _UMMS_COMMON_H */
 

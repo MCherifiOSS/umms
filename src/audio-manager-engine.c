@@ -70,6 +70,7 @@ struct _AudioManagerEnginePrivate {
   GstElement *asink;
 };
 
+
 static gboolean
 audio_manager_engine_set_volume (AudioManagerInterface *self, gint type, gint vol)
 {
@@ -253,6 +254,7 @@ audio_manager_engine_class_init (AudioManagerEngineClass *klass)
   object_class->set_property = audio_manager_engine_set_property;
   object_class->dispose = audio_manager_engine_dispose;
   object_class->finalize = audio_manager_engine_finalize;
+
 }
 
 static void
