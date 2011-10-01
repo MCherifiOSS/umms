@@ -69,10 +69,13 @@ static void ui_update_audio_video_text(gint what)
     gchar *show_name = NULL;
     
     if(what & UPDATE_VIDEO_TAG) {
-        c_list = NULL;
         gint video_num = ply_get_video_num();
         gint cur_video = ply_get_cur_video();
 
+        while(gtk_combo_box_get_active_text(GTK_COMBO_BOX(video_combo))) {
+            gtk_combo_box_remove_text(GTK_COMBO_BOX(video_combo), 0);
+        }
+        
         for(i=0; i < video_num; i++) {
             codec_name = ply_get_video_codec(i);
             if(!codec_name || !strcmp(codec_name, "")) {
@@ -83,24 +86,26 @@ static void ui_update_audio_video_text(gint what)
             g_free(codec_name);
 
             if(i == cur_video) {
-                c_list = g_list_prepend(c_list, show_name);
+                gtk_combo_box_prepend_text(GTK_COMBO_BOX(video_combo), show_name);
             } else {
-                c_list = g_list_append(c_list, show_name);
+                gtk_combo_box_append_text(GTK_COMBO_BOX(video_combo), show_name);
             }
         }
-        gtk_combo_set_popdown_strings (GTK_COMBO (video_combo), c_list);
-        g_list_free(c_list);
+        gtk_combo_box_set_active (GTK_COMBO_BOX(video_combo), cur_video);
     }
 
     
     if(what & UPDATE_AUDIO_TAG) {
-        c_list = NULL;
         gint audio_num = ply_get_audio_num();
         gint cur_audio = ply_get_cur_audio();
 
+        while(gtk_combo_box_get_active_text(GTK_COMBO_BOX(audio_combo))) {
+            gtk_combo_box_remove_text(GTK_COMBO_BOX(audio_combo), 0);
+        }
+
         for(i=0; i < audio_num; i++) {
             codec_name = ply_get_audio_codec(i);
-            if(!codec_name || !strcmp(codec_name, "")) {
+            if(codec_name == NULL) {// || !strcmp(codec_name, "")) {
                 show_name = g_strdup_printf("Audio %d: Format not known", i);
             } else {
                 show_name = g_strdup_printf("Audio %d: %s", i, codec_name);
@@ -108,13 +113,12 @@ static void ui_update_audio_video_text(gint what)
             g_free(codec_name);
             
             if(i == cur_audio) {
-                c_list = g_list_prepend(c_list, show_name);
+                gtk_combo_box_prepend_text(GTK_COMBO_BOX(audio_combo), show_name);
             } else {
-                c_list = g_list_append(c_list, show_name);
+                gtk_combo_box_append_text(GTK_COMBO_BOX(audio_combo), show_name);
             }
         }
-        gtk_combo_set_popdown_strings (GTK_COMBO (audio_combo), c_list);
-        g_list_free(c_list);
+        gtk_combo_box_set_active (GTK_COMBO_BOX(audio_combo), cur_audio);
     }
 }
 
@@ -462,6 +466,7 @@ gint ui_create(void)
     GtkWidget *file_menu;
     GtkWidget *play_menu;
     GtkWidget *help_menu;
+    GtkWidget *table;
 
     gtk_widget_show_all(window);
 
@@ -491,26 +496,22 @@ gint ui_create(void)
     gtk_box_pack_start(GTK_BOX(progress_hbox), progress_time, FALSE, FALSE, 0);
 
     /* AV/Text streams select and volume */
-    GtkWidget *switch_hbox;
-    switch_hbox = gtk_hbox_new(FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(topvbox), switch_hbox, TRUE, TRUE, 0);
+    table = gtk_table_new (2, 15, TRUE);
+    gtk_box_pack_start(GTK_BOX(topvbox), table, TRUE, TRUE, 0);
     GtkWidget *volume_bar;
 
-    video_combo = gtk_combo_new();
-    gtk_combo_set_popdown_strings (GTK_COMBO (video_combo), NULL);
-    gtk_box_pack_start(GTK_BOX(switch_hbox), video_combo, TRUE, TRUE, 0);
+    video_combo = gtk_combo_box_new_text();
+    gtk_table_attach_defaults (GTK_TABLE (table), video_combo, 0, 4, 0, 1);
 
-    audio_combo = gtk_combo_new();
-    gtk_combo_set_popdown_strings (GTK_COMBO (audio_combo), NULL);
-    gtk_box_pack_start(GTK_BOX(switch_hbox), audio_combo, TRUE, TRUE, 0);
+    audio_combo = gtk_combo_box_new_text();
+    gtk_table_attach_defaults (GTK_TABLE (table), audio_combo, 4, 8, 0, 1);
 
-    text_combo = gtk_combo_new();
-    gtk_combo_set_popdown_strings (GTK_COMBO (text_combo), NULL);
-    gtk_box_pack_start(GTK_BOX(switch_hbox), text_combo, TRUE, TRUE, 0);
+
+    text_combo = gtk_combo_box_new_text();
+    gtk_table_attach_defaults (GTK_TABLE (table), text_combo, 8, 12, 0, 1);
 
     volume_bar = gtk_hscale_new_with_range(0, 100, 1);
-    gtk_box_pack_start(GTK_BOX(switch_hbox), volume_bar, TRUE, TRUE, 0);
-    gtk_widget_set_size_request(progressbar, 32, 20);
+    gtk_table_attach_defaults (GTK_TABLE (table), volume_bar, 12, 15, 0, 1);
 
     /* Control Button */
     GtkWidget *button_hbox;
@@ -525,31 +526,40 @@ gint ui_create(void)
     GtkWidget *button_info;
     GtkWidget *button_option;
 
-    button_hbox = gtk_hbox_new(FALSE, 0);
+    //button_hbox = gtk_hbox_new(FALSE, 0);
     gtk_box_pack_start(GTK_BOX(topvbox), button_hbox, FALSE, FALSE, 0);
     button_rewind = gtk_button_new();
     image_rewind = gtk_image_new_from_stock(GTK_STOCK_MEDIA_REWIND, GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_rewind), image_rewind);
-    gtk_box_pack_start(GTK_BOX(button_hbox), button_rewind, TRUE, TRUE, 0);
+    //gtk_box_pack_start(GTK_BOX(button_hbox), button_rewind, TRUE, TRUE, 0);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_rewind, 0, 2, 1, 2);
+
     button_play = gtk_button_new();
     image_play = gtk_image_new_from_stock(GTK_STOCK_MEDIA_PLAY, GTK_ICON_SIZE_BUTTON);
     image_pause = gtk_image_new_from_stock(GTK_STOCK_MEDIA_PAUSE, GTK_ICON_SIZE_BUTTON);
     g_object_ref((gpointer)image_play);
     g_object_ref((gpointer)image_pause);
     gtk_container_add(GTK_CONTAINER(button_play), image_play);
-    gtk_box_pack_start(GTK_BOX(button_hbox), button_play, TRUE, TRUE, 0);
+    //gtk_box_pack_start(GTK_BOX(button_hbox), button_play, TRUE, TRUE, 0);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_play, 2, 4, 1, 2);
+    
     button_stop = gtk_button_new();
     image_stop = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP, GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_stop), image_stop);
-    gtk_box_pack_start(GTK_BOX(button_hbox), button_stop, TRUE, TRUE, 0);
+    //gtk_box_pack_start(GTK_BOX(button_hbox), button_stop, TRUE, TRUE, 0);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_stop, 4, 6, 1, 2);
+    
     button_forward = gtk_button_new();
     image_forward = gtk_image_new_from_stock(GTK_STOCK_MEDIA_FORWARD, GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_forward), image_forward);
-    gtk_box_pack_start(GTK_BOX(button_hbox), button_forward, TRUE, TRUE, 0);
+    //gtk_box_pack_start(GTK_BOX(button_hbox), button_forward, TRUE, TRUE, 0);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_forward, 6, 8, 1, 2);
+    
     button_fileopen = gtk_button_new();
     image_fileopen = gtk_image_new_from_stock("gtk-open", GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_fileopen), image_fileopen);
-    gtk_box_pack_start(GTK_BOX(button_hbox), button_fileopen, TRUE, TRUE, 0);
+    //gtk_box_pack_start(GTK_BOX(button_hbox), button_fileopen, TRUE, TRUE, 0);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_fileopen, 8, 10, 1, 2);
 
     g_signal_connect((gpointer)button_fileopen, "clicked", G_CALLBACK(ui_fileopen_dlg), NULL);
     g_signal_connect((gpointer)button_play, "clicked", G_CALLBACK(ui_pause_bt_cb), NULL);
@@ -559,8 +569,10 @@ gint ui_create(void)
 
     button_info = gtk_button_new_with_label("Info");
     button_option = gtk_button_new_with_label("Options");
-    gtk_box_pack_start(GTK_BOX(button_hbox), button_info, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(button_hbox), button_option, TRUE, TRUE, 0);
+    //gtk_box_pack_start(GTK_BOX(button_hbox), button_info, TRUE, TRUE, 0);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_info, 10, 12, 1, 2);
+    //gtk_box_pack_start(GTK_BOX(button_hbox), button_option, TRUE, TRUE, 0);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_option, 12, 14, 1, 2);
     g_signal_connect((gpointer)button_info, "clicked", G_CALLBACK(ui_info_bt_cb), NULL);
     g_signal_connect((gpointer)button_option, "clicked", G_CALLBACK(ui_options_bt_cb), NULL);
 
