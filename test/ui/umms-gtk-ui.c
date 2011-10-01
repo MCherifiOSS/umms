@@ -290,15 +290,13 @@ static void ui_fileopen_dlg(GtkWidget *widget, gpointer data)
 static void ui_progressbar_vchange_cb( GtkAdjustment *get,
         GtkAdjustment *set )
 {
-/*
+
     PlyMainData *ply_maindata;
 
-    g_print("fasfafafasfafsa:%f\n", get->value);
     if (ply_get_state() == PLY_MAIN_STATE_RUN ||
          ply_get_state() == PLY_MAIN_STATE_PAUSE) {
-        //ply_maindata = ply_get_maindata();
-        ply_seek_stream_from_beginging((get->value / get->upper) * ply_maindata->duration_nanosecond);
-    }*/
+        ply_seek_stream_from_beginging((get->value / get->upper) * ply_get_duration());
+    }
 }
 
 void ui_update_channels(void)

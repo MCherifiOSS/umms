@@ -325,7 +325,7 @@ gint avdec_seek_from_beginning(gint64 nanosecond)
     if (!dbus_g_proxy_call (player, "SetPosition", &error,
             G_TYPE_INT64, nanosecond,
             G_TYPE_INVALID, G_TYPE_INVALID)) {
-        UMMS_GERROR ("Failed to SetUri", error);
+        UMMS_GERROR ("Failed to SetPosition", error);
         return -1;
     }
     return 0;
