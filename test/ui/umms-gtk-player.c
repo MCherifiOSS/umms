@@ -181,3 +181,45 @@ gint ply_get_play_speed(void)
     return avdec_get_speed();
 }
 
+gint ply_get_video_num(void)
+{
+    gint video_num = 0;
+    avdec_get_video_num(&video_num);
+    return video_num;
+}
+
+gint ply_get_cur_video(void)
+{
+    gint cur_video = 0;
+    avdec_get_cur_video(&cur_video);
+    return cur_video;
+}
+
+gchar* ply_get_video_codec(gint video_num)
+{
+    gchar * codec = 0;
+    avdec_get_video_codec(video_num, &codec);
+    return codec;
+}
+
+gint ply_get_audio_num(void)
+{
+    gint audio_num = 0;
+    avdec_get_audio_num(&audio_num);
+    return audio_num;
+}
+
+gint ply_get_cur_audio(void)
+{
+    gint cur_audio = 0;
+    avdec_get_cur_audio(&cur_audio);
+    return cur_audio;
+}
+
+gchar* ply_get_audio_codec(gint audio_num)
+{
+    gchar * codec = 0;
+    avdec_get_audio_codec(audio_num, &codec);
+    return codec;
+}
+

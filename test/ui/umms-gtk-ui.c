@@ -56,6 +56,69 @@ static GtkWidget *text_combo;
 
 GtkWidget *speed_lab;
 
+#define UPDATE_AUDIO_TAG 1
+#define UPDATE_VIDEO_TAG 1<<1
+#define UPDATE_TEXT_TAG 1<<2
+#define UPDATE_ALL UPDATE_AUDIO_TAG|UPDATE_VIDEO_TAG|UPDATE_TEXT_TAG
+
+static void ui_update_audio_video_text(gint what)
+{
+    GList * c_list = NULL;
+    gint i = 0;
+    gchar *codec_name = NULL;
+    gchar *show_name = NULL;
+    
+    if(what & UPDATE_VIDEO_TAG) {
+        c_list = NULL;
+        gint video_num = ply_get_video_num();
+        gint cur_video = ply_get_cur_video();
+
+        for(i=0; i < video_num; i++) {
+            codec_name = ply_get_video_codec(i);
+            if(!codec_name || !strcmp(codec_name, "")) {
+                show_name = g_strdup_printf("Video %d: Format not known", i);
+            } else {
+                show_name = g_strdup_printf("Video %d: %s", i, codec_name);
+            }
+            g_free(codec_name);
+
+            if(i == cur_video) {
+                c_list = g_list_prepend(c_list, show_name);
+            } else {
+                c_list = g_list_append(c_list, show_name);
+            }
+        }
+        gtk_combo_set_popdown_strings (GTK_COMBO (video_combo), c_list);
+        g_list_free(c_list);
+    }
+
+    
+    if(what & UPDATE_AUDIO_TAG) {
+        c_list = NULL;
+        gint audio_num = ply_get_audio_num();
+        gint cur_audio = ply_get_cur_audio();
+
+        for(i=0; i < audio_num; i++) {
+            codec_name = ply_get_audio_codec(i);
+            if(!codec_name || !strcmp(codec_name, "")) {
+                show_name = g_strdup_printf("Audio %d: Format not known", i);
+            } else {
+                show_name = g_strdup_printf("Audio %d: %s", i, codec_name);
+            }
+            g_free(codec_name);
+            
+            if(i == cur_audio) {
+                c_list = g_list_prepend(c_list, show_name);
+            } else {
+                c_list = g_list_append(c_list, show_name);
+            }
+        }
+        gtk_combo_set_popdown_strings (GTK_COMBO (audio_combo), c_list);
+        g_list_free(c_list);
+    }
+}
+
+
 /* The callback for update status. */
 void ui_callbacks_for_reason(UI_CALLBACK_REASONS reason, void * data1, void * data2)
 {
@@ -74,6 +137,7 @@ void ui_callbacks_for_reason(UI_CALLBACK_REASONS reason, void * data1, void * da
                     gtk_container_add(GTK_CONTAINER(button_play), image_pause);
                     gtk_label_set_text(GTK_LABEL(speed_lab), str);
                     ply_set_state(PLY_MAIN_STATE_RUN);
+                    ui_update_audio_video_text(UPDATE_ALL);
                 } else {
                     gtk_container_remove(GTK_CONTAINER(button_play), image_pause);
                     gtk_container_add(GTK_CONTAINER(button_play), image_play);
@@ -120,6 +184,17 @@ void ui_callbacks_for_reason(UI_CALLBACK_REASONS reason, void * data1, void * da
             break;
 
         case UI_CALLBACK_ERROR:
+            break;
+
+        case UI_CALLBACK_VIDEO_TAG_CHANGED:
+            ui_update_audio_video_text(UPDATE_VIDEO_TAG);
+            break;
+
+        case UI_CALLBACK_AUDIO_TAG_CHANGED:
+            ui_update_audio_video_text(UPDATE_AUDIO_TAG);
+            break;
+            
+        case UI_CALLBACK_TEXT_TAG_CHANGED:
             break;
 
         default:

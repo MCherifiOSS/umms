@@ -58,6 +58,10 @@ add_sigs(DBusGProxy *player)
     dbus_g_proxy_add_signal (player, "Seeked", G_TYPE_INVALID);
     dbus_g_proxy_add_signal (player, "Stopped", G_TYPE_INVALID);
 
+    dbus_g_proxy_add_signal (player, "VideoTagChanged", G_TYPE_INT, G_TYPE_INVALID);
+    dbus_g_proxy_add_signal (player, "AudioTagChanged", G_TYPE_INT, G_TYPE_INVALID);
+    dbus_g_proxy_add_signal (player, "TextTagChanged", G_TYPE_INT, G_TYPE_INVALID);
+
     dbus_g_object_register_marshaller (umms_marshal_VOID__UINT_STRING, G_TYPE_NONE, G_TYPE_UINT, G_TYPE_STRING, G_TYPE_INVALID);
     dbus_g_proxy_add_signal (player, "Error", G_TYPE_UINT, G_TYPE_STRING, G_TYPE_INVALID);
     
@@ -117,6 +121,24 @@ static void __request_window_cb(DBusGProxy *player, gpointer user_data)
     UMMS_DEBUG( "Player engine request a X window");
 }
 
+static void __video_tag_changed_cb(DBusGProxy *player, guint stream_id, gpointer user_data)
+{
+    UMMS_DEBUG( "Video tag changed");
+    ui_callbacks_for_reason(UI_CALLBACK_VIDEO_TAG_CHANGED, (void *)stream_id, NULL);
+}
+
+static void __audio_tag_changed_cb(DBusGProxy *player, guint stream_id, gpointer user_data)
+{
+    UMMS_DEBUG( "Audio tag changed");
+    ui_callbacks_for_reason(UI_CALLBACK_AUDIO_TAG_CHANGED, (void *)stream_id, NULL);
+}
+
+static void __text_tag_changed_cb(DBusGProxy *player, guint stream_id, gpointer user_data)
+{
+    UMMS_DEBUG( "Text tag changed");
+    ui_callbacks_for_reason(UI_CALLBACK_TEXT_TAG_CHANGED, (void *)stream_id, NULL);
+}
+
 static void
 connect_sigs(DBusGProxy *player)
 {
@@ -164,6 +186,21 @@ connect_sigs(DBusGProxy *player)
     dbus_g_proxy_connect_signal (player,
             "PlayerStateChanged",
             G_CALLBACK(__player_state_changed_cb),
+            NULL, NULL);
+    
+    dbus_g_proxy_connect_signal (player,
+            "VideoTagChanged",
+            G_CALLBACK(__video_tag_changed_cb),
+            NULL, NULL);
+    
+    dbus_g_proxy_connect_signal (player,
+            "AudioTagChanged",
+            G_CALLBACK(__audio_tag_changed_cb),
+            NULL, NULL);
+
+    dbus_g_proxy_connect_signal (player,
+            "TextTagChanged",
+            G_CALLBACK(__text_tag_changed_cb),
             NULL, NULL);
 }
 
@@ -377,7 +414,7 @@ gint avdec_get_duration(gint64 * len)
     return 0;
 }
 
-avdec_get_position(gint64 * pos)
+gint avdec_get_position(gint64 * pos)
 {
     GError *error = NULL;
     gint64 cur_pos;
@@ -391,6 +428,111 @@ avdec_get_position(gint64 * pos)
 
     printf("Current pos = %lli\n", cur_pos);
     *pos = cur_pos;
+    return 0;
+}
+
+gint avdec_get_video_num(gint * video_num)
+{
+    GError *error = NULL;
+    gint video;
+
+    if (!dbus_g_proxy_call (player, "GetVideoNum", &error,
+                G_TYPE_INVALID, G_TYPE_INT, &video,
+                G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetVideoNum", error);
+        return -1;
+    }
+
+    *video_num = video;
+    return 0;
+}
+
+
+gint avdec_get_cur_video(gint * cur_video)
+{
+    GError *error = NULL;
+    gint video;
+
+    if (!dbus_g_proxy_call (player, "GetCurrentVideo", &error,
+                G_TYPE_INVALID, G_TYPE_INT, &video,
+                G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetCurrentVideo", error);
+        return -1;
+    }
+
+    *cur_video = video;
+    return 0;
+}
+
+
+gint avdec_get_video_codec(gint * video_num, gchar ** codec_name)
+{
+    GError *error = NULL;
+    gint video;
+    gchar * name;
+
+    if (!dbus_g_proxy_call (player, "GetVideoCodec", &error,
+                G_TYPE_INT, video, G_TYPE_INVALID,
+                G_TYPE_STRING, name, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetVideoCodec", error);
+        return -1;
+    }
+
+    *codec_name = g_strdup(name);
+    g_free(name);
+    return 0;
+}
+
+
+gint avdec_get_audio_num(gint * audio_num)
+{
+    GError *error = NULL;
+    gint audio;
+
+    if (!dbus_g_proxy_call (player, "GetAudioNum", &error,
+                G_TYPE_INVALID, G_TYPE_INT, &audio,
+                G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetVideoNum", error);
+        return -1;
+    }
+
+    *audio_num = audio;
+    return 0;
+}
+
+
+gint avdec_get_cur_audio(gint * cur_audio)
+{
+    GError *error = NULL;
+    gint audio;
+
+    if (!dbus_g_proxy_call (player, "GetCurrentAudio", &error,
+                G_TYPE_INVALID, G_TYPE_INT, &audio,
+                G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetCurrentAudio", error);
+        return -1;
+    }
+
+    *cur_audio = audio;
+    return 0;
+}
+
+
+gint avdec_get_audio_codec(gint * audio_num, gchar ** codec_name)
+{
+    GError *error = NULL;
+    gint audio;
+    gchar * name;
+
+    if (!dbus_g_proxy_call (player, "GetAudioCodec", &error,
+                G_TYPE_INT, audio, G_TYPE_INVALID,
+                G_TYPE_STRING, name, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetAudioCodec", error);
+        return -1;
+    }
+
+    *codec_name = g_strdup(name);
+    g_free(name);
     return 0;
 }
 

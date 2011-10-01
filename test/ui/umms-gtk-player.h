@@ -97,6 +97,21 @@ gint ply_resume_stream(void);
  */
 gint ply_seek_stream_from_beginging(gint64 nanosecond);
 
-gint ply_forward_stream(int speed);
+
+gint ply_forward_rewind(gint speed);
+
+gint ply_get_play_speed(void);
+
+gint ply_get_video_num(void);
+
+gint ply_get_cur_video(void);
+
+gchar* ply_get_video_codec(gint video_num);
+
+gint ply_get_audio_num(void);
+
+gint ply_get_cur_audio(void);
+
+gchar* ply_get_audio_codec(gint audio_num);
 
 #endif /* PLAYER_CORE_H_ */
