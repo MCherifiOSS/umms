@@ -2400,6 +2400,7 @@ static gboolean
 engine_gst_get_audio_samplerate(MeegoMediaPlayerControl *self, gint channel, gint * sample_rate)
 {
   GstElement *pipe = NULL;
+  EngineGstPrivate *priv = NULL;
   int tol_channel;
   GstCaps *caps = NULL;
   GstPad *pad = NULL;
@@ -2412,6 +2413,8 @@ engine_gst_get_audio_samplerate(MeegoMediaPlayerControl *self, gint channel, gin
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   /* We get this kind of infomation from the caps of inputselector. */
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
 
   g_object_get (G_OBJECT (pipe), "n-audio", &tol_channel, NULL);
   UMMS_DEBUG ("the audio number of the stream is %d, want to get: %d",
@@ -2447,6 +2450,7 @@ engine_gst_get_video_framerate(MeegoMediaPlayerControl *self, gint channel,
     gint * frame_rate_num, gint * frame_rate_denom)
 {
   GstElement *pipe = NULL;
+  EngineGstPrivate *priv = NULL;
   int tol_channel;
   GstCaps *caps = NULL;
   GstPad *pad = NULL;
@@ -2460,6 +2464,8 @@ engine_gst_get_video_framerate(MeegoMediaPlayerControl *self, gint channel,
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   /* We get this kind of infomation from the caps of inputselector. */
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
 
   g_object_get (G_OBJECT (pipe), "n-video", &tol_channel, NULL);
   UMMS_DEBUG ("the video number of the stream is %d, want to get: %d",
@@ -2494,6 +2500,7 @@ static gboolean
 engine_gst_get_video_resolution(MeegoMediaPlayerControl *self, gint channel, gint * width, gint * height)
 {
   GstElement *pipe = NULL;
+  EngineGstPrivate *priv = NULL;
   int tol_channel;
   GstCaps *caps = NULL;
   GstPad *pad = NULL;
@@ -2506,7 +2513,9 @@ engine_gst_get_video_resolution(MeegoMediaPlayerControl *self, gint channel, gin
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   /* We get this kind of infomation from the caps of inputselector. */
-
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
+  
   g_object_get (G_OBJECT (pipe), "n-video", &tol_channel, NULL);
   UMMS_DEBUG ("the video number of the stream is %d, want to get: %d",
               tol_channel, channel);
@@ -2542,6 +2551,7 @@ engine_gst_get_video_aspect_ratio(MeegoMediaPlayerControl *self, gint channel,
     gint * ratio_num, gint * ratio_denom)
 {
   GstElement *pipe = NULL;
+  EngineGstPrivate *priv = NULL;
   int tol_channel;
   GstCaps *caps = NULL;
   GstPad *pad = NULL;
@@ -2555,6 +2565,8 @@ engine_gst_get_video_aspect_ratio(MeegoMediaPlayerControl *self, gint channel,
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   /* We get this kind of infomation from the caps of inputselector. */
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
 
   g_object_get (G_OBJECT (pipe), "n-video", &tol_channel, NULL);
   UMMS_DEBUG ("the video number of the stream is %d, want to get: %d",
@@ -2589,12 +2601,16 @@ static gboolean
 engine_gst_get_protocol_name(MeegoMediaPlayerControl *self, gchar ** prot_name)
 {
   GstElement *pipe = NULL;
+  EngineGstPrivate *priv = NULL;
   gchar * uri = NULL;
 
   *prot_name = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+
+  priv = GET_PRIVATE (self);
+  pipe = priv->pipeline;
 
   g_object_get (G_OBJECT (pipe), "uri", &uri, NULL);
 

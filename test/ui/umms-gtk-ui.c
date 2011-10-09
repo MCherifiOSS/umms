@@ -92,6 +92,8 @@ static void ui_update_audio_video_text(gint what)
             } else {
                 gtk_combo_box_append_text(GTK_COMBO_BOX(video_combo), show_name);
             }
+
+            g_free(show_name);
         }
         gtk_combo_box_set_active (GTK_COMBO_BOX(video_combo), cur_video);
     }
@@ -121,6 +123,8 @@ static void ui_update_audio_video_text(gint what)
             } else {
                 gtk_combo_box_append_text(GTK_COMBO_BOX(audio_combo), show_name);
             }
+
+            g_free(show_name);
         }
         gtk_combo_box_set_active (GTK_COMBO_BOX(audio_combo), cur_audio);
     }
@@ -146,6 +150,7 @@ void ui_callbacks_for_reason(UI_CALLBACK_REASONS reason, void * data1, void * da
                     gtk_label_set_text(GTK_LABEL(speed_lab), str);
                     ply_set_state(PLY_MAIN_STATE_RUN);
                     ui_update_audio_video_text(UPDATE_ALL);
+                    g_free(str);
                 } else {
                     gtk_container_remove(GTK_CONTAINER(button_play), image_pause);
                     gtk_container_add(GTK_CONTAINER(button_play), image_play);
@@ -310,6 +315,12 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
     GtkWidget *lab;
     GtkWidget *frame;
 
+    gchar * container_name = NULL;
+    gchar * codec_name = NULL;
+    gchar * show_name = NULL;
+    gint video_num = 0; 
+    int i = 0;
+
     info_dlg = gtk_dialog_new_with_buttons("Media Info",
                GTK_WINDOW(gtk_widget_get_toplevel (window)),
                GTK_DIALOG_MODAL,
@@ -318,25 +329,52 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
 
     gtk_window_set_default_size (GTK_WINDOW (info_dlg), 400, 400);
 
-    g_signal_connect (info_dlg, "destroy",
-                      G_CALLBACK (gtk_widget_destroyed),
-                      &info_dlg);
-
-    g_signal_connect (info_dlg, "response",
-                      G_CALLBACK (gtk_widget_destroy),
-                      NULL);
-
     /* Add the media info here. */
     frame = gtk_frame_new ("Container Type");
     lab = gtk_label_new(NULL);
-    gtk_label_set_text(GTK_LABEL(lab), "ASF");
+    container_name = ply_get_container_name();
+    gtk_label_set_text(GTK_LABEL(lab), container_name);
     gtk_label_set_justify(GTK_LABEL(lab), GTK_JUSTIFY_FILL);
     gtk_label_set_line_wrap (GTK_LABEL(lab), TRUE);
     gtk_container_add (GTK_CONTAINER (frame), lab);
     gtk_box_pack_start (GTK_BOX (GTK_DIALOG (info_dlg)->vbox),
                         frame, FALSE, FALSE, 0);
+    g_free(container_name);
+
+    frame = gtk_frame_new ("Video");  
+    video_num = ply_get_video_num();
+    for(i=0; i < video_num; i++) {
+        gint video_bitrate = 0;
+        gdouble video_framerate = 0.0;
+        gchar * total_info = NULL;
+        
+        codec_name = ply_get_video_codec(i);
+        if(!codec_name || !strcmp(codec_name, "")) {
+            show_name = g_strdup_printf("Video %d: Format not known", i);
+        } else {
+            show_name = g_strdup_printf("Video %d: %s", i, codec_name);
+        }
+        g_free(codec_name);
+
+        video_bitrate = ply_get_video_bitrate(i);
+        
+        video_framerate = ply_get_video_framerate(i);
+
+        total_info = g_strdup_printf("%s, Bitrate: %d, FrameRate: %lf", show_name, video_bitrate);
+        lab = gtk_label_new(NULL);
+        gtk_label_set_text(GTK_LABEL(lab), total_info);
+        gtk_label_set_justify(GTK_LABEL(lab), GTK_JUSTIFY_FILL);
+        gtk_label_set_line_wrap (GTK_LABEL(lab), TRUE);
+        gtk_container_add (GTK_CONTAINER (frame), lab);
+        gtk_box_pack_start (GTK_BOX (GTK_DIALOG (info_dlg)->vbox),
+                        frame, FALSE, FALSE, 0);
+        g_free(total_info);
+    }
 
     gtk_widget_show_all (info_dlg);
+
+    gtk_dialog_run(GTK_DIALOG(info_dlg));
+    gtk_widget_destroy(info_dlg);
 }
 
 
@@ -425,8 +463,10 @@ static gboolean video_combo_changed(GtkComboBox *comboBox, GtkLabel *label)
     gchar *active = gtk_combo_box_get_active_text(comboBox);
     //printf("------------ the active is %s\n", active);
 
-    if(active)
+    if(active) {
         sscanf(active, "Video %d:", &video_num);
+        g_free(active);
+    }
 
     //printf("-------- the number we want to set is %d\n", video_num);
     ply_set_cur_video(video_num);
@@ -438,8 +478,10 @@ static gboolean audio_combo_changed(GtkComboBox *comboBox, GtkLabel *label)
     gchar *active = gtk_combo_box_get_active_text(comboBox);
     //printf("------------ the active is %s\n", active);
 
-    if(active)
+    if(active) {
         sscanf(active, "Audio %d:", &audio_num);
+        g_free(active);
+    }
 
     //printf("-------- the number we want to set is %d\n", audio_num);
     ply_set_cur_audio(audio_num);
@@ -451,8 +493,10 @@ static gboolean text_combo_changed(GtkComboBox *comboBox, GtkLabel *label)
     gchar *active = gtk_combo_box_get_active_text(comboBox);
     //printf("------------ the active is %s\n", active);
 
-    if(active)
+    if(active) {
         sscanf(active, "Text %d:", &text_num);
+        g_free(active);
+    }
         
     //printf("-------- the number we want to set is %d\n", text_num);
 }

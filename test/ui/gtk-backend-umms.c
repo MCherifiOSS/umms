@@ -561,3 +561,57 @@ gint avdec_get_audio_codec(gint audio, gchar ** codec_name)
     return 0;
 }
 
+
+gint avdec_get_encapsulation(gchar ** container_name)
+{
+    GError *error = NULL;
+    gchar * name;
+
+    if (!dbus_g_proxy_call (player, "GetEncapsulation", &error,
+                G_TYPE_INVALID,
+                G_TYPE_STRING, &name, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetEncapsulation", error);
+        return -1;
+    }
+
+    *container_name = g_strdup(name);
+    g_free(name);
+    return 0;
+}
+
+
+gint avdec_get_video_bitrate(gint video_num, gint * bit_rate)
+{
+    GError *error = NULL;
+    gint rate;
+
+    if (!dbus_g_proxy_call (player, "GetVideoBitrate", &error,
+                G_TYPE_INT, video_num, G_TYPE_INVALID,
+                G_TYPE_INT, &rate, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetVideoBitrate", error);
+        return -1;
+    }
+
+    *bit_rate = rate;
+    return 0;
+}
+
+gint avdec_get_video_framerate(gint video_num, gint * rate_num, gint * rate_denom)
+{
+    GError *error = NULL;
+    gint num, denom;
+
+    if (!dbus_g_proxy_call (player, "GetVideoFramerate", &error,
+                G_TYPE_INT, video_num, G_TYPE_INVALID,
+                G_TYPE_INT, &num,
+                G_TYPE_INT, &denom,
+                G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetVideoFramerate", error);
+        return -1;
+    }
+
+    *rate_num = num;
+    *rate_denom = denom;
+    return 0;
+}
+

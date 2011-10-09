@@ -233,3 +233,25 @@ gchar* ply_get_audio_codec(gint audio_num)
     return codec;
 }
 
+gchar* ply_get_container_name(void)
+{
+    gchar * name = 0;
+    avdec_get_encapsulation(&name);
+    return name;
+}
+
+gint ply_get_video_bitrate(gint video_num)
+{
+    int bitrate = 0;
+    avdec_get_video_bitrate(video_num, &bitrate);
+    return bitrate;
+}
+
+gdouble ply_get_video_framerate(gint video_num)
+{
+    gint rate_num, rate_denom;
+    avdec_get_video_framerate(video_num, &rate_num, &rate_denom);
+    return ((gdouble)rate_num)/((gdouble)rate_denom);
+}
+
+

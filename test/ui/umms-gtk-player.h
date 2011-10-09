@@ -118,4 +118,10 @@ gint ply_set_cur_audio(gint cur_audio);
 
 gchar* ply_get_audio_codec(gint audio_num);
 
+gchar* ply_get_container_name(void);
+
+gint ply_get_video_bitrate(gint video_num);
+
+gdouble ply_get_video_framerate(gint video_num);
+
 #endif /* PLAYER_CORE_H_ */
