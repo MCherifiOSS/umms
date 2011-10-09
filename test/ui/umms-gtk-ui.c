@@ -69,13 +69,15 @@ static void ui_update_audio_video_text(gint what)
     gchar *show_name = NULL;
     
     if(what & UPDATE_VIDEO_TAG) {
+        static int last_time_video_num = 0;
         gint video_num = ply_get_video_num();
         gint cur_video = ply_get_cur_video();
 
-        while(gtk_combo_box_get_active_text(GTK_COMBO_BOX(video_combo))) {
+        for(i=0; i<last_time_video_num; i++)
             gtk_combo_box_remove_text(GTK_COMBO_BOX(video_combo), 0);
-        }
-        
+
+        last_time_video_num = video_num;
+
         for(i=0; i < video_num; i++) {
             codec_name = ply_get_video_codec(i);
             if(!codec_name || !strcmp(codec_name, "")) {
@@ -96,12 +98,14 @@ static void ui_update_audio_video_text(gint what)
 
     
     if(what & UPDATE_AUDIO_TAG) {
+        static int last_time_audio_num = 0;
         gint audio_num = ply_get_audio_num();
         gint cur_audio = ply_get_cur_audio();
 
-        while(gtk_combo_box_get_active_text(GTK_COMBO_BOX(audio_combo))) {
+        for(i=0; i<last_time_audio_num; i++)
             gtk_combo_box_remove_text(GTK_COMBO_BOX(audio_combo), 0);
-        }
+
+        last_time_audio_num = audio_num;
 
         for(i=0; i < audio_num; i++) {
             codec_name = ply_get_audio_codec(i);

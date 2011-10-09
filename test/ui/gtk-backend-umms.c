@@ -465,10 +465,9 @@ gint avdec_get_cur_video(gint * cur_video)
 }
 
 
-gint avdec_get_video_codec(gint * video_num, gchar ** codec_name)
+gint avdec_get_video_codec(gint video, gchar ** codec_name)
 {
     GError *error = NULL;
-    gint video;
     gchar * name;
 
     if (!dbus_g_proxy_call (player, "GetVideoCodec", &error,
@@ -518,10 +517,9 @@ gint avdec_get_cur_audio(gint * cur_audio)
 }
 
 
-gint avdec_get_audio_codec(gint * audio_num, gchar ** codec_name)
+gint avdec_get_audio_codec(gint audio, gchar ** codec_name)
 {
     GError *error = NULL;
-    gint audio;
     gchar * name;
 
     if (!dbus_g_proxy_call (player, "GetAudioCodec", &error,
