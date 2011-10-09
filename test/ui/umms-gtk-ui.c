@@ -318,7 +318,9 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
     gchar * container_name = NULL;
     gchar * codec_name = NULL;
     gchar * show_name = NULL;
+    gchar * lab_str = NULL;
     gint video_num = 0; 
+    gint audio_num = 0;
     int i = 0;
 
     info_dlg = gtk_dialog_new_with_buttons("Media Info",
@@ -341,18 +343,23 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
                         frame, FALSE, FALSE, 0);
     g_free(container_name);
 
-    frame = gtk_frame_new ("Video");  
+    frame = gtk_frame_new ("Video");
     video_num = ply_get_video_num();
+    lab_str = NULL;
     for(i=0; i < video_num; i++) {
         gint video_bitrate = 0;
+        gint width = 0;
+        gint height = 0;
+        gint a_width = 0;
+        gint a_height = 0;
         gdouble video_framerate = 0.0;
         gchar * total_info = NULL;
         
         codec_name = ply_get_video_codec(i);
         if(!codec_name || !strcmp(codec_name, "")) {
-            show_name = g_strdup_printf("Video %d: Format not known", i);
+            show_name = g_strdup_printf("video_%d\n |==== Codec: not known", i);
         } else {
-            show_name = g_strdup_printf("Video %d: %s", i, codec_name);
+            show_name = g_strdup_printf("video_%d\n |==== Codec: %s", i, codec_name);
         }
         g_free(codec_name);
 
@@ -360,16 +367,76 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
         
         video_framerate = ply_get_video_framerate(i);
 
-        total_info = g_strdup_printf("%s, Bitrate: %d, FrameRate: %lf", show_name, video_bitrate);
-        lab = gtk_label_new(NULL);
-        gtk_label_set_text(GTK_LABEL(lab), total_info);
-        gtk_label_set_justify(GTK_LABEL(lab), GTK_JUSTIFY_FILL);
-        gtk_label_set_line_wrap (GTK_LABEL(lab), TRUE);
-        gtk_container_add (GTK_CONTAINER (frame), lab);
-        gtk_box_pack_start (GTK_BOX (GTK_DIALOG (info_dlg)->vbox),
-                        frame, FALSE, FALSE, 0);
-        g_free(total_info);
+        ply_get_video_resolution(i, &width, &height);
+
+        ply_get_video_aspectratio(i, &a_width, &a_height);
+
+        total_info = g_strdup_printf("%s,   Bitrate: %d,   FrameRate: %4.2lf,"
+            "  Resolution: %d X %d   AspectRatio: %d:%d ====|\n", 
+            show_name, video_bitrate, video_framerate, width, height, a_width, a_height);
+        g_free(show_name);
+
+        if(lab_str) {
+            gchar * old = lab_str;
+            lab_str = g_strdup_printf("%s\n%s", old, total_info);
+            g_free(old);
+            g_free(total_info);
+        } else {
+            lab_str = total_info;
+        }
     }
+        
+    lab = gtk_label_new(NULL);
+    gtk_label_set_justify(GTK_LABEL(lab), GTK_JUSTIFY_LEFT);
+    gtk_label_set_text(GTK_LABEL(lab), lab_str);
+    gtk_label_set_line_wrap (GTK_LABEL(lab), TRUE);
+    gtk_container_add (GTK_CONTAINER (frame), lab);
+    gtk_box_pack_start (GTK_BOX (GTK_DIALOG (info_dlg)->vbox),
+                    frame, FALSE, FALSE, 0);
+    g_free(lab_str);
+
+
+    frame = gtk_frame_new ("Audio");
+    audio_num = ply_get_audio_num();
+    lab_str = NULL;
+    for(i=0; i < audio_num; i++) {
+        gchar * total_info = NULL;
+        gint audio_bitrate = 0;
+        gint audio_samplerate = 0;
+        
+        codec_name = ply_get_audio_codec(i);
+        if(!codec_name || !strcmp(codec_name, "")) {
+            show_name = g_strdup_printf("audio_%d\n |==== Codec: not known", i);
+        } else {
+            show_name = g_strdup_printf("audio_%d\n |==== Codec: %s", i, codec_name);
+        }
+        g_free(codec_name);
+
+        audio_bitrate = ply_get_audio_bitrate(i);
+        audio_samplerate = ply_get_audio_samplerate(i);
+        
+        total_info = g_strdup_printf("%s   BitRate: %d   Sample Rate: %d  ====|\n",
+              show_name, audio_bitrate, audio_samplerate);
+        g_free(show_name);
+
+        if(lab_str) {
+            gchar * old = lab_str;
+            lab_str = g_strdup_printf("%s\n%s", old, total_info);
+            g_free(total_info);
+            g_free(old);
+        } else {
+            lab_str = total_info;
+        }
+    }
+        
+    lab = gtk_label_new(NULL);
+    gtk_label_set_justify(GTK_LABEL(lab), GTK_JUSTIFY_LEFT);
+    gtk_label_set_text(GTK_LABEL(lab), lab_str);
+    gtk_label_set_line_wrap (GTK_LABEL(lab), TRUE);
+    gtk_container_add (GTK_CONTAINER (frame), lab);
+    gtk_box_pack_start (GTK_BOX (GTK_DIALOG (info_dlg)->vbox),
+                    frame, FALSE, FALSE, 0);
+    g_free(lab_str);
 
     gtk_widget_show_all (info_dlg);
 

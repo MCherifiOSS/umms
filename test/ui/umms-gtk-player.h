@@ -124,4 +124,12 @@ gint ply_get_video_bitrate(gint video_num);
 
 gdouble ply_get_video_framerate(gint video_num);
 
+gint ply_get_video_resolution(gint video_num, gint *width, gint *height);
+
+gint ply_get_video_aspectratio(gint video_num, gint *width, gint *height);
+
+gint ply_get_audio_bitrate(gint audio_num);
+
+gint ply_get_audio_samplerate(gint audio_num);
+
 #endif /* PLAYER_CORE_H_ */

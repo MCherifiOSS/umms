@@ -610,8 +610,84 @@ gint avdec_get_video_framerate(gint video_num, gint * rate_num, gint * rate_deno
         return -1;
     }
 
+    //printf("================= num %d, demon: %d\n", num, denom);
     *rate_num = num;
     *rate_denom = denom;
+    return 0;
+}
+
+
+gint avdec_get_video_resolution(gint video_num, gint * width, gint * height)
+{
+    GError *error = NULL;
+    gint width_, height_;
+
+    if (!dbus_g_proxy_call (player, "GetVideoResolution", &error,
+                G_TYPE_INT, video_num, G_TYPE_INVALID,
+                G_TYPE_INT, &width_,
+                G_TYPE_INT, &height_,
+                G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetVideoResolution", error);
+        return -1;
+    }
+
+    //printf("resolution is %d X %d\n", width_, height_);
+    *width = width_;
+    *height = height_;
+    return 0;
+}
+
+
+gint avdec_get_video_aspectratio(gint video_num, gint * ratio_num, gint * ratio_denom)
+{
+    GError *error = NULL;
+    gint num, denom;
+
+    if (!dbus_g_proxy_call (player, "GetVideoAspectRatio", &error,
+                G_TYPE_INT, video_num, G_TYPE_INVALID,
+                G_TYPE_INT, &num,
+                G_TYPE_INT, &denom,
+                G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetVideoAspectRatio", error);
+        return -1;
+    }
+
+    //printf("================= num %d, demon: %d\n", num, denom);
+    *ratio_num = num;
+    *ratio_denom = denom;
+    return 0;
+}
+
+
+gint avdec_get_audio_bitrate(gint audio_num, gint * bit_rate)
+{
+    GError *error = NULL;
+    gint rate;
+
+    if (!dbus_g_proxy_call (player, "GetAudioBitrate", &error,
+                G_TYPE_INT, audio_num, G_TYPE_INVALID,
+                G_TYPE_INT, &rate, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetAudioBitrate", error);
+        return -1;
+    }
+
+    *bit_rate = rate;
+    return 0;
+}
+
+gint avdec_get_audio_samplerate(gint audio_num, gint * sample_rate)
+{
+    GError *error = NULL;
+    gint rate;
+
+    if (!dbus_g_proxy_call (player, "GetAudioSamplerate", &error,
+                G_TYPE_INT, audio_num, G_TYPE_INVALID,
+                G_TYPE_INT, &rate, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetAudioBitrate", error);
+        return -1;
+    }
+
+    *sample_rate = rate;
     return 0;
 }
 

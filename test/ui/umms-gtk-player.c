@@ -254,4 +254,27 @@ gdouble ply_get_video_framerate(gint video_num)
     return ((gdouble)rate_num)/((gdouble)rate_denom);
 }
 
+gint ply_get_video_resolution(gint video_num, gint *width, gint *height)
+{
+    return avdec_get_video_resolution(video_num, width, height);
+}
+
+gint ply_get_video_aspectratio(gint video_num, gint *width, gint *height)
+{
+    return avdec_get_video_aspectratio(video_num, width, height);
+}
+
+gint ply_get_audio_bitrate(gint audio_num)
+{
+    int bitrate = 0;
+    avdec_get_audio_bitrate(audio_num, &bitrate);
+    return bitrate;
+}
+
+gint ply_get_audio_samplerate(gint audio_num)
+{
+    int sample_rate = 0;
+    avdec_get_audio_samplerate(audio_num, &sample_rate);
+    return sample_rate;
+}
 
