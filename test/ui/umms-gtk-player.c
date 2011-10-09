@@ -195,6 +195,11 @@ gint ply_get_cur_video(void)
     return cur_video;
 }
 
+gint ply_set_cur_video(gint cur_video)
+{
+    return avdec_set_cur_video(cur_video);
+}
+
 gchar* ply_get_video_codec(gint video_num)
 {
     gchar * codec = 0;
@@ -214,6 +219,11 @@ gint ply_get_cur_audio(void)
     gint cur_audio = 0;
     avdec_get_cur_audio(&cur_audio);
     return cur_audio;
+}
+
+gint ply_set_cur_audio(gint cur_audio)
+{
+    return avdec_set_cur_audio(cur_audio);
 }
 
 gchar* ply_get_audio_codec(gint audio_num)

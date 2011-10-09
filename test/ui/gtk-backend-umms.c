@@ -464,6 +464,19 @@ gint avdec_get_cur_video(gint * cur_video)
     return 0;
 }
 
+gint avdec_set_cur_video(gint cur_video)
+{
+    GError *error = NULL;
+
+    if (!dbus_g_proxy_call (player, "SetCurrentVideo", &error,
+            G_TYPE_INT, cur_video,
+            G_TYPE_INVALID, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to set_cur_video", error);
+        return -1;
+    }
+    return 0;
+
+}
 
 gint avdec_get_video_codec(gint video, gchar ** codec_name)
 {
@@ -472,7 +485,7 @@ gint avdec_get_video_codec(gint video, gchar ** codec_name)
 
     if (!dbus_g_proxy_call (player, "GetVideoCodec", &error,
                 G_TYPE_INT, video, G_TYPE_INVALID,
-                G_TYPE_STRING, name, G_TYPE_INVALID)) {
+                G_TYPE_STRING, &name, G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetVideoCodec", error);
         return -1;
     }
@@ -516,6 +529,20 @@ gint avdec_get_cur_audio(gint * cur_audio)
     return 0;
 }
 
+gint avdec_set_cur_audio(gint cur_audio)
+{
+    GError *error = NULL;
+
+    if (!dbus_g_proxy_call (player, "SetCurrentAudio", &error,
+            G_TYPE_INT, cur_audio,
+            G_TYPE_INVALID, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to set_cur_audio", error);
+        return -1;
+    }
+    return 0;
+
+}
+
 
 gint avdec_get_audio_codec(gint audio, gchar ** codec_name)
 {
@@ -524,7 +551,7 @@ gint avdec_get_audio_codec(gint audio, gchar ** codec_name)
 
     if (!dbus_g_proxy_call (player, "GetAudioCodec", &error,
                 G_TYPE_INT, audio, G_TYPE_INVALID,
-                G_TYPE_STRING, name, G_TYPE_INVALID)) {
+                G_TYPE_STRING, &name, G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetAudioCodec", error);
         return -1;
     }

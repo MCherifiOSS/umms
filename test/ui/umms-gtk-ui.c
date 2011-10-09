@@ -373,7 +373,6 @@ static void ui_fileopen_dlg(GtkWidget *widget, gpointer data)
 static void ui_progressbar_vchange_cb( GtkAdjustment *get,
         GtkAdjustment *set )
 {
-
     PlyMainData *ply_maindata;
 
     if (ply_get_state() == PLY_MAIN_STATE_RUN ||
@@ -381,33 +380,6 @@ static void ui_progressbar_vchange_cb( GtkAdjustment *get,
         ply_seek_stream_from_beginging((get->value / get->upper) * ply_get_duration());
     }
 }
-
-void ui_update_channels(void)
-{
-/*
-    if (av_sub_update_flag) {
-        GList * c_list = NULL;
-        c_list = g_list_append(c_list, "video0: h264");
-        c_list = g_list_append(c_list, "video1: mpeg2");
-        gtk_combo_set_popdown_strings (GTK_COMBO (video_combo), c_list);
-        g_list_free(c_list);
-
-        c_list = NULL;
-        c_list = g_list_append(c_list, "audio0: AAC");
-        c_list = g_list_append(c_list, "audio1: AC3");
-        gtk_combo_set_popdown_strings (GTK_COMBO (audio_combo), c_list);
-        g_list_free(c_list);
-
-        c_list = NULL;
-        c_list = g_list_append(c_list, "text0");
-        c_list = g_list_append(c_list, "text1");
-        gtk_combo_set_popdown_strings (GTK_COMBO (text_combo), c_list);
-        g_list_free(c_list);
-
-        av_sub_update_flag = 0;
-    } */
-}
-
 
 
 void ui_send_stop_signal(void)
@@ -444,6 +416,45 @@ void ui_update_progressbar(gint64 pos, gint64 len)
     gtk_label_set_text(GTK_LABEL(progress_time), label_str);
     g_print("%s\n", label_str);
     gtk_widget_show_all(progress_time);
+}
+
+
+static gboolean video_combo_changed(GtkComboBox *comboBox, GtkLabel *label) 
+{
+    int video_num = 0;
+    gchar *active = gtk_combo_box_get_active_text(comboBox);
+    //printf("------------ the active is %s\n", active);
+
+    if(active)
+        sscanf(active, "Video %d:", &video_num);
+
+    //printf("-------- the number we want to set is %d\n", video_num);
+    ply_set_cur_video(video_num);
+}
+
+static gboolean audio_combo_changed(GtkComboBox *comboBox, GtkLabel *label) 
+{
+    int audio_num = 0;
+    gchar *active = gtk_combo_box_get_active_text(comboBox);
+    //printf("------------ the active is %s\n", active);
+
+    if(active)
+        sscanf(active, "Audio %d:", &audio_num);
+
+    //printf("-------- the number we want to set is %d\n", audio_num);
+    ply_set_cur_audio(audio_num);
+}
+
+static gboolean text_combo_changed(GtkComboBox *comboBox, GtkLabel *label) 
+{
+    int text_num = 0;
+    gchar *active = gtk_combo_box_get_active_text(comboBox);
+    //printf("------------ the active is %s\n", active);
+
+    if(active)
+        sscanf(active, "Text %d:", &text_num);
+        
+    //printf("-------- the number we want to set is %d\n", text_num);
 }
 
 
@@ -506,13 +517,18 @@ gint ui_create(void)
 
     video_combo = gtk_combo_box_new_text();
     gtk_table_attach_defaults (GTK_TABLE (table), video_combo, 0, 4, 0, 1);
+    g_signal_connect(GTK_OBJECT(video_combo), 
+        "changed", G_CALLBACK(video_combo_changed), NULL);
 
     audio_combo = gtk_combo_box_new_text();
     gtk_table_attach_defaults (GTK_TABLE (table), audio_combo, 4, 8, 0, 1);
-
+    g_signal_connect(GTK_OBJECT(audio_combo), 
+        "changed", G_CALLBACK(audio_combo_changed), NULL);
 
     text_combo = gtk_combo_box_new_text();
     gtk_table_attach_defaults (GTK_TABLE (table), text_combo, 8, 12, 0, 1);
+    g_signal_connect(GTK_OBJECT(text_combo), 
+        "changed", G_CALLBACK(text_combo_changed), NULL);
 
     volume_bar = gtk_hscale_new_with_range(0, 100, 1);
     gtk_table_attach_defaults (GTK_TABLE (table), volume_bar, 12, 15, 0, 1);

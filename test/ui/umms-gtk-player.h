@@ -106,11 +106,15 @@ gint ply_get_video_num(void);
 
 gint ply_get_cur_video(void);
 
+gint ply_set_cur_video(gint cur_video);
+
 gchar* ply_get_video_codec(gint video_num);
 
 gint ply_get_audio_num(void);
 
 gint ply_get_cur_audio(void);
+
+gint ply_set_cur_audio(gint cur_audio);
 
 gchar* ply_get_audio_codec(gint audio_num);
 
