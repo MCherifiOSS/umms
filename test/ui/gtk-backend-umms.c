@@ -725,3 +725,34 @@ gint avdec_get_protocol_name(gchar **name)
     return 0;
 }
 
+gint avdec_set_volume(gint volume)
+{
+    GError *error = NULL;
+
+    if (!dbus_g_proxy_call (player, "SetVolume", &error,
+            G_TYPE_INT, volume,
+            G_TYPE_INVALID, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to SetVolume", error);
+        return -1;
+    }
+
+    return 0;
+}
+
+gint avdec_get_volume(gint *volume)
+{
+    GError *error = NULL;
+    gint vol;
+
+    if (!dbus_g_proxy_call (player, "GetVolume", &error,
+            G_TYPE_INVALID,
+            G_TYPE_INT, &vol,
+            G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetVolume", error);
+        return -1;
+    }
+
+    *volume = vol;
+    return 0;
+}
+

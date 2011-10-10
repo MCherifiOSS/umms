@@ -49,6 +49,7 @@ static GtkWidget *progressbar;
 static GtkWidget *progress_time;
 static GtkWidget *image_play;
 static GtkWidget *image_pause;
+static GtkWidget *volume_bar;
 
 static GtkWidget *video_combo;
 static GtkWidget *audio_combo;
@@ -494,14 +495,29 @@ static void ui_fileopen_dlg(GtkWidget *widget, gpointer data)
 static void ui_progressbar_vchange_cb( GtkAdjustment *get,
         GtkAdjustment *set )
 {
-    PlyMainData *ply_maindata;
-
     if (ply_get_state() == PLY_MAIN_STATE_RUN ||
          ply_get_state() == PLY_MAIN_STATE_PAUSE) {
         ply_seek_stream_from_beginging((get->value / get->upper) * ply_get_duration());
     }
 }
 
+static void ui_volumebar_vchange_cb( GtkAdjustment *get,
+        GtkAdjustment *set )
+{
+    gint volume;
+
+    if (ply_get_state() == PLY_MAIN_STATE_RUN ||
+         ply_get_state() == PLY_MAIN_STATE_PAUSE) {
+        printf("Volume:  get->value = %d\n", (gint)(get->value));
+        ply_set_volume((gint)get->value);    
+
+        volume = ply_get_volume();
+        printf("///// The volume now is %d\n", volume);
+        gtk_range_set_value(GTK_RANGE(volume_bar), volume);
+    } else {
+        gtk_range_set_value(GTK_RANGE(volume_bar), 0.0);
+    }
+}
 
 void ui_send_stop_signal(void)
 {
@@ -640,7 +656,6 @@ gint ui_create(void)
     /* AV/Text streams select and volume */
     table = gtk_table_new (2, 15, TRUE);
     gtk_box_pack_start(GTK_BOX(topvbox), table, TRUE, TRUE, 0);
-    GtkWidget *volume_bar;
 
     video_combo = gtk_combo_box_new_text();
     gtk_table_attach_defaults (GTK_TABLE (table), video_combo, 0, 4, 0, 1);
@@ -658,6 +673,8 @@ gint ui_create(void)
                      "changed", G_CALLBACK(text_combo_changed), NULL);
 
     volume_bar = gtk_hscale_new_with_range(0, 100, 1);
+    adj = gtk_range_get_adjustment(GTK_RANGE(volume_bar));
+    gtk_signal_connect(GTK_OBJECT(adj), "value_changed", GTK_SIGNAL_FUNC(ui_volumebar_vchange_cb), adj);
     gtk_table_attach_defaults (GTK_TABLE (table), volume_bar, 12, 15, 0, 1);
 
     /* Control Button */

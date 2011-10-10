@@ -46,7 +46,7 @@ gint ply_init(void)
 
 static void ply_update_duration(void * dummy)
 {
-    gint64 pos, len;
+    gint64 pos, len, volume;
 
     if (ply_get_state() == PLY_MAIN_STATE_RUN) {
         avdec_get_duration(&len);
@@ -290,5 +290,17 @@ gchar* ply_get_protocol_name(void)
     gchar * name = NULL;
     avdec_get_protocol_name(&name);
     return name;
+}
+
+gint ply_set_volume(gint volume)
+{
+    return avdec_set_volume(volume);
+}
+
+gint ply_get_volume(void)
+{
+    gint volume;
+    avdec_get_volume(&volume);
+    return volume;
 }
 

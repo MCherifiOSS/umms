@@ -136,4 +136,8 @@ gchar* ply_get_current_uri(void);
 
 gchar* ply_get_protocol_name(void);
 
+gint ply_set_volume(gint volume);
+
+gint ply_get_volume(void);
+
 #endif /* PLAYER_CORE_H_ */
