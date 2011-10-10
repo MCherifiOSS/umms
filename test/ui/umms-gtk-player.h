@@ -132,4 +132,8 @@ gint ply_get_audio_bitrate(gint audio_num);
 
 gint ply_get_audio_samplerate(gint audio_num);
 
+gchar* ply_get_current_uri(void);
+
+gchar* ply_get_protocol_name(void);
+
 #endif /* PLAYER_CORE_H_ */

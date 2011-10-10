@@ -48,7 +48,7 @@ static void ply_update_duration(void * dummy)
 {
     gint64 pos, len;
 
-    if(ply_get_state() == PLY_MAIN_STATE_RUN) {
+    if (ply_get_state() == PLY_MAIN_STATE_RUN) {
         avdec_get_duration(&len);
         avdec_get_position(&pos);
         ui_update_progressbar(pos, len);
@@ -73,17 +73,17 @@ void ply_set_state(PlyMainState state)
     ply_main_data.state = state;
     g_print("%s\n", dbg_state_name[ply_main_data.state]);
 
-    if(state == PLY_MAIN_STATE_RUN) {    
-        if(dur_timeout_id == 0) {
+    if (state == PLY_MAIN_STATE_RUN) {
+        if (dur_timeout_id == 0) {
             dur_timeout_id = g_timeout_add(1000, (GSourceFunc)ply_update_duration, NULL);
         }
     } else {
-        if(dur_timeout_id != 0) {
+        if (dur_timeout_id != 0) {
             g_source_remove (dur_timeout_id);
             dur_timeout_id = 0;
         }
     }
-    
+
     g_mutex_unlock (ply_main_data.state_lock);
 }
 
@@ -125,7 +125,7 @@ void ply_set_duration(gint64 len)
 gint ply_reload_file(gchar *filename)
 {
     if (ply_main_data.state != PLY_MAIN_STATE_IDLE &&
-            ply_main_data.state != PLY_MAIN_STATE_READY) {
+         ply_main_data.state != PLY_MAIN_STATE_READY) {
         ply_stop_stream();
     }
 
@@ -251,7 +251,7 @@ gdouble ply_get_video_framerate(gint video_num)
 {
     gint rate_num, rate_denom;
     avdec_get_video_framerate(video_num, &rate_num, &rate_denom);
-    return ((gdouble)rate_num)/((gdouble)rate_denom);
+    return ((gdouble)rate_num) / ((gdouble)rate_denom);
 }
 
 gint ply_get_video_resolution(gint video_num, gint *width, gint *height)
@@ -276,5 +276,19 @@ gint ply_get_audio_samplerate(gint audio_num)
     int sample_rate = 0;
     avdec_get_audio_samplerate(audio_num, &sample_rate);
     return sample_rate;
+}
+
+gchar* ply_get_current_uri(void)
+{
+    gchar * uri = NULL;
+    avdec_get_current_uri(&uri);
+    return uri;
+}
+
+gchar* ply_get_protocol_name(void)
+{
+    gchar * name = NULL;
+    avdec_get_protocol_name(&name);
+    return name;
 }
 

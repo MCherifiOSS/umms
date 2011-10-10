@@ -64,7 +64,7 @@ add_sigs(DBusGProxy *player)
 
     dbus_g_object_register_marshaller (umms_marshal_VOID__UINT_STRING, G_TYPE_NONE, G_TYPE_UINT, G_TYPE_STRING, G_TYPE_INVALID);
     dbus_g_proxy_add_signal (player, "Error", G_TYPE_UINT, G_TYPE_STRING, G_TYPE_INVALID);
-    
+
     dbus_g_object_register_marshaller (umms_marshal_VOID__INT_INT, G_TYPE_NONE, G_TYPE_INT, G_TYPE_INT, G_TYPE_INVALID);
     dbus_g_proxy_add_signal (player, "PlayerStateChanged", G_TYPE_INT, G_TYPE_INT, G_TYPE_INVALID);
 }
@@ -94,7 +94,7 @@ static void __begin_buffering_cb(DBusGProxy *player, gpointer user_data)
 
 static void __buffered_cb(DBusGProxy *player, gpointer user_data)
 {
-    UMMS_DEBUG( "Buffering completed");    
+    UMMS_DEBUG( "Buffering completed");
     ui_callbacks_for_reason(UI_CALLBACK_BUFFERED, NULL, NULL);
 }
 
@@ -106,7 +106,7 @@ static void __seeked_cb(DBusGProxy *player, gpointer user_data)
 
 static void __stopped_cb(DBusGProxy *player, gpointer user_data)
 {
-    UMMS_DEBUG( "Player stopped");    
+    UMMS_DEBUG( "Player stopped");
     ui_callbacks_for_reason(UI_CALLBACK_STOPPED, NULL, NULL);
 }
 
@@ -187,12 +187,12 @@ connect_sigs(DBusGProxy *player)
             "PlayerStateChanged",
             G_CALLBACK(__player_state_changed_cb),
             NULL, NULL);
-    
+
     dbus_g_proxy_connect_signal (player,
             "VideoTagChanged",
             G_CALLBACK(__video_tag_changed_cb),
             NULL, NULL);
-    
+
     dbus_g_proxy_connect_signal (player,
             "AudioTagChanged",
             G_CALLBACK(__audio_tag_changed_cb),
@@ -388,8 +388,8 @@ gint avdec_get_speed(void)
     gdouble speed;
 
     if (!dbus_g_proxy_call (player, "GetPlaybackRate", &error,
-                G_TYPE_INVALID, G_TYPE_DOUBLE, &speed,
-                G_TYPE_INVALID)) {
+            G_TYPE_INVALID, G_TYPE_DOUBLE, &speed,
+            G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to get_speed", error);
         return 1;
     }
@@ -403,8 +403,8 @@ gint avdec_get_duration(gint64 * len)
     gint64 dur;
 
     if (!dbus_g_proxy_call (player, "GetMediaSizeTime", &error,
-                G_TYPE_INVALID, G_TYPE_INT64, &dur,
-                G_TYPE_INVALID)) {
+            G_TYPE_INVALID, G_TYPE_INT64, &dur,
+            G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to get_duration", error);
         return -1;
     }
@@ -420,8 +420,8 @@ gint avdec_get_position(gint64 * pos)
     gint64 cur_pos;
 
     if (!dbus_g_proxy_call (player, "GetPosition", &error,
-                G_TYPE_INVALID, G_TYPE_INT64, &cur_pos,
-                G_TYPE_INVALID)) {
+            G_TYPE_INVALID, G_TYPE_INT64, &cur_pos,
+            G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to get_position", error);
         return -1;
     }
@@ -437,8 +437,8 @@ gint avdec_get_video_num(gint * video_num)
     gint video;
 
     if (!dbus_g_proxy_call (player, "GetVideoNum", &error,
-                G_TYPE_INVALID, G_TYPE_INT, &video,
-                G_TYPE_INVALID)) {
+            G_TYPE_INVALID, G_TYPE_INT, &video,
+            G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetVideoNum", error);
         return -1;
     }
@@ -454,8 +454,8 @@ gint avdec_get_cur_video(gint * cur_video)
     gint video;
 
     if (!dbus_g_proxy_call (player, "GetCurrentVideo", &error,
-                G_TYPE_INVALID, G_TYPE_INT, &video,
-                G_TYPE_INVALID)) {
+            G_TYPE_INVALID, G_TYPE_INT, &video,
+            G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetCurrentVideo", error);
         return -1;
     }
@@ -484,8 +484,8 @@ gint avdec_get_video_codec(gint video, gchar ** codec_name)
     gchar * name;
 
     if (!dbus_g_proxy_call (player, "GetVideoCodec", &error,
-                G_TYPE_INT, video, G_TYPE_INVALID,
-                G_TYPE_STRING, &name, G_TYPE_INVALID)) {
+            G_TYPE_INT, video, G_TYPE_INVALID,
+            G_TYPE_STRING, &name, G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetVideoCodec", error);
         return -1;
     }
@@ -502,8 +502,8 @@ gint avdec_get_audio_num(gint * audio_num)
     gint audio;
 
     if (!dbus_g_proxy_call (player, "GetAudioNum", &error,
-                G_TYPE_INVALID, G_TYPE_INT, &audio,
-                G_TYPE_INVALID)) {
+            G_TYPE_INVALID, G_TYPE_INT, &audio,
+            G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetVideoNum", error);
         return -1;
     }
@@ -519,8 +519,8 @@ gint avdec_get_cur_audio(gint * cur_audio)
     gint audio;
 
     if (!dbus_g_proxy_call (player, "GetCurrentAudio", &error,
-                G_TYPE_INVALID, G_TYPE_INT, &audio,
-                G_TYPE_INVALID)) {
+            G_TYPE_INVALID, G_TYPE_INT, &audio,
+            G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetCurrentAudio", error);
         return -1;
     }
@@ -550,8 +550,8 @@ gint avdec_get_audio_codec(gint audio, gchar ** codec_name)
     gchar * name;
 
     if (!dbus_g_proxy_call (player, "GetAudioCodec", &error,
-                G_TYPE_INT, audio, G_TYPE_INVALID,
-                G_TYPE_STRING, &name, G_TYPE_INVALID)) {
+            G_TYPE_INT, audio, G_TYPE_INVALID,
+            G_TYPE_STRING, &name, G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetAudioCodec", error);
         return -1;
     }
@@ -568,8 +568,8 @@ gint avdec_get_encapsulation(gchar ** container_name)
     gchar * name;
 
     if (!dbus_g_proxy_call (player, "GetEncapsulation", &error,
-                G_TYPE_INVALID,
-                G_TYPE_STRING, &name, G_TYPE_INVALID)) {
+            G_TYPE_INVALID,
+            G_TYPE_STRING, &name, G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetEncapsulation", error);
         return -1;
     }
@@ -586,8 +586,8 @@ gint avdec_get_video_bitrate(gint video_num, gint * bit_rate)
     gint rate;
 
     if (!dbus_g_proxy_call (player, "GetVideoBitrate", &error,
-                G_TYPE_INT, video_num, G_TYPE_INVALID,
-                G_TYPE_INT, &rate, G_TYPE_INVALID)) {
+            G_TYPE_INT, video_num, G_TYPE_INVALID,
+            G_TYPE_INT, &rate, G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetVideoBitrate", error);
         return -1;
     }
@@ -602,10 +602,10 @@ gint avdec_get_video_framerate(gint video_num, gint * rate_num, gint * rate_deno
     gint num, denom;
 
     if (!dbus_g_proxy_call (player, "GetVideoFramerate", &error,
-                G_TYPE_INT, video_num, G_TYPE_INVALID,
-                G_TYPE_INT, &num,
-                G_TYPE_INT, &denom,
-                G_TYPE_INVALID)) {
+            G_TYPE_INT, video_num, G_TYPE_INVALID,
+            G_TYPE_INT, &num,
+            G_TYPE_INT, &denom,
+            G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetVideoFramerate", error);
         return -1;
     }
@@ -623,10 +623,10 @@ gint avdec_get_video_resolution(gint video_num, gint * width, gint * height)
     gint width_, height_;
 
     if (!dbus_g_proxy_call (player, "GetVideoResolution", &error,
-                G_TYPE_INT, video_num, G_TYPE_INVALID,
-                G_TYPE_INT, &width_,
-                G_TYPE_INT, &height_,
-                G_TYPE_INVALID)) {
+            G_TYPE_INT, video_num, G_TYPE_INVALID,
+            G_TYPE_INT, &width_,
+            G_TYPE_INT, &height_,
+            G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetVideoResolution", error);
         return -1;
     }
@@ -644,10 +644,10 @@ gint avdec_get_video_aspectratio(gint video_num, gint * ratio_num, gint * ratio_
     gint num, denom;
 
     if (!dbus_g_proxy_call (player, "GetVideoAspectRatio", &error,
-                G_TYPE_INT, video_num, G_TYPE_INVALID,
-                G_TYPE_INT, &num,
-                G_TYPE_INT, &denom,
-                G_TYPE_INVALID)) {
+            G_TYPE_INT, video_num, G_TYPE_INVALID,
+            G_TYPE_INT, &num,
+            G_TYPE_INT, &denom,
+            G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetVideoAspectRatio", error);
         return -1;
     }
@@ -665,8 +665,8 @@ gint avdec_get_audio_bitrate(gint audio_num, gint * bit_rate)
     gint rate;
 
     if (!dbus_g_proxy_call (player, "GetAudioBitrate", &error,
-                G_TYPE_INT, audio_num, G_TYPE_INVALID,
-                G_TYPE_INT, &rate, G_TYPE_INVALID)) {
+            G_TYPE_INT, audio_num, G_TYPE_INVALID,
+            G_TYPE_INT, &rate, G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetAudioBitrate", error);
         return -1;
     }
@@ -681,13 +681,47 @@ gint avdec_get_audio_samplerate(gint audio_num, gint * sample_rate)
     gint rate;
 
     if (!dbus_g_proxy_call (player, "GetAudioSamplerate", &error,
-                G_TYPE_INT, audio_num, G_TYPE_INVALID,
-                G_TYPE_INT, &rate, G_TYPE_INVALID)) {
+            G_TYPE_INT, audio_num, G_TYPE_INVALID,
+            G_TYPE_INT, &rate, G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetAudioBitrate", error);
         return -1;
     }
 
     *sample_rate = rate;
+    return 0;
+}
+
+gint avdec_get_current_uri(gchar ** uri)
+{
+    GError *error = NULL;
+    gchar * uri_str;
+
+    if (!dbus_g_proxy_call (player, "GetCurrentUri", &error,
+            G_TYPE_INVALID,
+            G_TYPE_STRING, &uri_str, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetCurrentUri", error);
+        return -1;
+    }
+
+    *uri = g_strdup(uri_str);
+    g_free(uri_str);
+    return 0;
+}
+
+gint avdec_get_protocol_name(gchar **name)
+{
+    GError *error = NULL;
+    gchar * prot_str;
+
+    if (!dbus_g_proxy_call (player, "GetProtocolName", &error,
+            G_TYPE_INVALID,
+            G_TYPE_STRING, &prot_str, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetProtocolName", error);
+        return -1;
+    }
+
+    *name = g_strdup(prot_str);
+    g_free(prot_str);
     return 0;
 }
 

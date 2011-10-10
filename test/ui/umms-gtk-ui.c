@@ -67,27 +67,27 @@ static void ui_update_audio_video_text(gint what)
     gint i = 0;
     gchar *codec_name = NULL;
     gchar *show_name = NULL;
-    
-    if(what & UPDATE_VIDEO_TAG) {
+
+    if (what & UPDATE_VIDEO_TAG) {
         static int last_time_video_num = 0;
         gint video_num = ply_get_video_num();
         gint cur_video = ply_get_cur_video();
 
-        for(i=0; i<last_time_video_num; i++)
+        for (i = 0; i < last_time_video_num; i++)
             gtk_combo_box_remove_text(GTK_COMBO_BOX(video_combo), 0);
 
         last_time_video_num = video_num;
 
-        for(i=0; i < video_num; i++) {
+        for (i = 0; i < video_num; i++) {
             codec_name = ply_get_video_codec(i);
-            if(!codec_name || !strcmp(codec_name, "")) {
+            if (!codec_name || !strcmp(codec_name, "")) {
                 show_name = g_strdup_printf("Video %d: Format not known", i);
             } else {
                 show_name = g_strdup_printf("Video %d: %s", i, codec_name);
             }
             g_free(codec_name);
 
-            if(i == cur_video) {
+            if (i == cur_video) {
                 gtk_combo_box_prepend_text(GTK_COMBO_BOX(video_combo), show_name);
             } else {
                 gtk_combo_box_append_text(GTK_COMBO_BOX(video_combo), show_name);
@@ -98,27 +98,27 @@ static void ui_update_audio_video_text(gint what)
         gtk_combo_box_set_active (GTK_COMBO_BOX(video_combo), cur_video);
     }
 
-    
-    if(what & UPDATE_AUDIO_TAG) {
+
+    if (what & UPDATE_AUDIO_TAG) {
         static int last_time_audio_num = 0;
         gint audio_num = ply_get_audio_num();
         gint cur_audio = ply_get_cur_audio();
 
-        for(i=0; i<last_time_audio_num; i++)
+        for (i = 0; i < last_time_audio_num; i++)
             gtk_combo_box_remove_text(GTK_COMBO_BOX(audio_combo), 0);
 
         last_time_audio_num = audio_num;
 
-        for(i=0; i < audio_num; i++) {
+        for (i = 0; i < audio_num; i++) {
             codec_name = ply_get_audio_codec(i);
-            if(codec_name == NULL) {// || !strcmp(codec_name, "")) {
+            if (codec_name == NULL) {// || !strcmp(codec_name, "")) {
                 show_name = g_strdup_printf("Audio %d: Format not known", i);
             } else {
                 show_name = g_strdup_printf("Audio %d: %s", i, codec_name);
             }
             g_free(codec_name);
-            
-            if(i == cur_audio) {
+
+            if (i == cur_audio) {
                 gtk_combo_box_prepend_text(GTK_COMBO_BOX(audio_combo), show_name);
             } else {
                 gtk_combo_box_append_text(GTK_COMBO_BOX(audio_combo), show_name);
@@ -135,36 +135,34 @@ static void ui_update_audio_video_text(gint what)
 void ui_callbacks_for_reason(UI_CALLBACK_REASONS reason, void * data1, void * data2)
 {
     printf("-------callback come for reason :%d\n", reason);
-    switch(reason)
-    { 
-        case UI_CALLBACK_STATE_CHANGE:
-            {
-                if((int)data1 == 2) {// Playing
-                    gint play_speed;
-                    char *str;
-                    
-                    play_speed = ply_get_play_speed();
-                    str = g_strdup_printf("  Play Speed: X %d   ", play_speed);
-                    gtk_container_remove(GTK_CONTAINER(button_play), image_play);
-                    gtk_container_add(GTK_CONTAINER(button_play), image_pause);
-                    gtk_label_set_text(GTK_LABEL(speed_lab), str);
-                    ply_set_state(PLY_MAIN_STATE_RUN);
-                    ui_update_audio_video_text(UPDATE_ALL);
-                    g_free(str);
+    switch (reason) {
+        case UI_CALLBACK_STATE_CHANGE: {
+            if ((int)data1 == 2) {// Playing
+                gint play_speed;
+                char *str;
+
+                play_speed = ply_get_play_speed();
+                str = g_strdup_printf("  Play Speed: X %d   ", play_speed);
+                gtk_container_remove(GTK_CONTAINER(button_play), image_play);
+                gtk_container_add(GTK_CONTAINER(button_play), image_pause);
+                gtk_label_set_text(GTK_LABEL(speed_lab), str);
+                ply_set_state(PLY_MAIN_STATE_RUN);
+                ui_update_audio_video_text(UPDATE_ALL);
+                g_free(str);
+            } else {
+                gtk_container_remove(GTK_CONTAINER(button_play), image_pause);
+                gtk_container_add(GTK_CONTAINER(button_play), image_play);
+                gtk_label_set_text(GTK_LABEL(speed_lab), "  Play Speed: X 0   ");
+                if ((int)data1 == 1) {
+                    ply_set_state(PLY_MAIN_STATE_PAUSE);
+                } else if ((int)data1 == 3) {
+                    ply_set_state(PLY_MAIN_STATE_READY);
                 } else {
-                    gtk_container_remove(GTK_CONTAINER(button_play), image_pause);
-                    gtk_container_add(GTK_CONTAINER(button_play), image_play);
-                    gtk_label_set_text(GTK_LABEL(speed_lab), "  Play Speed: X 0   ");
-                    if((int)data1 == 1) {
-                        ply_set_state(PLY_MAIN_STATE_PAUSE);
-                    } else if((int)data1 == 3) {
-                        ply_set_state(PLY_MAIN_STATE_READY);
-                    } else {
-                        ply_set_state(PLY_MAIN_STATE_IDLE);
-                    }
+                    ply_set_state(PLY_MAIN_STATE_IDLE);
                 }
             }
-            break;
+        }
+        break;
 
         case UI_CALLBACK_EOF:
             break;
@@ -175,19 +173,18 @@ void ui_callbacks_for_reason(UI_CALLBACK_REASONS reason, void * data1, void * da
         case UI_CALLBACK_BUFFERED:
             break;
 
-        case UI_CALLBACK_SEEKED:
-            {
+        case UI_CALLBACK_SEEKED: {
             char *str;
             gint play_speed;
 
             play_speed = ply_get_play_speed();
-            
+
             str = g_strdup_printf("  Play Speed: X %d   ", play_speed);
             gtk_label_set_text(GTK_LABEL(speed_lab), str);
             g_free(str);
             ply_set_speed(play_speed);
-            }
-            break;
+        }
+        break;
 
         case UI_CALLBACK_STOPPED:
             gtk_label_set_text(GTK_LABEL(speed_lab), "  Play Speed: X 0   ");
@@ -206,7 +203,7 @@ void ui_callbacks_for_reason(UI_CALLBACK_REASONS reason, void * data1, void * da
         case UI_CALLBACK_AUDIO_TAG_CHANGED:
             ui_update_audio_video_text(UPDATE_AUDIO_TAG);
             break;
-            
+
         case UI_CALLBACK_TEXT_TAG_CHANGED:
             break;
 
@@ -214,7 +211,7 @@ void ui_callbacks_for_reason(UI_CALLBACK_REASONS reason, void * data1, void * da
             printf("Error, should not come!!!!\n");
             return;
     }
-    
+
     gtk_widget_show_all(window);
     return;
 }
@@ -287,7 +284,7 @@ static void ui_forward_bt_cb(GtkWidget *widget, gpointer data)
     if (speed <= 0) {
         speed = 1;
     } else {
-        speed = speed*2;
+        speed = speed * 2;
     }
 
     if (ply_get_state() == PLY_MAIN_STATE_RUN) {
@@ -301,7 +298,7 @@ static void ui_rewind_bt_cb(GtkWidget *widget, gpointer data)
     if (speed >= 0) {
         speed = -1;
     } else {
-        speed = speed*2;
+        speed = speed * 2;
     }
 
     if (ply_get_state() == PLY_MAIN_STATE_RUN) {
@@ -319,7 +316,9 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
     gchar * codec_name = NULL;
     gchar * show_name = NULL;
     gchar * lab_str = NULL;
-    gint video_num = 0; 
+    gchar * uri_str = NULL;
+    gchar * prot_str = NULL;
+    gint video_num = 0;
     gint audio_num = 0;
     int i = 0;
 
@@ -330,6 +329,23 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
                NULL);
 
     gtk_window_set_default_size (GTK_WINDOW (info_dlg), 400, 400);
+
+    /* The uri and protocol. */
+    frame = gtk_frame_new ("Source");
+    lab = gtk_label_new(NULL);
+    uri_str = ply_get_current_uri();
+    prot_str = ply_get_protocol_name(); 
+    show_name = g_strdup_printf("URI: %s\nProtocol: %s", uri_str, prot_str);
+    gtk_label_set_text(GTK_LABEL(lab), show_name);
+    gtk_label_set_justify(GTK_LABEL(lab), GTK_JUSTIFY_FILL);
+    gtk_label_set_line_wrap (GTK_LABEL(lab), TRUE);
+    gtk_container_add (GTK_CONTAINER (frame), lab);
+    gtk_box_pack_start (GTK_BOX (GTK_DIALOG (info_dlg)->vbox),
+                        frame, FALSE, FALSE, 0);
+    g_free(uri_str);
+    g_free(prot_str);
+    g_free(show_name);
+    show_name = NULL;
 
     /* Add the media info here. */
     frame = gtk_frame_new ("Container Type");
@@ -346,7 +362,7 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
     frame = gtk_frame_new ("Video");
     video_num = ply_get_video_num();
     lab_str = NULL;
-    for(i=0; i < video_num; i++) {
+    for (i = 0; i < video_num; i++) {
         gint video_bitrate = 0;
         gint width = 0;
         gint height = 0;
@@ -354,9 +370,9 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
         gint a_height = 0;
         gdouble video_framerate = 0.0;
         gchar * total_info = NULL;
-        
+
         codec_name = ply_get_video_codec(i);
-        if(!codec_name || !strcmp(codec_name, "")) {
+        if (!codec_name || !strcmp(codec_name, "")) {
             show_name = g_strdup_printf("video_%d\n |==== Codec: not known", i);
         } else {
             show_name = g_strdup_printf("video_%d\n |==== Codec: %s", i, codec_name);
@@ -364,7 +380,7 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
         g_free(codec_name);
 
         video_bitrate = ply_get_video_bitrate(i);
-        
+
         video_framerate = ply_get_video_framerate(i);
 
         ply_get_video_resolution(i, &width, &height);
@@ -372,11 +388,11 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
         ply_get_video_aspectratio(i, &a_width, &a_height);
 
         total_info = g_strdup_printf("%s,   Bitrate: %d,   FrameRate: %4.2lf,"
-            "  Resolution: %d X %d   AspectRatio: %d:%d ====|\n", 
-            show_name, video_bitrate, video_framerate, width, height, a_width, a_height);
+                     "  Resolution: %d X %d   AspectRatio: %d:%d ====|\n",
+                     show_name, video_bitrate, video_framerate, width, height, a_width, a_height);
         g_free(show_name);
 
-        if(lab_str) {
+        if (lab_str) {
             gchar * old = lab_str;
             lab_str = g_strdup_printf("%s\n%s", old, total_info);
             g_free(old);
@@ -385,27 +401,27 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
             lab_str = total_info;
         }
     }
-        
+
     lab = gtk_label_new(NULL);
     gtk_label_set_justify(GTK_LABEL(lab), GTK_JUSTIFY_LEFT);
     gtk_label_set_text(GTK_LABEL(lab), lab_str);
     gtk_label_set_line_wrap (GTK_LABEL(lab), TRUE);
     gtk_container_add (GTK_CONTAINER (frame), lab);
     gtk_box_pack_start (GTK_BOX (GTK_DIALOG (info_dlg)->vbox),
-                    frame, FALSE, FALSE, 0);
+                        frame, FALSE, FALSE, 0);
     g_free(lab_str);
 
 
     frame = gtk_frame_new ("Audio");
     audio_num = ply_get_audio_num();
     lab_str = NULL;
-    for(i=0; i < audio_num; i++) {
+    for (i = 0; i < audio_num; i++) {
         gchar * total_info = NULL;
         gint audio_bitrate = 0;
         gint audio_samplerate = 0;
-        
+
         codec_name = ply_get_audio_codec(i);
-        if(!codec_name || !strcmp(codec_name, "")) {
+        if (!codec_name || !strcmp(codec_name, "")) {
             show_name = g_strdup_printf("audio_%d\n |==== Codec: not known", i);
         } else {
             show_name = g_strdup_printf("audio_%d\n |==== Codec: %s", i, codec_name);
@@ -414,12 +430,12 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
 
         audio_bitrate = ply_get_audio_bitrate(i);
         audio_samplerate = ply_get_audio_samplerate(i);
-        
+
         total_info = g_strdup_printf("%s   BitRate: %d   Sample Rate: %d  ====|\n",
-              show_name, audio_bitrate, audio_samplerate);
+                     show_name, audio_bitrate, audio_samplerate);
         g_free(show_name);
 
-        if(lab_str) {
+        if (lab_str) {
             gchar * old = lab_str;
             lab_str = g_strdup_printf("%s\n%s", old, total_info);
             g_free(total_info);
@@ -428,14 +444,14 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
             lab_str = total_info;
         }
     }
-        
+
     lab = gtk_label_new(NULL);
     gtk_label_set_justify(GTK_LABEL(lab), GTK_JUSTIFY_LEFT);
     gtk_label_set_text(GTK_LABEL(lab), lab_str);
     gtk_label_set_line_wrap (GTK_LABEL(lab), TRUE);
     gtk_container_add (GTK_CONTAINER (frame), lab);
     gtk_box_pack_start (GTK_BOX (GTK_DIALOG (info_dlg)->vbox),
-                    frame, FALSE, FALSE, 0);
+                        frame, FALSE, FALSE, 0);
     g_free(lab_str);
 
     gtk_widget_show_all (info_dlg);
@@ -517,20 +533,20 @@ void ui_update_progressbar(gint64 pos, gint64 len)
 
     gtk_signal_emit_by_name(GTK_OBJECT(adj), "changed");
     g_sprintf(label_str, "%02u:%02u:%02u/%02u:%02u:%02u",
-              MY_GST_TIME_ARGS(pos*GST_SECOND/1000), MY_GST_TIME_ARGS(len*GST_SECOND/1000));
+              MY_GST_TIME_ARGS(pos*GST_SECOND / 1000), MY_GST_TIME_ARGS(len*GST_SECOND / 1000));
     gtk_label_set_text(GTK_LABEL(progress_time), label_str);
     g_print("%s\n", label_str);
     gtk_widget_show_all(progress_time);
 }
 
 
-static gboolean video_combo_changed(GtkComboBox *comboBox, GtkLabel *label) 
+static gboolean video_combo_changed(GtkComboBox *comboBox, GtkLabel *label)
 {
     int video_num = 0;
     gchar *active = gtk_combo_box_get_active_text(comboBox);
     //printf("------------ the active is %s\n", active);
 
-    if(active) {
+    if (active) {
         sscanf(active, "Video %d:", &video_num);
         g_free(active);
     }
@@ -539,13 +555,13 @@ static gboolean video_combo_changed(GtkComboBox *comboBox, GtkLabel *label)
     ply_set_cur_video(video_num);
 }
 
-static gboolean audio_combo_changed(GtkComboBox *comboBox, GtkLabel *label) 
+static gboolean audio_combo_changed(GtkComboBox *comboBox, GtkLabel *label)
 {
     int audio_num = 0;
     gchar *active = gtk_combo_box_get_active_text(comboBox);
     //printf("------------ the active is %s\n", active);
 
-    if(active) {
+    if (active) {
         sscanf(active, "Audio %d:", &audio_num);
         g_free(active);
     }
@@ -554,17 +570,17 @@ static gboolean audio_combo_changed(GtkComboBox *comboBox, GtkLabel *label)
     ply_set_cur_audio(audio_num);
 }
 
-static gboolean text_combo_changed(GtkComboBox *comboBox, GtkLabel *label) 
+static gboolean text_combo_changed(GtkComboBox *comboBox, GtkLabel *label)
 {
     int text_num = 0;
     gchar *active = gtk_combo_box_get_active_text(comboBox);
     //printf("------------ the active is %s\n", active);
 
-    if(active) {
+    if (active) {
         sscanf(active, "Text %d:", &text_num);
         g_free(active);
     }
-        
+
     //printf("-------- the number we want to set is %d\n", text_num);
 }
 
@@ -628,18 +644,18 @@ gint ui_create(void)
 
     video_combo = gtk_combo_box_new_text();
     gtk_table_attach_defaults (GTK_TABLE (table), video_combo, 0, 4, 0, 1);
-    g_signal_connect(GTK_OBJECT(video_combo), 
-        "changed", G_CALLBACK(video_combo_changed), NULL);
+    g_signal_connect(GTK_OBJECT(video_combo),
+                     "changed", G_CALLBACK(video_combo_changed), NULL);
 
     audio_combo = gtk_combo_box_new_text();
     gtk_table_attach_defaults (GTK_TABLE (table), audio_combo, 4, 8, 0, 1);
-    g_signal_connect(GTK_OBJECT(audio_combo), 
-        "changed", G_CALLBACK(audio_combo_changed), NULL);
+    g_signal_connect(GTK_OBJECT(audio_combo),
+                     "changed", G_CALLBACK(audio_combo_changed), NULL);
 
     text_combo = gtk_combo_box_new_text();
     gtk_table_attach_defaults (GTK_TABLE (table), text_combo, 8, 12, 0, 1);
-    g_signal_connect(GTK_OBJECT(text_combo), 
-        "changed", G_CALLBACK(text_combo_changed), NULL);
+    g_signal_connect(GTK_OBJECT(text_combo),
+                     "changed", G_CALLBACK(text_combo_changed), NULL);
 
     volume_bar = gtk_hscale_new_with_range(0, 100, 1);
     gtk_table_attach_defaults (GTK_TABLE (table), volume_bar, 12, 15, 0, 1);
@@ -673,19 +689,19 @@ gint ui_create(void)
     gtk_container_add(GTK_CONTAINER(button_play), image_play);
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_play, TRUE, TRUE, 0);
     gtk_table_attach_defaults (GTK_TABLE (table), button_play, 2, 4, 1, 2);
-    
+
     button_stop = gtk_button_new();
     image_stop = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP, GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_stop), image_stop);
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_stop, TRUE, TRUE, 0);
     gtk_table_attach_defaults (GTK_TABLE (table), button_stop, 4, 6, 1, 2);
-    
+
     button_forward = gtk_button_new();
     image_forward = gtk_image_new_from_stock(GTK_STOCK_MEDIA_FORWARD, GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_forward), image_forward);
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_forward, TRUE, TRUE, 0);
     gtk_table_attach_defaults (GTK_TABLE (table), button_forward, 6, 8, 1, 2);
-    
+
     button_fileopen = gtk_button_new();
     image_fileopen = gtk_image_new_from_stock("gtk-open", GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_fileopen), image_fileopen);

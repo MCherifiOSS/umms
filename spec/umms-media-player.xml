@@ -228,10 +228,6 @@
 			<arg name="protocol_name" type="s" direction="out"/>
 		</method>
 
-		<method name="GetProtocolName">
-			<arg name="protocol_name" type="s" direction="out"/>
-		</method>
-
 		<method name="Record">
 			<arg name="record" type="b"/>
 			<arg name="location" type="s"/>
