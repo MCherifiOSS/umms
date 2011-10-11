@@ -307,6 +307,45 @@ static void ui_rewind_bt_cb(GtkWidget *widget, gpointer data)
     }
 }
 
+static void ui_uri_open_bt_cb(GtkWidget *widget, gpointer data)
+{
+    GtkWidget *uri_dlg;
+    GtkWidget *entry;
+    gint response_id;
+    gchar *entry_text = NULL;
+
+    uri_dlg = gtk_dialog_new_with_buttons("Enter the URI",
+               GTK_WINDOW(gtk_widget_get_toplevel (window)),
+               GTK_DIALOG_MODAL,
+               GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+               GTK_STOCK_OK, GTK_RESPONSE_OK,
+               NULL);
+
+    gtk_window_set_default_size (GTK_WINDOW (uri_dlg), 400, 100);
+
+    entry = gtk_entry_new ();
+    gtk_entry_set_max_length (GTK_ENTRY (entry), 50);
+    gtk_box_pack_start (GTK_BOX (GTK_DIALOG (uri_dlg)->vbox),
+                        entry, FALSE, FALSE, 0);
+
+    gtk_widget_show_all (uri_dlg);
+
+    response_id = gtk_dialog_run(GTK_DIALOG(uri_dlg));
+    
+    if(response_id == GTK_RESPONSE_OK) {
+        entry_text = g_strdup(gtk_entry_get_text (GTK_ENTRY (entry)));
+        //printf("Entry contents: %s\n", entry_text);
+    }
+    
+    gtk_widget_destroy(uri_dlg);
+
+    if(entry_text) {
+        ply_reload_file(entry_text);
+        ui_pause_bt_cb(NULL, NULL);
+        g_free(entry_text);
+    }
+}
+
 static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
 {
     GtkWidget *info_dlg;
@@ -682,11 +721,14 @@ gint ui_create(void)
     GtkWidget *button_rewind;
     GtkWidget *button_stop;
     GtkWidget *button_forward;
-    GtkWidget *button_fileopen;
+    GtkWidget *button_fileopen;    
+    GtkWidget *button_uriopen;
     GtkWidget *image_rewind;
     GtkWidget *image_stop;
     GtkWidget *image_forward;
     GtkWidget *image_fileopen;
+    GtkWidget *image_uri;
+    GtkWidget *image_info;
     GtkWidget *button_info;
     GtkWidget *button_option;
 
@@ -696,7 +738,7 @@ gint ui_create(void)
     image_rewind = gtk_image_new_from_stock(GTK_STOCK_MEDIA_REWIND, GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_rewind), image_rewind);
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_rewind, TRUE, TRUE, 0);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_rewind, 0, 2, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_rewind, 0, 1, 1, 2);
 
     button_play = gtk_button_new();
     image_play = gtk_image_new_from_stock(GTK_STOCK_MEDIA_PLAY, GTK_ICON_SIZE_BUTTON);
@@ -705,38 +747,47 @@ gint ui_create(void)
     g_object_ref((gpointer)image_pause);
     gtk_container_add(GTK_CONTAINER(button_play), image_play);
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_play, TRUE, TRUE, 0);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_play, 2, 4, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_play, 1, 2, 1, 2);
 
     button_stop = gtk_button_new();
     image_stop = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP, GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_stop), image_stop);
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_stop, TRUE, TRUE, 0);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_stop, 4, 6, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_stop, 2, 3, 1, 2);
 
     button_forward = gtk_button_new();
     image_forward = gtk_image_new_from_stock(GTK_STOCK_MEDIA_FORWARD, GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_forward), image_forward);
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_forward, TRUE, TRUE, 0);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_forward, 6, 8, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_forward, 3, 4, 1, 2);
 
     button_fileopen = gtk_button_new();
     image_fileopen = gtk_image_new_from_stock("gtk-open", GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_fileopen), image_fileopen);
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_fileopen, TRUE, TRUE, 0);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_fileopen, 8, 10, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_fileopen, 4, 5, 1, 2);
+
+    button_uriopen = gtk_button_new();
+    image_uri = gtk_image_new_from_stock("gtk-file", GTK_ICON_SIZE_BUTTON);
+    gtk_container_add(GTK_CONTAINER(button_uriopen), image_uri);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_uriopen, 5, 6, 1, 2);
 
     g_signal_connect((gpointer)button_fileopen, "clicked", G_CALLBACK(ui_fileopen_dlg), NULL);
     g_signal_connect((gpointer)button_play, "clicked", G_CALLBACK(ui_pause_bt_cb), NULL);
     g_signal_connect((gpointer)button_stop, "clicked", G_CALLBACK(ui_stop_bt_cb), NULL);
     g_signal_connect((gpointer)button_rewind, "clicked", G_CALLBACK(ui_rewind_bt_cb), NULL);
     g_signal_connect((gpointer)button_forward, "clicked", G_CALLBACK(ui_forward_bt_cb), NULL);
+    g_signal_connect((gpointer)button_uriopen, "clicked", G_CALLBACK(ui_uri_open_bt_cb), NULL);
 
-    button_info = gtk_button_new_with_label("Info");
+    button_info = gtk_button_new();
+    image_info = gtk_image_new_from_stock("gtk-info", GTK_ICON_SIZE_BUTTON);
+    gtk_container_add(GTK_CONTAINER(button_info), image_info);
+    
     button_option = gtk_button_new_with_label("Options");
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_info, TRUE, TRUE, 0);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_info, 10, 12, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_info, 6, 8, 1, 2);
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_option, TRUE, TRUE, 0);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_option, 12, 14, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_option, 8, 10, 1, 2);
     g_signal_connect((gpointer)button_info, "clicked", G_CALLBACK(ui_info_bt_cb), NULL);
     g_signal_connect((gpointer)button_option, "clicked", G_CALLBACK(ui_options_bt_cb), NULL);
 

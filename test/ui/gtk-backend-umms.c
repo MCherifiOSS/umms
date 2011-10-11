@@ -295,7 +295,12 @@ gint avdec_set_source(gchar *filename)
     GError *error = NULL;
     gchar * file_name;
 
-    file_name = g_strdup_printf("file://%s", filename);
+    if(filename && filename[0] == '/') {
+        file_name = g_strdup_printf("file://%s", filename);
+    } else {
+        file_name = g_strdup(filename);
+    }
+
     printf("file_name is %s\n", file_name);
     if (!dbus_g_proxy_call (player, "SetUri", &error,
             G_TYPE_STRING, file_name, G_TYPE_INVALID,
