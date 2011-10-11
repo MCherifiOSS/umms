@@ -310,9 +310,12 @@ static void ui_rewind_bt_cb(GtkWidget *widget, gpointer data)
 static void ui_uri_open_bt_cb(GtkWidget *widget, gpointer data)
 {
     GtkWidget *uri_dlg;
-    GtkWidget *entry;
+    GtkWidget *uri_entry;
+    GtkWidget *sub_entry;
     gint response_id;
     gchar *entry_text = NULL;
+    gchar *sub_entry_text = NULL;
+    GtkWidget *frame;
 
     uri_dlg = gtk_dialog_new_with_buttons("Enter the URI",
                GTK_WINDOW(gtk_widget_get_toplevel (window)),
@@ -321,25 +324,39 @@ static void ui_uri_open_bt_cb(GtkWidget *widget, gpointer data)
                GTK_STOCK_OK, GTK_RESPONSE_OK,
                NULL);
 
-    gtk_window_set_default_size (GTK_WINDOW (uri_dlg), 400, 100);
+    gtk_window_set_default_size (GTK_WINDOW (uri_dlg), 500, 200);
 
-    entry = gtk_entry_new ();
-    gtk_entry_set_max_length (GTK_ENTRY (entry), 50);
+    frame = gtk_frame_new ("Type the URI:");
+
+    uri_entry = gtk_entry_new ();
+    gtk_entry_set_max_length (GTK_ENTRY (uri_entry), 100);
+
+    gtk_container_add (GTK_CONTAINER (frame), uri_entry);
     gtk_box_pack_start (GTK_BOX (GTK_DIALOG (uri_dlg)->vbox),
-                        entry, FALSE, FALSE, 0);
+                        frame, FALSE, FALSE, 0);
+
+    frame = gtk_frame_new ("Type the Subtitle URI:");
+
+    sub_entry = gtk_entry_new ();
+    gtk_entry_set_max_length (GTK_ENTRY (sub_entry), 100);
+
+    gtk_container_add (GTK_CONTAINER (frame), sub_entry);
+    gtk_box_pack_start (GTK_BOX (GTK_DIALOG (uri_dlg)->vbox),
+                        frame, FALSE, FALSE, 0);
 
     gtk_widget_show_all (uri_dlg);
 
     response_id = gtk_dialog_run(GTK_DIALOG(uri_dlg));
     
     if(response_id == GTK_RESPONSE_OK) {
-        entry_text = g_strdup(gtk_entry_get_text (GTK_ENTRY (entry)));
+        entry_text = g_strdup(gtk_entry_get_text (GTK_ENTRY (uri_entry)));
+        sub_entry_text = g_strdup(gtk_entry_get_text (GTK_ENTRY (sub_entry)));
         //printf("Entry contents: %s\n", entry_text);
     }
     
     gtk_widget_destroy(uri_dlg);
 
-    if(entry_text) {
+    if(entry_text && entry_text[0]) {
         ply_reload_file(entry_text);
         ui_pause_bt_cb(NULL, NULL);
         g_free(entry_text);
