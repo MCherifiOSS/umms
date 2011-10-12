@@ -24,7 +24,7 @@
 
 /* add PAT, CAT, NIT, SDT, EIT to pids filter for dvbsrc */
 #define INIT_PIDS "0:1:16:17:18"
-#define DVB_SRC
+//#define DVB_SRC
 
 static void meego_media_player_control_init (MeegoMediaPlayerControl* iface);
 static gpointer socket_listen_thread(DvbPlayer* dvd_player);
@@ -55,8 +55,8 @@ G_DEFINE_TYPE_WITH_CODE (DvbPlayer, dvb_player, G_TYPE_OBJECT,
 #define INVALID_PLANE_ID -1
 
 #define SOCK_MAX_SERV_CONNECTS 5
-#define SOCK_SOCKET_DEFAULT_PORT 112131
-#define SOCK_SOCKET_DEFAULT_ADDR NULL
+#define SOCK_SOCKET_DEFAULT_PORT 0 // The port number will be get by socket create.
+#define SOCK_SOCKET_DEFAULT_ADDR "127.0.0.1"
 
 
 static const gchar *gst_state[] = {
@@ -2683,7 +2683,6 @@ socket_thread_join(MeegoMediaPlayerControl* dvd_player)
 
   g_mutex_lock (priv->socks_lock);
   priv->sock_exit_flag = 1;
-  g_mutex_unlock (priv->socks_lock);
 
   if (priv->listen_fd != -1) { /* need to wakeup the listen thread. */
     struct hostent *host = gethostbyname("localhost");
@@ -2695,11 +2694,15 @@ socket_thread_join(MeegoMediaPlayerControl* dvd_player)
       server_addr.sin_addr = *((struct in_addr*)host->h_addr);
 
       UMMS_DEBUG("try to wakeup the thread by connect");
+      g_mutex_unlock (priv->socks_lock);
       connect (fd, (struct sockaddr*)(&server_addr), sizeof(struct sockaddr));
       close(fd);
     } else {
+      g_mutex_unlock (priv->socks_lock);
       UMMS_DEBUG("socket create failed, can not wakeup the listen thread");
-    }
+    } 
+  } else {
+    g_mutex_unlock (priv->socks_lock);//Just Unlock it.
   }
 
   g_thread_join(priv->listen_thread);
@@ -2772,11 +2775,11 @@ socket_listen_thread(DvbPlayer* dvd_player)
     }
     priv->serv_fds[i] = -1;
   }
-  g_mutex_unlock (priv->socks_lock);
-
+  
   priv->listen_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (priv->listen_fd < 0) {
-    UMMS_DEBUG("The listen socket create failed!");
+    UMMS_DEBUG("The listen socket create failed!");    
+    g_mutex_unlock (priv->socks_lock);
     return NULL;
   }
 
@@ -2788,19 +2791,28 @@ socket_listen_thread(DvbPlayer* dvd_player)
     UMMS_DEBUG("try to binding to %s:%d Failed, error is %s",
                priv->ip, priv->port, strerror(errno));
     close(priv->listen_fd);
-    priv->listen_fd = -1;
+    priv->listen_fd = -1;    
+    g_mutex_unlock (priv->socks_lock);
     return NULL;
   }
 
   serv_len = sizeof(struct sockaddr);
-  if (getsockname(priv->listen_fd, (struct sockaddr *)&serv_addr, &serv_len) == 0) {
-    UMMS_DEBUG("we now binding to %s:%d", inet_ntoa(serv_addr.sin_addr), priv->port);
+  if (getsockname(priv->listen_fd, (struct sockaddr *)&serv_addr, &serv_len) != 0) {
+    UMMS_DEBUG("We can not get the port of listen_fd");
+    close(priv->listen_fd);
+    priv->listen_fd = -1;    
+    g_mutex_unlock (priv->socks_lock);
+    return NULL;
   }
+  
+  UMMS_DEBUG("we now binding to %s:%d", inet_ntoa(serv_addr.sin_addr), serv_addr.sin_port);
+  priv->port = serv_addr.sin_port;
+  g_mutex_unlock (priv->socks_lock);
 
   if (listen(priv->listen_fd, 5) == -1) {
     UMMS_DEBUG("Listen Failed, error us %s", strerror(errno));
     close(priv->listen_fd);
-    priv->listen_fd = -1;
+    priv->listen_fd = -1;    
     return NULL;
   }
 
