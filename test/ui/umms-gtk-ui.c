@@ -260,7 +260,7 @@ static int ui_create_socket(void)
 
 static int ui_socket_fd = -1;
 
-static char * ui_get_raw_data(void)
+static char * ui_get_raw_data(gint max_len, gint * ret_len)
 {
     char buffer[1024];
     fd_set fds; 
@@ -268,6 +268,7 @@ static char * ui_get_raw_data(void)
     int i;
     int maxfdp;
     struct timeval tv;
+    gchar* ret_str;
 
     tv.tv_sec = 1;
     tv.tv_usec = 0;
@@ -281,6 +282,7 @@ static char * ui_get_raw_data(void)
         switch(select(maxfdp,&fds,NULL,NULL,&tv))
         {
             case -1:
+                *ret_len = 0;
                 return NULL;
                 break;
 
@@ -292,17 +294,30 @@ static char * ui_get_raw_data(void)
                 if(FD_ISSET(ui_socket_fd,&fds)) {
                     nbytes = read(ui_socket_fd, buffer, 1024);
                     printf( "received:%d bytes\n", nbytes);
+
                     if (nbytes >= 0) {
                         buffer[nbytes] = '\0';
                         printf( "I have received:%x %x %x %x %x %x %x %x\n",
                         buffer[0], buffer[1], buffer[2], buffer[3], buffer[4],
                         buffer[5], buffer[6], buffer[7]);
                     }
+                    
+                    if(max_len <= 0)
+                        return; //do nothing
+
+                    max_len = (nbytes <= max_len)? nbytes: max_len;
+                    ret_str = g_malloc(sizeof(gchar) * max_len);
+                    memcpy(ret_str, buffer, sizeof(gchar)*max_len);
+                    *ret_len = max_len;
+                    return ret_str;
+                    }
                 }
             }
          }
-     }
+              *ret_len = 0;
+     return NULL;
 }
+
 
 
 static void ui_pause_bt_cb(GtkWidget *widget, gpointer data)
@@ -439,12 +454,30 @@ static void ui_sub_open_bt_cb(GtkWidget *widget, gpointer data)
 
 static void ui_update_dvb_rawdata_thread(GtkWidget * uri_entry)
 {
+    gchar * raw_data = NULL;
+    gchar * show_data = NULL;
+    gint ret_len = 0;
+    gchar num_buf[16];
+    
     if(ui_socket_fd == -1) {
         ui_socket_fd = ui_create_socket();
     }
 
     if(ui_socket_fd != -1) {
-        ui_get_raw_data();
+        int i;
+
+        while(1) {
+        raw_data = ui_get_raw_data(8, &ret_len);   
+        if (raw_data == NULL)
+            break;
+/*            
+        gtk_entry_set_text(GTK_ENTRY (uri_entry), "");
+        for(i = 0; i < ret_len; i++) {
+            sprintf(num_buf, " %2x", raw_data[i]);
+            gtk_entry_append_text(GTK_ENTRY(uri_entry), num_buf);
+        }
+        g_free(raw_data);*/
+        }
     }
 }
 
