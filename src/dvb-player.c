@@ -1403,6 +1403,16 @@ static gboolean start_recording (MeegoMediaPlayerControl *self, gchar *location)
     file_location = location;
   else
     file_location = DEFAULT_FILE_LOCATION;
+
+  //validate the location 
+  FILE *fd = fopen (file_location, "wb");
+  if (fd == NULL) {
+    UMMS_DEBUG ("Could not open file \"%s\" for writing.", file_location);
+    goto out;
+  } else {
+    fclose (fd);
+  }
+
   UMMS_DEBUG ("location: '%s'", file_location);
   g_object_set (filesink, "location", file_location, NULL);
 
@@ -1440,6 +1450,7 @@ out:
     gst_object_unref (sinkpad);
 
   if (!ret) {
+    TEARDOWN_ELEMENT (filesink);
     UMMS_DEBUG ("failed!!!");
   }
 
@@ -1447,7 +1458,6 @@ out:
 
 failed:
   gst_bin_remove (GST_BIN(priv->pipeline), filesink);
-  TEARDOWN_ELEMENT (filesink);
   goto out;
 }
 

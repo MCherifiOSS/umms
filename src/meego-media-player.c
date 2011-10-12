@@ -453,8 +453,7 @@ meego_media_player_get_position(MeegoMediaPlayer *player, gint64 *pos,
     GError **err)
 {
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
-  meego_media_player_control_get_position (GET_CONTROL_IFACE (player), pos);
-  return TRUE;
+  return meego_media_player_control_get_position (GET_CONTROL_IFACE (player), pos);
 }
 
 gboolean
@@ -1345,9 +1344,13 @@ connect_signals(MeegoMediaPlayer *player, MeegoMediaPlayerControl *control)
 gboolean 
 meego_media_player_record (MeegoMediaPlayer *player, gboolean to_record, gchar *location, GError **err)
 {
+  gboolean ret;
   CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
-  meego_media_player_control_record (GET_CONTROL_IFACE (player), to_record, location);
-  return TRUE;
+  ret = meego_media_player_control_record (GET_CONTROL_IFACE (player), to_record, location);
+  if (!ret) {
+    g_set_error (err, UMMS_ENGINE_ERROR, UMMS_ENGINE_ERROR_FAILED, "Record failed");
+  }
+  return ret;
 }
 
 gboolean 

@@ -266,14 +266,15 @@ void meego_media_player_control_implement_set_position (MeegoMediaPlayerControlC
 gboolean
 meego_media_player_control_get_position (MeegoMediaPlayerControl *self, gint64 *cur_time)
 {
+  gboolean ret = FALSE;
   meego_media_player_control_get_position_impl impl = (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_position);
 
   if (impl != NULL) {
-    (impl) (self, cur_time);
+    ret = (impl) (self, cur_time);
   } else {
     g_warning ("Method not implemented\n");
   }
-  return TRUE;
+  return ret;
 }
 
 
@@ -1298,15 +1299,16 @@ void meego_media_player_control_implement_get_artist(MeegoMediaPlayerControlClas
 
 gboolean meego_media_player_control_record (MeegoMediaPlayerControl *self, gboolean to_record, gchar *location)
 {
+  gboolean ret = FALSE;
   meego_media_player_control_record_impl impl =
     (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->record);
 
   if (impl != NULL) {
-    (impl) (self, to_record, location);
+    ret = (impl) (self, to_record, location);
   } else {
     g_warning ("Method not implemented\n");
   }
-  return TRUE;
+  return ret;
 }
 
 void meego_media_player_control_implement_record  (MeegoMediaPlayerControlClass *klass,
