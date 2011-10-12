@@ -785,3 +785,23 @@ gint avdec_get_volume(gint *volume)
     return 0;
 }
 
+gint avdec_get_rawdata_address(gchar ** ip_addr, gint * port)
+{
+    GError *error = NULL;
+    gchar * ip_addr_;
+    gint port_;
+
+    if (!dbus_g_proxy_call (player, "GetAssociatedDataChannel", &error,
+            G_TYPE_INVALID,
+            G_TYPE_STRING, &ip_addr_,
+            G_TYPE_INT, &port_,
+            G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetAssociatedDataChannel", error);
+        return -1;
+    }
+
+    *ip_addr = g_strdup(ip_addr_);
+    *port = port_;
+    return 0;
+}
+

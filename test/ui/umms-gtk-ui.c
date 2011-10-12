@@ -21,6 +21,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -218,7 +219,7 @@ void ui_callbacks_for_reason(UI_CALLBACK_REASONS reason, void * data1, void * da
 }
 
 
-int get_raw_data(void)
+static int ui_get_raw_data(void)
 {
     int sockfd;
     char buffer[1024];
@@ -226,8 +227,12 @@ int get_raw_data(void)
     int portnumber, nbytes;
     struct hostent *host;
     int i;
+    gchar * ip_address;
+    gint port;
 
-    host = gethostbyname("localhost");
+    //host = gethostbyname("localhost");
+    ply_get_rawdata_address(&ip_address, &port);
+    printf("We get the socket address, IP: %s, port: %d\n", ip_address, port);
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         fprintf(stderr, "Socket Error:%s\a\n", (char *)strerror(errno));
@@ -236,9 +241,11 @@ int get_raw_data(void)
 
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(112131);
-    server_addr.sin_addr = *((struct in_addr*)host->h_addr);
-
+    server_addr.sin_port = htons(port);
+    //server_addr.sin_addr = *((struct in_addr*)host->h_addr);
+    server_addr.sin_addr.s_addr = inet_addr(ip_address);
+    g_free(ip_address);
+    
     if (connect (sockfd, (struct sockaddr*)(&server_addr), sizeof(struct sockaddr)) == -1) {
         printf("Connect Error: %s\a\n", strerror(errno));
         close(sockfd);
@@ -549,7 +556,7 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
 
 static void ui_options_bt_cb(GtkWidget *widget, gpointer data)
 {
-
+    ui_get_raw_data();
 }
 
 static void ui_fileopen_dlg(GtkWidget *widget, gpointer data)

@@ -142,4 +142,6 @@ gint ply_set_volume(gint volume);
 
 gint ply_get_volume(void);
 
+gint ply_get_rawdata_address(gchar ** ip_addr, gint * port);
+
 #endif /* PLAYER_CORE_H_ */

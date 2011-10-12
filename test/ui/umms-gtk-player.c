@@ -314,3 +314,9 @@ gint ply_get_volume(void)
     return volume;
 }
 
+gint ply_get_rawdata_address(gchar ** ip_addr, gint * port)
+{
+    avdec_get_rawdata_address(ip_addr, port);
+    return 0;
+}
+
