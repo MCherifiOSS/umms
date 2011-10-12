@@ -237,15 +237,15 @@ static int ui_create_socket(void)
         return -1;
     }
 
-    
+
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port);    
+    server_addr.sin_port = htons(port);
     //server_addr.sin_addr = *((struct in_addr*)host->h_addr);
     server_addr.sin_addr.s_addr = inet_addr(ip_address);
     g_free(ip_address);
 
-    
+
     if (connect (sockfd, (struct sockaddr*)(&server_addr), sizeof(struct sockaddr)) == -1) {
         printf("Connect Error: %s\a\n", strerror(errno));
         close(sockfd);
@@ -263,7 +263,7 @@ static int ui_socket_fd = -1;
 static char * ui_get_raw_data(gint max_len, gint * ret_len)
 {
     char buffer[1024];
-    fd_set fds; 
+    fd_set fds;
     int nbytes;
     int i;
     int maxfdp;
@@ -273,49 +273,47 @@ static char * ui_get_raw_data(gint max_len, gint * ret_len)
     tv.tv_sec = 1;
     tv.tv_usec = 0;
 
-    while(1)
-    {
+    while (1) {
         FD_ZERO(&fds);
         FD_SET(ui_socket_fd, &fds);
-        maxfdp = ui_socket_fd + 1; 
+        maxfdp = ui_socket_fd + 1;
 
-        switch(select(maxfdp,&fds,NULL,NULL,&tv))
-        {
+        switch (select(maxfdp, &fds, NULL, NULL, &tv)) {
             case -1:
                 *ret_len = 0;
                 return NULL;
                 break;
 
             case 0:
-                break; 
+                break;
 
-            default:
-            {
-                if(FD_ISSET(ui_socket_fd,&fds)) {
+            default: {
+                if (FD_ISSET(ui_socket_fd, &fds)) {
                     nbytes = read(ui_socket_fd, buffer, 1024);
+                    
+                    /*                    
                     printf( "received:%d bytes\n", nbytes);
-
                     if (nbytes >= 0) {
                         buffer[nbytes] = '\0';
                         printf( "I have received:%x %x %x %x %x %x %x %x\n",
                         buffer[0], buffer[1], buffer[2], buffer[3], buffer[4],
                         buffer[5], buffer[6], buffer[7]);
-                    }
-                    
-                    if(max_len <= 0)
+                    }*/
+
+                    if (max_len <= 0)
                         return; //do nothing
 
-                    max_len = (nbytes <= max_len)? nbytes: max_len;
+                    max_len = (nbytes <= max_len) ? nbytes : max_len;
                     ret_str = g_malloc(sizeof(gchar) * max_len);
                     memcpy(ret_str, buffer, sizeof(gchar)*max_len);
                     *ret_len = max_len;
                     return ret_str;
-                    }
                 }
             }
-         }
-              *ret_len = 0;
-     return NULL;
+        }
+    }
+    *ret_len = 0;
+    return NULL;
 }
 
 
@@ -458,25 +456,52 @@ static void ui_update_dvb_rawdata_thread(GtkWidget * uri_entry)
     gchar * show_data = NULL;
     gint ret_len = 0;
     gchar num_buf[16];
-    
-    if(ui_socket_fd == -1) {
+
+    if (ui_socket_fd == -1) {
         ui_socket_fd = ui_create_socket();
     }
 
-    if(ui_socket_fd != -1) {
+    if (ui_socket_fd != -1) {
         int i;
+        struct timeval tv;
+        long tv_sec;
 
-        while(1) {
-        raw_data = ui_get_raw_data(8, &ret_len);   
-        if (raw_data == NULL)
-            break;
-/*            
-        gtk_entry_set_text(GTK_ENTRY (uri_entry), "");
-        for(i = 0; i < ret_len; i++) {
-            sprintf(num_buf, " %2x", raw_data[i]);
-            gtk_entry_append_text(GTK_ENTRY(uri_entry), num_buf);
-        }
-        g_free(raw_data);*/
+        gettimeofday (&tv, NULL);
+        tv_sec = tv.tv_sec;
+        
+        while (1) {
+            gchar * old = NULL;
+            raw_data = ui_get_raw_data(8, &ret_len);
+            if (raw_data == NULL)
+                break;
+
+            /* Do not append to quick. */
+            gettimeofday (&tv, NULL);
+            if(tv_sec == tv.tv_sec )
+                continue;
+
+            gtk_editable_delete_text(GTK_EDITABLE(uri_entry), 0, -1);
+
+            tv_sec = tv.tv_sec;
+            show_data = NULL;
+            
+            for (i = 0; i < ret_len; i++) {
+                old = show_data;
+                sprintf(num_buf, "%2X", (char)raw_data[i]);
+
+                if(show_data) {
+                    show_data = g_strdup_printf("%s %s", old, num_buf);
+                } else {
+                    show_data = g_strdup(num_buf);
+                }
+                //printf("--- the num_buf = %s\n", num_buf);
+
+                if(old)
+                    g_free(old);
+            }            
+            
+            gtk_entry_set_text(GTK_ENTRY(uri_entry), show_data);
+            g_free(raw_data);
         }
     }
 }
@@ -490,10 +515,10 @@ static void ui_dvb_bt_cb(GtkWidget *widget, gpointer data)
     GThread *raw_data_update_thread;
 
     dlg = gtk_dialog_new_with_buttons("DVB Infomation",
-              GTK_WINDOW(gtk_widget_get_toplevel (window)),
-              GTK_DIALOG_MODAL,
-              GTK_STOCK_OK, GTK_RESPONSE_OK,
-              NULL);
+            GTK_WINDOW(gtk_widget_get_toplevel (window)),
+            GTK_DIALOG_MODAL,
+            GTK_STOCK_OK, GTK_RESPONSE_OK,
+            NULL);
     gtk_window_set_default_size (GTK_WINDOW ((dlg)), 600, 500);
 
     frame = gtk_frame_new ("Raw Data Dump:");
@@ -505,7 +530,7 @@ static void ui_dvb_bt_cb(GtkWidget *widget, gpointer data)
 
     gtk_widget_show_all (dlg);
 
-    raw_data_update_thread = 
+    raw_data_update_thread =
         g_thread_create ((GThreadFunc) ui_update_dvb_rawdata_thread, uri_entry, TRUE, NULL);
 
     gtk_dialog_run(GTK_DIALOG(dlg));
@@ -513,7 +538,7 @@ static void ui_dvb_bt_cb(GtkWidget *widget, gpointer data)
     close(ui_socket_fd);
     g_thread_join(raw_data_update_thread);
     ui_socket_fd = -1;
-    
+
     gtk_widget_destroy(dlg);
 
 }
