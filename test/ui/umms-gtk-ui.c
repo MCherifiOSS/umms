@@ -20,7 +20,9 @@
  * License along with UMMS; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-
+#include <unistd.h>
+#include <sys/select.h>
+#include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -218,17 +220,13 @@ void ui_callbacks_for_reason(UI_CALLBACK_REASONS reason, void * data1, void * da
     return;
 }
 
-
-static int ui_get_raw_data(void)
+static int ui_create_socket(void)
 {
     int sockfd;
-    char buffer[1024];
     struct sockaddr_in server_addr;
-    int portnumber, nbytes;
-    struct hostent *host;
-    int i;
     gchar * ip_address;
     gint port;
+    int flags;
 
     //host = gethostbyname("localhost");
     ply_get_rawdata_address(&ip_address, &port);
@@ -236,34 +234,74 @@ static int ui_get_raw_data(void)
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         fprintf(stderr, "Socket Error:%s\a\n", (char *)strerror(errno));
-        return;
+        return -1;
     }
 
+    
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port);
+    server_addr.sin_port = htons(port);    
     //server_addr.sin_addr = *((struct in_addr*)host->h_addr);
     server_addr.sin_addr.s_addr = inet_addr(ip_address);
     g_free(ip_address);
+
     
     if (connect (sockfd, (struct sockaddr*)(&server_addr), sizeof(struct sockaddr)) == -1) {
         printf("Connect Error: %s\a\n", strerror(errno));
         close(sockfd);
-        return;
+        return -1;
     }
 
-    for (i = 0; i < 3; i++) {
-        nbytes = read(sockfd, buffer, 1024);
-        printf( "received:%d bytes\n", nbytes);
-        if (nbytes >= 0) {
-            buffer[nbytes] = '\0';
-            printf( "I have received:%x %x %x %x %x %x %x %x\n",
-                    buffer[0], buffer[1], buffer[2], buffer[3], buffer[4],
-                    buffer[5], buffer[6], buffer[7]);
-        }
-    }
+    flags = fcntl(sockfd, F_GETFL, 0);
+    fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
 
-    close(sockfd);
+    return sockfd;
+}
+
+static int ui_socket_fd = -1;
+
+static char * ui_get_raw_data(void)
+{
+    char buffer[1024];
+    fd_set fds; 
+    int nbytes;
+    int i;
+    int maxfdp;
+    struct timeval tv;
+
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+
+    while(1)
+    {
+        FD_ZERO(&fds);
+        FD_SET(ui_socket_fd, &fds);
+        maxfdp = ui_socket_fd + 1; 
+
+        switch(select(maxfdp,&fds,NULL,NULL,&tv))
+        {
+            case -1:
+                return NULL;
+                break;
+
+            case 0:
+                break; 
+
+            default:
+            {
+                if(FD_ISSET(ui_socket_fd,&fds)) {
+                    nbytes = read(ui_socket_fd, buffer, 1024);
+                    printf( "received:%d bytes\n", nbytes);
+                    if (nbytes >= 0) {
+                        buffer[nbytes] = '\0';
+                        printf( "I have received:%x %x %x %x %x %x %x %x\n",
+                        buffer[0], buffer[1], buffer[2], buffer[3], buffer[4],
+                        buffer[5], buffer[6], buffer[7]);
+                    }
+                }
+            }
+         }
+     }
 }
 
 
@@ -396,6 +434,54 @@ static void ui_sub_open_bt_cb(GtkWidget *widget, gpointer data)
     } else {
         gtk_widget_destroy(subopen_dlg);
     }
+
+}
+
+static void ui_update_dvb_rawdata_thread(GtkWidget * uri_entry)
+{
+    if(ui_socket_fd == -1) {
+        ui_socket_fd = ui_create_socket();
+    }
+
+    if(ui_socket_fd != -1) {
+        ui_get_raw_data();
+    }
+}
+
+static void ui_dvb_bt_cb(GtkWidget *widget, gpointer data)
+{
+    GtkWidget *dlg;
+    gint result;
+    GtkWidget *frame;
+    GtkWidget *uri_entry;
+    GThread *raw_data_update_thread;
+
+    dlg = gtk_dialog_new_with_buttons("DVB Infomation",
+              GTK_WINDOW(gtk_widget_get_toplevel (window)),
+              GTK_DIALOG_MODAL,
+              GTK_STOCK_OK, GTK_RESPONSE_OK,
+              NULL);
+    gtk_window_set_default_size (GTK_WINDOW ((dlg)), 600, 500);
+
+    frame = gtk_frame_new ("Raw Data Dump:");
+    uri_entry = gtk_entry_new ();
+    gtk_entry_set_max_length (GTK_ENTRY (uri_entry), 100);
+    gtk_container_add (GTK_CONTAINER (frame), uri_entry);
+    gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dlg)->vbox),
+                        frame, FALSE, FALSE, 0);
+
+    gtk_widget_show_all (dlg);
+
+    raw_data_update_thread = 
+        g_thread_create ((GThreadFunc) ui_update_dvb_rawdata_thread, uri_entry, TRUE, NULL);
+
+    gtk_dialog_run(GTK_DIALOG(dlg));
+
+    close(ui_socket_fd);
+    g_thread_join(raw_data_update_thread);
+    ui_socket_fd = -1;
+    
+    gtk_widget_destroy(dlg);
 
 }
 
@@ -556,7 +642,7 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
 
 static void ui_options_bt_cb(GtkWidget *widget, gpointer data)
 {
-    ui_get_raw_data();
+
 }
 
 static void ui_fileopen_dlg(GtkWidget *widget, gpointer data)
@@ -776,6 +862,7 @@ gint ui_create(void)
     GtkWidget *button_forward;
     GtkWidget *button_fileopen;
     GtkWidget *button_uriopen;
+    GtkWidget *button_dvb;
     GtkWidget *button_subtitle_open;
     GtkWidget *image_rewind;
     GtkWidget *image_stop;
@@ -830,6 +917,9 @@ gint ui_create(void)
     button_subtitle_open = gtk_button_new_with_label("Sub");
     gtk_table_attach_defaults (GTK_TABLE (table), button_subtitle_open, v_start++, v_start + 1, 1, 2);
 
+    button_dvb = gtk_button_new_with_label("DVB");
+    gtk_table_attach_defaults (GTK_TABLE (table), button_dvb, v_start++, v_start + 1, 1, 2);
+
     g_signal_connect((gpointer)button_fileopen, "clicked", G_CALLBACK(ui_fileopen_dlg), NULL);
     g_signal_connect((gpointer)button_play, "clicked", G_CALLBACK(ui_pause_bt_cb), NULL);
     g_signal_connect((gpointer)button_stop, "clicked", G_CALLBACK(ui_stop_bt_cb), NULL);
@@ -837,6 +927,7 @@ gint ui_create(void)
     g_signal_connect((gpointer)button_forward, "clicked", G_CALLBACK(ui_forward_bt_cb), NULL);
     g_signal_connect((gpointer)button_uriopen, "clicked", G_CALLBACK(ui_uri_open_bt_cb), NULL);
     g_signal_connect((gpointer)button_subtitle_open, "clicked", G_CALLBACK(ui_sub_open_bt_cb), NULL);
+    g_signal_connect((gpointer)button_dvb, "clicked", G_CALLBACK(ui_dvb_bt_cb), NULL);
 
     button_info = gtk_button_new();
     image_info = gtk_image_new_from_stock("gtk-info", GTK_ICON_SIZE_BUTTON);
