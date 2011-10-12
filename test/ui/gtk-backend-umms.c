@@ -295,7 +295,7 @@ gint avdec_set_source(gchar *filename)
     GError *error = NULL;
     gchar * file_name;
 
-    if(filename && filename[0] == '/') {
+    if (filename && filename[0] == '/') {
         file_name = g_strdup_printf("file://%s", filename);
     } else {
         file_name = g_strdup(filename);
@@ -311,6 +311,30 @@ gint avdec_set_source(gchar *filename)
     g_free(file_name);
     return 0;
 }
+
+
+gint avdec_set_subtitle(gchar *filename)
+{
+    GError *error = NULL;
+    gchar * file_name;
+
+    if (filename && filename[0] == '/') {
+        file_name = g_strdup_printf("file://%s", filename);
+    } else {
+        file_name = g_strdup(filename);
+    }
+
+    printf("subtitle file_name is %s\n", file_name);
+    if (!dbus_g_proxy_call (player, "SetSubtitleUri", &error,
+            G_TYPE_STRING, file_name, G_TYPE_INVALID,
+            G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to SetSubtitleUri", error);
+        return -1;
+    }
+    g_free(file_name);
+    return 0;
+}
+
 
 gint avdec_start(void)
 {

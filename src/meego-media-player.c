@@ -690,6 +690,7 @@ meego_media_player_set_subtitle_uri (MeegoMediaPlayer *player, gchar *sub_uri, G
   gboolean ret = TRUE;
   MeegoMediaPlayerPrivate *priv = GET_PRIVATE (player);
 
+  UMMS_DEBUG ("Want to set the suburi to %s", sub_uri);
   if (player->player_control) {
     ret = meego_media_player_control_set_subtitle_uri (GET_CONTROL_IFACE (player), sub_uri);
   } else {

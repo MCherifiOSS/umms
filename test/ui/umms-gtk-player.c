@@ -124,8 +124,8 @@ void ply_set_duration(gint64 len)
 
 gint ply_reload_file(gchar *filename)
 {
-    if (ply_main_data.state != PLY_MAIN_STATE_IDLE &&
-         ply_main_data.state != PLY_MAIN_STATE_READY) {
+    if (ply_get_state() != PLY_MAIN_STATE_IDLE &&
+         ply_get_state() != PLY_MAIN_STATE_READY) {
         ply_stop_stream();
     }
 
@@ -134,6 +134,16 @@ gint ply_reload_file(gchar *filename)
     ply_main_data.state = PLY_MAIN_STATE_READY;
 
     g_print("%s\n", dbg_state_name[ply_main_data.state]);
+    return 0;
+}
+
+gint ply_set_subtitle(gchar *filename)
+{
+    if (ply_get_state() == PLY_MAIN_STATE_IDLE ||
+         ply_get_state() == PLY_MAIN_STATE_READY) {
+        avdec_set_subtitle (filename);
+    }
+
     return 0;
 }
 

@@ -61,6 +61,8 @@ PlyMainState ply_get_state(void);
  */
 gint ply_reload_file(gchar *file_name);
 
+gint ply_set_subtitle(gchar *filename);
+
 /***
  * @brief Play the stream from the very beginning, this function just needs to send the message to AV decoder thread, and returns without block.
  *

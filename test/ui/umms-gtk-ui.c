@@ -318,11 +318,11 @@ static void ui_uri_open_bt_cb(GtkWidget *widget, gpointer data)
     GtkWidget *frame;
 
     uri_dlg = gtk_dialog_new_with_buttons("Enter the URI",
-               GTK_WINDOW(gtk_widget_get_toplevel (window)),
-               GTK_DIALOG_MODAL,
-               GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-               GTK_STOCK_OK, GTK_RESPONSE_OK,
-               NULL);
+              GTK_WINDOW(gtk_widget_get_toplevel (window)),
+              GTK_DIALOG_MODAL,
+              GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+              GTK_STOCK_OK, GTK_RESPONSE_OK,
+              NULL);
 
     gtk_window_set_default_size (GTK_WINDOW (uri_dlg), 500, 200);
 
@@ -347,17 +347,21 @@ static void ui_uri_open_bt_cb(GtkWidget *widget, gpointer data)
     gtk_widget_show_all (uri_dlg);
 
     response_id = gtk_dialog_run(GTK_DIALOG(uri_dlg));
-    
-    if(response_id == GTK_RESPONSE_OK) {
+
+    if (response_id == GTK_RESPONSE_OK) {
         entry_text = g_strdup(gtk_entry_get_text (GTK_ENTRY (uri_entry)));
         sub_entry_text = g_strdup(gtk_entry_get_text (GTK_ENTRY (sub_entry)));
         //printf("Entry contents: %s\n", entry_text);
     }
-    
+
     gtk_widget_destroy(uri_dlg);
 
-    if(entry_text && entry_text[0]) {
+    if (entry_text && entry_text[0]) {
         ply_reload_file(entry_text);
+        if (sub_entry_text && sub_entry_text[0]) {
+            ply_set_subtitle(sub_entry_text);
+        }
+
         ui_pause_bt_cb(NULL, NULL);
         g_free(entry_text);
     }
@@ -370,16 +374,17 @@ static void ui_sub_open_bt_cb(GtkWidget *widget, gpointer data)
     gchar *filename;
 
     subopen_dlg = gtk_file_chooser_dialog_new("Select Subtitle file",
-                   GTK_WINDOW(window),
-                   GTK_FILE_CHOOSER_ACTION_OPEN,
-                   GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                   GTK_STOCK_OK, GTK_RESPONSE_OK,
-                   NULL);
+                  GTK_WINDOW(window),
+                  GTK_FILE_CHOOSER_ACTION_OPEN,
+                  GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                  GTK_STOCK_OK, GTK_RESPONSE_OK,
+                  NULL);
     result = gtk_dialog_run(GTK_DIALOG(subopen_dlg));
     if (GTK_RESPONSE_OK == result) {
         filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(subopen_dlg));
         gtk_widget_destroy(subopen_dlg);
-        g_print("filename is %s\n", filename);
+        g_print("subtitle filename is %s\n", filename);
+        ply_set_subtitle(filename);
         g_free(filename);
     } else {
         gtk_widget_destroy(subopen_dlg);
@@ -415,7 +420,7 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
     frame = gtk_frame_new ("Source");
     lab = gtk_label_new(NULL);
     uri_str = ply_get_current_uri();
-    prot_str = ply_get_protocol_name(); 
+    prot_str = ply_get_protocol_name();
     show_name = g_strdup_printf("URI: %s\nProtocol: %s", uri_str, prot_str);
     gtk_label_set_text(GTK_LABEL(lab), show_name);
     gtk_label_set_justify(GTK_LABEL(lab), GTK_JUSTIFY_FILL);
@@ -589,10 +594,10 @@ static void ui_volumebar_vchange_cb( GtkAdjustment *get,
     if (ply_get_state() == PLY_MAIN_STATE_RUN ||
          ply_get_state() == PLY_MAIN_STATE_PAUSE) {
         printf("Volume:  get->value = %d\n", (gint)(get->value));
-        ply_set_volume((gint)get->value);    
+        ply_set_volume((gint)get->value);
 
         volume = ply_get_volume();
-        printf("///// The volume now is %d\n", volume);
+        //printf("///// The volume now is %d\n", volume);
         gtk_range_set_value(GTK_RANGE(volume_bar), volume);
     } else {
         gtk_range_set_value(GTK_RANGE(volume_bar), 0.0);
@@ -762,7 +767,7 @@ gint ui_create(void)
     GtkWidget *button_rewind;
     GtkWidget *button_stop;
     GtkWidget *button_forward;
-    GtkWidget *button_fileopen;    
+    GtkWidget *button_fileopen;
     GtkWidget *button_uriopen;
     GtkWidget *button_subtitle_open;
     GtkWidget *image_rewind;
@@ -781,7 +786,7 @@ gint ui_create(void)
     image_rewind = gtk_image_new_from_stock(GTK_STOCK_MEDIA_REWIND, GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_rewind), image_rewind);
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_rewind, TRUE, TRUE, 0);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_rewind, v_start++, v_start+1, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_rewind, v_start++, v_start + 1, 1, 2);
 
     button_play = gtk_button_new();
     image_play = gtk_image_new_from_stock(GTK_STOCK_MEDIA_PLAY, GTK_ICON_SIZE_BUTTON);
@@ -790,33 +795,33 @@ gint ui_create(void)
     g_object_ref((gpointer)image_pause);
     gtk_container_add(GTK_CONTAINER(button_play), image_play);
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_play, TRUE, TRUE, 0);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_play, v_start++, v_start+1, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_play, v_start++, v_start + 1, 1, 2);
 
     button_stop = gtk_button_new();
     image_stop = gtk_image_new_from_stock(GTK_STOCK_MEDIA_STOP, GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_stop), image_stop);
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_stop, TRUE, TRUE, 0);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_stop, v_start++, v_start+1, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_stop, v_start++, v_start + 1, 1, 2);
 
     button_forward = gtk_button_new();
     image_forward = gtk_image_new_from_stock(GTK_STOCK_MEDIA_FORWARD, GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_forward), image_forward);
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_forward, TRUE, TRUE, 0);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_forward, v_start++, v_start+1, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_forward, v_start++, v_start + 1, 1, 2);
 
     button_fileopen = gtk_button_new();
     image_fileopen = gtk_image_new_from_stock("gtk-open", GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_fileopen), image_fileopen);
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_fileopen, TRUE, TRUE, 0);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_fileopen, v_start++, v_start+1, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_fileopen, v_start++, v_start + 1, 1, 2);
 
     button_uriopen = gtk_button_new();
     image_uri = gtk_image_new_from_stock("gtk-file", GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_uriopen), image_uri);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_uriopen, v_start++, v_start+1, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_uriopen, v_start++, v_start + 1, 1, 2);
 
     button_subtitle_open = gtk_button_new_with_label("Sub");
-    gtk_table_attach_defaults (GTK_TABLE (table), button_subtitle_open, v_start++, v_start+1, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_subtitle_open, v_start++, v_start + 1, 1, 2);
 
     g_signal_connect((gpointer)button_fileopen, "clicked", G_CALLBACK(ui_fileopen_dlg), NULL);
     g_signal_connect((gpointer)button_play, "clicked", G_CALLBACK(ui_pause_bt_cb), NULL);
@@ -829,13 +834,13 @@ gint ui_create(void)
     button_info = gtk_button_new();
     image_info = gtk_image_new_from_stock("gtk-info", GTK_ICON_SIZE_BUTTON);
     gtk_container_add(GTK_CONTAINER(button_info), image_info);
-    
+
     button_option = gtk_button_new_with_label("Options");
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_info, TRUE, TRUE, 0);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_info, v_start, v_start+2, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_info, v_start, v_start + 2, 1, 2);
     v_start += 2;
     //gtk_box_pack_start(GTK_BOX(button_hbox), button_option, TRUE, TRUE, 0);
-    gtk_table_attach_defaults (GTK_TABLE (table), button_option, v_start, v_start+2, 1, 2);
+    gtk_table_attach_defaults (GTK_TABLE (table), button_option, v_start, v_start + 2, 1, 2);
     v_start += 2;
     g_signal_connect((gpointer)button_info, "clicked", G_CALLBACK(ui_info_bt_cb), NULL);
     g_signal_connect((gpointer)button_option, "clicked", G_CALLBACK(ui_options_bt_cb), NULL);
