@@ -2785,7 +2785,7 @@ socket_listen_thread(DvbPlayer* dvd_player)
 
   memset(&serv_addr, 0, sizeof(serv_addr));
   serv_addr.sin_family = AF_INET;
-  serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  serv_addr.sin_addr.s_addr = inet_addr(priv->ip);
   serv_addr.sin_port = htons(priv->port);
   if (bind(priv->listen_fd, (struct sockaddr*)&serv_addr, sizeof(struct sockaddr)) == -1) {
     UMMS_DEBUG("try to binding to %s:%d Failed, error is %s",
@@ -2805,8 +2805,8 @@ socket_listen_thread(DvbPlayer* dvd_player)
     return NULL;
   }
   
-  UMMS_DEBUG("we now binding to %s:%d", inet_ntoa(serv_addr.sin_addr), serv_addr.sin_port);
-  priv->port = serv_addr.sin_port;
+  UMMS_DEBUG("we now binding to %s:%d", inet_ntoa(serv_addr.sin_addr), ntohs(serv_addr.sin_port));
+  priv->port = ntohs(serv_addr.sin_port);
   g_mutex_unlock (priv->socks_lock);
 
   if (listen(priv->listen_fd, 5) == -1) {
