@@ -320,3 +320,10 @@ gint ply_get_rawdata_address(gchar ** ip_addr, gint * port)
     return 0;
 }
 
+GArray *ply_get_pat(void)
+{
+    GArray * pat;
+    avdec_get_pat(&pat);
+    return pat;
+}
+

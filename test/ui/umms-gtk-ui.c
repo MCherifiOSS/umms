@@ -35,6 +35,7 @@
 #include <gst/gst.h>
 #include "umms-gtk-player.h"
 #include "umms-gtk-ui.h"
+#include "gtk-backend.h"
 
 #define MY_GST_TIME_ARGS(t) \
             GST_CLOCK_TIME_IS_VALID (t) ? \
@@ -511,8 +512,12 @@ static void ui_dvb_bt_cb(GtkWidget *widget, gpointer data)
     GtkWidget *dlg;
     gint result;
     GtkWidget *frame;
+    GtkWidget *lab;
     GtkWidget *uri_entry;
     GThread *raw_data_update_thread;
+    GArray *pat;
+    gchar * show_str = NULL;
+    int i;
 
     dlg = gtk_dialog_new_with_buttons("DVB Infomation",
             GTK_WINDOW(gtk_widget_get_toplevel (window)),
@@ -521,16 +526,44 @@ static void ui_dvb_bt_cb(GtkWidget *widget, gpointer data)
             NULL);
     gtk_window_set_default_size (GTK_WINDOW ((dlg)), 600, 500);
 
-    /* Get the PAT and PMT. */
-
-
-
     frame = gtk_frame_new ("Raw Data Dump:");
     uri_entry = gtk_entry_new ();
     gtk_entry_set_max_length (GTK_ENTRY (uri_entry), 100);
     gtk_container_add (GTK_CONTAINER (frame), uri_entry);
     gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dlg)->vbox),
                         frame, FALSE, FALSE, 0);
+
+    /* Get the PAT and PMT. */
+    pat = ply_get_pat();
+    printf("PAT array length is %d\n",  pat->len);
+
+    frame = gtk_frame_new ("Program  <----------->   PID");
+    show_str = NULL;
+    for(i=0; i < pat->len; i++) {
+        struct UMMS_Pat_Item item = g_array_index(pat, UMMS_Pat_Item, i);
+
+        if(show_str) {
+            gchar * old = show_str;
+            show_str = g_strdup_printf("%s\nProgram Number: %d ----  PID: %d", 
+                show_str, item.program_num, item.pid);
+            g_free(old);
+        } else {
+            show_str = g_strdup_printf("Program Number: %d ----  PID: %d", 
+                item.program_num, item.pid);
+        }
+    }
+
+    lab = gtk_label_new(NULL);
+    gtk_label_set_text(GTK_LABEL(lab), show_str);
+    gtk_label_set_justify(GTK_LABEL(lab), GTK_JUSTIFY_FILL);
+    gtk_label_set_line_wrap (GTK_LABEL(lab), TRUE);
+    gtk_container_add (GTK_CONTAINER (frame), lab);
+    
+    gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dlg)->vbox),
+                        frame, FALSE, FALSE, 0);
+    g_array_free(pat, TRUE);
+    g_free(show_str);
+
 
     gtk_widget_show_all (dlg);
 

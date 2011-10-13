@@ -143,4 +143,6 @@ gint ply_get_volume(void);
 
 gint ply_get_rawdata_address(gchar ** ip_addr, gint * port);
 
+GArray *ply_get_pat(void);
+
 #endif /* PLAYER_CORE_H_ */

@@ -839,7 +839,7 @@ gint avdec_get_pat(GArray ** ret_array)
         pat_itm.program_num = g_value_get_uint(val);
 
         val = g_hash_table_lookup(hash_table, "pid");
-        pat_itm.pid = g_value_get_int(val);
+        pat_itm.pid = g_value_get_uint(val);
 
         g_array_append_val(*ret_array, pat_itm);
     }
