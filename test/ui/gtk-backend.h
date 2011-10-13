@@ -25,6 +25,12 @@
 #ifndef AV_DECODER_H_
 #define AV_DECODER_H_
 
+
+struct UMMS_Pat_Item {
+    guint program_num;
+    gint pid;
+};
+
 gint avdec_init(void);
 gint avdec_set_source(gchar *filename);
 gint avdec_start(void);

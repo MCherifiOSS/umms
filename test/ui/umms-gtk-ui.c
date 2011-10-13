@@ -521,6 +521,10 @@ static void ui_dvb_bt_cb(GtkWidget *widget, gpointer data)
             NULL);
     gtk_window_set_default_size (GTK_WINDOW ((dlg)), 600, 500);
 
+    /* Get the PAT and PMT. */
+
+
+
     frame = gtk_frame_new ("Raw Data Dump:");
     uri_entry = gtk_entry_new ();
     gtk_entry_set_max_length (GTK_ENTRY (uri_entry), 100);

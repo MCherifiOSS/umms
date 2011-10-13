@@ -805,3 +805,48 @@ gint avdec_get_rawdata_address(gchar ** ip_addr, gint * port)
     return 0;
 }
 
+gint avdec_get_pat(GArray ** ret_array)
+{
+    GError *error = NULL;
+    GPtrArray *pat_array;
+    GHashTable *hash_table;
+    int length;
+    int i;
+    struct UMMS_Pat_Item pat_itm;
+    GValue *val = NULL;
+
+    if (!dbus_g_proxy_call (player, "GetPat", &error,
+            G_TYPE_INVALID,
+            dbus_g_type_get_collection("GPtrArray", 
+                dbus_g_type_get_map("GHashTable", G_TYPE_STRING, G_TYPE_VALUE)),
+                &pat_array,
+            G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetPat", error);
+        return -1;
+    }
+
+    length = pat_array->len;
+    printf("the hash ptr length is %d\n", length);
+
+    if(length <= 0)
+        return -1;
+
+    *ret_array = g_array_new(FALSE, FALSE, sizeof(struct UMMS_Pat_Item));
+
+    for(i=0; i<length; i++) {
+        hash_table = g_ptr_array_index(pat_array, i);
+        val = g_hash_table_lookup(hash_table, "program-number");
+        pat_itm.program_num = g_value_get_uint(val);
+
+        val = g_hash_table_lookup(hash_table, "pid");
+        pat_itm.pid = g_value_get_int(val);
+
+        g_array_append_val(*ret_array, pat_itm);
+    }
+
+    g_ptr_array_foreach(pat_array, (GFunc)g_hash_table_remove_all, NULL);
+    g_ptr_array_free(pat_array, FALSE);
+
+    return 0;
+}
+

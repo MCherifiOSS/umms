@@ -24,7 +24,6 @@
 
 #ifndef PLAYER_CORE_H_
 #define PLAYER_CORE_H_
-
 typedef enum _PlyMainState {
     PLY_MAIN_STATE_IDLE,
     PLY_MAIN_STATE_READY,
