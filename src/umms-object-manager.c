@@ -142,7 +142,7 @@ umms_object_manager_class_init (UmmsObjectManagerClass *klass)
 
 
   g_object_class_install_property (object_class, PROP_PLATFORM,
-      g_param_spec_int ("platform", "platform type", "indication for platform type: Tv, netbook, etc",0,INVALID,
+      g_param_spec_int ("platform", "platform type", "indication for platform type: Tv, netbook, etc",0,PLATFORM_INVALID,
           CETV, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 }

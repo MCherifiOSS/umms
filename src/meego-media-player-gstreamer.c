@@ -26,6 +26,8 @@
 #include "meego-media-player-gstreamer.h"
 #include "meego-media-player-control.h"
 #include "engine-gst.h"
+#include "engine-generic.h"
+#include "dvb-player.h"
 
 
 G_DEFINE_TYPE (MeegoMediaPlayerGstreamer, meego_media_player_gstreamer, MEEGO_TYPE_MEDIA_PLAYER)
@@ -56,20 +58,69 @@ enum PROPTYPE{
   PROP_LAST
 };
 
+/*
+ * fake engine 
+ *
+ */
+MeegoMediaPlayerControl* engine_fake_new(void)
+{
+
+  UMMS_DEBUG("fake engine error\n");
+  return NULL;
+}
+
+/* [platform][engine]
+ *  
+ * platform: 0-> CETV
+ *           1-> NETBOOK
+ *
+ * engine : 1-> Normal
+ *          2-> DVB
+ *
+ */
+
+MeegoMediaPlayerControl* (*engine_factory[PLATFORM_INVALID][N_MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE])(void) =
+{
+/*00*/NULL, 
+/*01: CETV-Normal*/ engine_gst_new,
+/*02: CETV-DVB*/dvb_player_new,
+/*10: */NULL,
+/*11: Netbook->Normal*/engine_generic_new,
+/*12: Netbook->DVB*/NULL
+};
+
 MeegoMediaPlayerControl *
-create_engine (gint type)
+create_engine (gint engine_type, PlatformType platform)
 {
   MeegoMediaPlayerControl *engine = NULL;
+  UMMS_DEBUG ("Trying to create engine type (%d) on platform (%d)", engine_type, platform);
 
-  if (type == MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_DVB)
+  g_return_val_if_fail((engine_type < N_MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE), NULL); 
+  g_return_val_if_fail((platform < PLATFORM_INVALID), NULL); 
+  g_return_val_if_fail(( engine_factory[platform][engine_type] != NULL), NULL); 
+
+  g_print("addr of engien: %x\n", engine_factory[platform][engine_type]);
+
+  engine = engine_factory[platform][engine_type]();
+
+  g_return_val_if_fail((engine != NULL), NULL);
+
+#if 0
+  if (engine_type == MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_DVB)
     engine = dvb_player_new();
-  else if (type == MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_NORMAL)
+  else if (engine_type == MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_NORMAL)
     engine = engine_gst_new();
-  else 
-    UMMS_DEBUG ("Unknown engine type (%d)", type);
+  else {
+    UMMS_DEBUG ("Unknown engine type (%d)", engine_type);
+  }
+#endif
 
   return engine;
 }
+
+/* extend API to support multi-platform and multi-engine
+ *
+ */
 
 static gboolean meego_media_player_gstreamer_load_engine (MeegoMediaPlayer *player, const char *uri, gboolean *new_engine)
 {
@@ -86,7 +137,7 @@ static gboolean meego_media_player_gstreamer_load_engine (MeegoMediaPlayer *play
 
   if (!player->player_control) {
     UMMS_DEBUG ("We have no engine loaded, to load one(type = %d)", type);
-    player->player_control = create_engine (type);
+    player->player_control = create_engine (type,priv->platform_type);
       updated = TRUE;
   } else {
     if (priv->engine_type == type) {
@@ -95,7 +146,7 @@ static gboolean meego_media_player_gstreamer_load_engine (MeegoMediaPlayer *play
     } else {
       UMMS_DEBUG ("Changing engine from type(%d) to type(%d)", priv->engine_type, type);
       g_object_unref (player->player_control);
-      player->player_control = create_engine (type);
+      player->player_control = create_engine (type, priv->platform_type);
       updated = TRUE;
     }
   }
@@ -119,7 +170,12 @@ meego_media_player_gstreamer_get_property (GObject    *object,
     GValue     *value,
     GParamSpec *pspec)
 {
+  MeegoMediaPlayerGstreamerPrivate *priv = GET_PRIVATE (object);
   switch (property_id) {
+    case PROP_PLATFORM:
+      g_value_set_int(value, priv->platform_type);
+      UMMS_DEBUG("platform type: %d", priv->platform_type);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
   }
@@ -174,7 +230,7 @@ meego_media_player_gstreamer_class_init (MeegoMediaPlayerGstreamerClass *klass)
   p_class->load_engine = meego_media_player_gstreamer_load_engine;
 
   g_object_class_install_property (object_class, PROP_PLATFORM,
-      g_param_spec_int ("platform", "platform type", "indication for platform type: Tv, netbook, etc",0,INVALID,
+      g_param_spec_int ("platform", "platform type", "indication for platform type: Tv, netbook, etc",0,PLATFORM_INVALID,
           CETV, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 }

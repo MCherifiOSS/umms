@@ -102,7 +102,7 @@ enum {
 typedef enum {
   CETV,
   NETBOOK,
-  INVALID
+  PLATFORM_INVALID
 }PlatformType;
 
 #endif /* _UMMS_COMMON_H */
