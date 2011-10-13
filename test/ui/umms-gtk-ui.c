@@ -388,7 +388,7 @@ static void ui_uri_open_bt_cb(GtkWidget *widget, gpointer data)
     frame = gtk_frame_new ("Type the URI:");
 
     uri_entry = gtk_entry_new ();
-    gtk_entry_set_max_length (GTK_ENTRY (uri_entry), 100);
+    gtk_entry_set_max_length (GTK_ENTRY (uri_entry), 500);
 
     gtk_container_add (GTK_CONTAINER (frame), uri_entry);
     gtk_box_pack_start (GTK_BOX (GTK_DIALOG (uri_dlg)->vbox),
@@ -397,7 +397,7 @@ static void ui_uri_open_bt_cb(GtkWidget *widget, gpointer data)
     frame = gtk_frame_new ("Type the Subtitle URI:");
 
     sub_entry = gtk_entry_new ();
-    gtk_entry_set_max_length (GTK_ENTRY (sub_entry), 100);
+    gtk_entry_set_max_length (GTK_ENTRY (sub_entry), 500);
 
     gtk_container_add (GTK_CONTAINER (frame), sub_entry);
     gtk_box_pack_start (GTK_BOX (GTK_DIALOG (uri_dlg)->vbox),
