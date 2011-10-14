@@ -2973,9 +2973,7 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
     UMMS_DEBUG("The element name is %s", element_name);
   }
 
-  priv->tag_list =
-    gst_tag_list_merge(priv->tag_list, tag_list, GST_TAG_MERGE_REPLACE);
-
+  
   //cache the title
   if (gst_tag_list_get_string_index (tag_list, GST_TAG_TITLE, 0, &title)) {
     UMMS_DEBUG("Element: %s, provide the title: %s", element_name, title);
@@ -2996,6 +2994,10 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   if (metadata_changed) {
     meego_media_player_control_emit_metadata_changed (self);
   }
+
+  //tag_list will be freed in gst_tag_list_merge(), so we don't need to free it by ourself
+  priv->tag_list =
+    gst_tag_list_merge(priv->tag_list, tag_list, GST_TAG_MERGE_REPLACE);
 
 #if 0
   gint size, i;
@@ -3132,12 +3134,10 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
 
   if (src_pad)
     g_object_unref(src_pad);
-  gst_tag_list_free (tag_list);
   if (pad_name)
     g_free(pad_name);
   if (element_name)
     g_free(element_name);
-
 }
 
 
