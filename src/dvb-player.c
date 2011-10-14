@@ -24,7 +24,7 @@
 
 /* add PAT, CAT, NIT, SDT, EIT to pids filter for dvbsrc */
 #define INIT_PIDS "0:1:16:17:18"
-//#define DVB_SRC
+#define DVB_SRC
 
 static void meego_media_player_control_init (MeegoMediaPlayerControl* iface);
 static gpointer socket_listen_thread(DvbPlayer* dvd_player);

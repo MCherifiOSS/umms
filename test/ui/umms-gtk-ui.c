@@ -522,11 +522,11 @@ static void ui_dvb_bt_cb(GtkWidget *widget, gpointer data)
     guint pcr_pid;
     int i;
 
-    if (ply_get_state() != PLY_MAIN_STATE_RUN && 
-            ply_get_state() != PLY_MAIN_STATE_PAUSE) {
+    if (ply_get_state() != PLY_MAIN_STATE_RUN &&
+         ply_get_state() != PLY_MAIN_STATE_PAUSE) {
         return;
     }
-    
+
     dlg = gtk_dialog_new_with_buttons("DVB Infomation",
             GTK_WINDOW(gtk_widget_get_toplevel (window)),
             GTK_DIALOG_MODAL,
@@ -630,8 +630,8 @@ static void ui_info_bt_cb(GtkWidget *widget, gpointer data)
     gint audio_num = 0;
     int i = 0;
 
-    if (ply_get_state() != PLY_MAIN_STATE_RUN && 
-            ply_get_state() != PLY_MAIN_STATE_PAUSE) {
+    if (ply_get_state() != PLY_MAIN_STATE_RUN &&
+         ply_get_state() != PLY_MAIN_STATE_PAUSE) {
         return;
     }
 
