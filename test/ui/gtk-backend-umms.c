@@ -451,7 +451,8 @@ gint avdec_get_position(gint64 * pos)
     if (!dbus_g_proxy_call (player, "GetPosition", &error,
             G_TYPE_INVALID, G_TYPE_INT64, &cur_pos,
             G_TYPE_INVALID)) {
-        UMMS_GERROR ("Failed to get_position", error);
+        printf ("Failed to get_position\n");
+        //UMMS_GERROR ("Failed to get_position", error);
         return -1;
     }
 
