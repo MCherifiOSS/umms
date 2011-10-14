@@ -28,8 +28,13 @@
 
 typedef struct UMMS_Pat_Item {
     guint program_num;
-    gint pid;
+    guint pid;
 }UMMS_Pat_Item;
+
+typedef struct UMMS_Pmt_Item {
+    guint pid;
+    guint stream_type;
+}UMMS_Pmt_Item;
 
 gint avdec_init(void);
 gint avdec_set_source(gchar *filename);

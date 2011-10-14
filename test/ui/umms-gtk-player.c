@@ -327,3 +327,8 @@ GArray *ply_get_pat(void)
     return pat;
 }
 
+gint ply_get_pmt(guint *program_num, guint *pcr_pid, GArray **array)
+{
+    return avdec_get_pmt(program_num, pcr_pid, array);
+}
+

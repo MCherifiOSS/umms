@@ -145,4 +145,6 @@ gint ply_get_rawdata_address(gchar ** ip_addr, gint * port);
 
 GArray *ply_get_pat(void);
 
+gint ply_get_pmt(guint *program_num, guint *pcr_pid, GArray **array);
+
 #endif /* PLAYER_CORE_H_ */

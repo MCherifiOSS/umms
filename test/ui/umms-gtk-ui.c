@@ -291,8 +291,8 @@ static char * ui_get_raw_data(gint max_len, gint * ret_len)
             default: {
                 if (FD_ISSET(ui_socket_fd, &fds)) {
                     nbytes = read(ui_socket_fd, buffer, 1024);
-                    
-                    /*                    
+
+                    /*
                     printf( "received:%d bytes\n", nbytes);
                     if (nbytes >= 0) {
                         buffer[nbytes] = '\0';
@@ -469,7 +469,7 @@ static void ui_update_dvb_rawdata_thread(GtkWidget * uri_entry)
 
         gettimeofday (&tv, NULL);
         tv_sec = tv.tv_sec;
-        
+
         while (1) {
             gchar * old = NULL;
             raw_data = ui_get_raw_data(8, &ret_len);
@@ -478,29 +478,29 @@ static void ui_update_dvb_rawdata_thread(GtkWidget * uri_entry)
 
             /* Do not append to quick. */
             gettimeofday (&tv, NULL);
-            if(tv_sec == tv.tv_sec )
+            if (tv_sec == tv.tv_sec )
                 continue;
 
             gtk_editable_delete_text(GTK_EDITABLE(uri_entry), 0, -1);
 
             tv_sec = tv.tv_sec;
             show_data = NULL;
-            
+
             for (i = 0; i < ret_len; i++) {
                 old = show_data;
                 sprintf(num_buf, "%2X", (char)raw_data[i]);
 
-                if(show_data) {
+                if (show_data) {
                     show_data = g_strdup_printf("%s %s", old, num_buf);
                 } else {
                     show_data = g_strdup(num_buf);
                 }
                 //printf("--- the num_buf = %s\n", num_buf);
 
-                if(old)
+                if (old)
                     g_free(old);
-            }            
-            
+            }
+
             gtk_entry_set_text(GTK_ENTRY(uri_entry), show_data);
             g_free(raw_data);
         }
@@ -516,7 +516,10 @@ static void ui_dvb_bt_cb(GtkWidget *widget, gpointer data)
     GtkWidget *uri_entry;
     GThread *raw_data_update_thread;
     GArray *pat;
+    GArray *pmt;
     gchar * show_str = NULL;
+    guint program_num;
+    guint pcr_pid;
     int i;
 
     dlg = gtk_dialog_new_with_buttons("DVB Infomation",
@@ -535,21 +538,21 @@ static void ui_dvb_bt_cb(GtkWidget *widget, gpointer data)
 
     /* Get the PAT and PMT. */
     pat = ply_get_pat();
-    printf("PAT array length is %d\n",  pat->len);
+    //printf("PAT array length is %d\n",  pat->len);
 
     frame = gtk_frame_new ("Program  <----------->   PID");
     show_str = NULL;
-    for(i=0; i < pat->len; i++) {
+    for (i = 0; i < pat->len; i++) {
         struct UMMS_Pat_Item item = g_array_index(pat, UMMS_Pat_Item, i);
 
-        if(show_str) {
+        if (show_str) {
             gchar * old = show_str;
-            show_str = g_strdup_printf("%s\nProgram Number: %d ----  PID: %d", 
-                show_str, item.program_num, item.pid);
+            show_str = g_strdup_printf("%s\nProgram Number: %u ----  PID: %u",
+                       show_str, item.program_num, item.pid);
             g_free(old);
         } else {
-            show_str = g_strdup_printf("Program Number: %d ----  PID: %d", 
-                item.program_num, item.pid);
+            show_str = g_strdup_printf("Program Number: %u ----  PID: %u",
+                       item.program_num, item.pid);
         }
     }
 
@@ -558,12 +561,38 @@ static void ui_dvb_bt_cb(GtkWidget *widget, gpointer data)
     gtk_label_set_justify(GTK_LABEL(lab), GTK_JUSTIFY_FILL);
     gtk_label_set_line_wrap (GTK_LABEL(lab), TRUE);
     gtk_container_add (GTK_CONTAINER (frame), lab);
-    
+
     gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dlg)->vbox),
                         frame, FALSE, FALSE, 0);
     g_array_free(pat, TRUE);
     g_free(show_str);
 
+
+    if (ply_get_pmt(&program_num, &pcr_pid, &pmt) == 0) {
+        frame = gtk_frame_new ("Current Program Infomation:");
+        show_str = g_strdup_printf("Program Number: %u     PCR PID: %u",
+                   program_num, pcr_pid);
+        for (i = 0; i < pmt->len; i++) {
+            gchar * old = NULL;
+            struct UMMS_Pmt_Item item = g_array_index(pmt, UMMS_Pmt_Item, i);
+
+            old = show_str;
+            show_str = g_strdup_printf("%s\nPID: %u ----  Stream Type: %u",
+                       show_str, item.pid, item.stream_type);
+            g_free(old);
+        }
+
+        lab = gtk_label_new(NULL);
+        gtk_label_set_text(GTK_LABEL(lab), show_str);
+        gtk_label_set_justify(GTK_LABEL(lab), GTK_JUSTIFY_FILL);
+        gtk_label_set_line_wrap (GTK_LABEL(lab), TRUE);
+        gtk_container_add (GTK_CONTAINER (frame), lab);
+
+        gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dlg)->vbox),
+                            frame, FALSE, FALSE, 0);
+        g_array_free(pmt, TRUE);
+        g_free(show_str);
+    }
 
     gtk_widget_show_all (dlg);
 

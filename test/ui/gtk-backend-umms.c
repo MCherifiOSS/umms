@@ -817,23 +817,23 @@ gint avdec_get_pat(GArray ** ret_array)
 
     if (!dbus_g_proxy_call (player, "GetPat", &error,
             G_TYPE_INVALID,
-            dbus_g_type_get_collection("GPtrArray", 
-                dbus_g_type_get_map("GHashTable", G_TYPE_STRING, G_TYPE_VALUE)),
-                &pat_array,
+            dbus_g_type_get_collection("GPtrArray",
+                    dbus_g_type_get_map("GHashTable", G_TYPE_STRING, G_TYPE_VALUE)),
+            &pat_array,
             G_TYPE_INVALID)) {
         UMMS_GERROR ("Failed to GetPat", error);
         return -1;
     }
 
     length = pat_array->len;
-    printf("the hash ptr length is %d\n", length);
+    //printf("the hash ptr length is %d\n", length);
 
-    if(length <= 0)
+    if (length <= 0)
         return -1;
 
     *ret_array = g_array_new(FALSE, FALSE, sizeof(struct UMMS_Pat_Item));
 
-    for(i=0; i<length; i++) {
+    for (i = 0; i < length; i++) {
         hash_table = g_ptr_array_index(pat_array, i);
         val = g_hash_table_lookup(hash_table, "program-number");
         pat_itm.program_num = g_value_get_uint(val);
@@ -846,6 +846,59 @@ gint avdec_get_pat(GArray ** ret_array)
 
     g_ptr_array_foreach(pat_array, (GFunc)g_hash_table_remove_all, NULL);
     g_ptr_array_free(pat_array, FALSE);
+
+    return 0;
+}
+
+gint avdec_get_pmt(guint *ret_program_num, guint *ret_pcr_pid, GArray ** ret_array)
+{
+    GError *error = NULL;
+    GPtrArray *pmt_array;
+    GHashTable *hash_table;
+    int length;
+    int i;
+    struct UMMS_Pmt_Item pmt_itm;
+    guint program_num;
+    guint pcr_pid;
+    guint stream_type;
+    GValue *val = NULL;
+
+    if (!dbus_g_proxy_call (player, "GetPmt", &error,
+            G_TYPE_INVALID,
+            G_TYPE_UINT, &program_num,
+            G_TYPE_UINT, &pcr_pid,
+            dbus_g_type_get_collection("GPtrArray",
+                    dbus_g_type_get_map("GHashTable", G_TYPE_STRING, G_TYPE_VALUE)),
+            &pmt_array,
+            G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to GetPmt", error);
+        return -1;
+    }
+
+    length = pmt_array->len;
+    //printf("the hash ptr length is %d\n", length);
+
+    if (length <= 0)
+        return -1;
+
+    *ret_array = g_array_new(FALSE, FALSE, sizeof(struct UMMS_Pmt_Item));
+
+    for (i = 0; i < length; i++) {
+        hash_table = g_ptr_array_index(pmt_array, i);
+        val = g_hash_table_lookup(hash_table, "pid");
+        pmt_itm.pid = g_value_get_uint(val);
+
+        val = g_hash_table_lookup(hash_table, "stream-type");
+        pmt_itm.stream_type = g_value_get_uint(val);
+
+        g_array_append_val(*ret_array, pmt_itm);
+    }
+
+    g_ptr_array_foreach(pmt_array, (GFunc)g_hash_table_remove_all, NULL);
+    g_ptr_array_free(pmt_array, FALSE);
+
+    *ret_program_num = program_num;
+    *ret_pcr_pid = pcr_pid;
 
     return 0;
 }
