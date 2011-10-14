@@ -533,10 +533,9 @@ static Window get_top_level_win (MeegoMediaPlayerControl *self, Window sub_win)
 }
 #endif
 
+#if 0
 static gboolean setup_datacopy_target (MeegoMediaPlayerControl *self, GHashTable *params)
 {
-  UMMS_DEBUG("  -------------------------\n");
-#if 0
   gchar *rect = NULL;
   GValue *val = NULL;
   GstElement *shmvbin = NULL;
@@ -559,10 +558,8 @@ static gboolean setup_datacopy_target (MeegoMediaPlayerControl *self, GHashTable
 
   g_object_set (priv->pipeline, "video-sink", shmvbin, NULL);
   UMMS_DEBUG ("Set \"shmvidrendbin\" to playbin2");
-#endif
   return TRUE;
 }
-#if 0
 
 static int x_print_error(
   Display *dpy,
@@ -669,6 +666,9 @@ unset_target (MeegoMediaPlayerControl *self)
 {
   EngineGenericPrivate *priv = GET_PRIVATE (self);
 
+  UMMS_DEBUG("Not Supportted");
+
+#if 0
   if (!priv->target_initialized)
     return TRUE;
 
@@ -686,6 +686,7 @@ unset_target (MeegoMediaPlayerControl *self)
 
   priv->target_type = TargetTypeInvalid;
   priv->target_initialized = FALSE;
+#endif
   return TRUE;
 }
 
@@ -694,8 +695,9 @@ engine_generic_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable 
 {
   gboolean ret = TRUE;
   EngineGenericPrivate *priv = GET_PRIVATE (self);
-  UMMS_DEBUG(" Type -------------------------: %d\n", type);
+  UMMS_DEBUG("Not Supportted");
 
+#if 0
   /*
    * Set target can only happen at Null or Stopped. Two reasons:
    * 1. Gstreamer don't support switching sink on the fly.
@@ -727,6 +729,7 @@ engine_generic_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable 
   if (ret) {
     priv->target_type = type;
   }
+#endif
   return ret;
 }
 
@@ -737,7 +740,7 @@ prepare_plane (MeegoMediaPlayerControl *self)
   gint plane;
   gboolean ret = TRUE;
   EngineGenericPrivate *priv = GET_PRIVATE (self);
-  UMMS_DEBUG (" ");
+  UMMS_DEBUG("Not Supportted");
 #if 0
 
   g_object_get (G_OBJECT(priv->pipeline), "video-sink", &vsink_bin, NULL);
@@ -776,6 +779,7 @@ OUT:
 
   return ret;
 }
+#if 0
 
 //both Xwindow and ReservedType0 target use ismd_vidrend_sink, so that need clock.
 #define NEED_CLOCK(target_type) \
@@ -799,13 +803,14 @@ OUT:
     priv->res_list = g_list_append (priv->res_list, res);                     \
     }while(0)
 
+#endif
 
 static gboolean
 request_resource (MeegoMediaPlayerControl *self)
 {
   gint i;
   EngineGenericPrivate *priv = GET_PRIVATE (self);
-  UMMS_DEBUG (" ");
+  UMMS_DEBUG("Not Supportted");
 
   g_return_val_if_fail (priv->uri_parsed, FALSE);//uri should already be parsed.
 #if 0
@@ -848,7 +853,9 @@ release_resource (MeegoMediaPlayerControl *self)
 {
   GList *g;
   EngineGenericPrivate *priv = GET_PRIVATE (self);
+  UMMS_DEBUG("Not Supportted");
 
+#if 0
   for (g = priv->res_list; g; g = g->next) {
     Resource *res = (Resource *) (g->data);
     umms_resource_manager_release_resource (priv->res_mngr, res);
@@ -856,6 +863,7 @@ release_resource (MeegoMediaPlayerControl *self)
   g_list_free (priv->res_list);
   priv->res_list = NULL;
   priv->resource_prepared = FALSE;
+#endif
 
   return;
 }
@@ -892,7 +900,6 @@ activate_engine (MeegoMediaPlayerControl *self, GstState target_state)
   PlayerState old_pending;
   EngineGenericPrivate *priv = GET_PRIVATE (self);
 
-  UMMS_DEBUG("  -------------------------\n");
   g_return_val_if_fail (priv->uri, FALSE);
   g_return_val_if_fail (target_state == GST_STATE_PAUSED || target_state == GST_STATE_PLAYING, FALSE);
 
@@ -909,7 +916,6 @@ OUT:
   if (!ret) {
     priv->pending_state = old_pending;
   }
-  UMMS_DEBUG("  -------------------------\n");
   return ret;
 }
 
@@ -935,7 +941,7 @@ _stop_pipe (MeegoMediaPlayerControl *control)
     return FALSE;
   }
 
-  UMMS_DEBUG ("gstreamer engine stopped");
+  UMMS_DEBUG ("gstreamer engine-generic is stopped");
   return TRUE;
 }
 
@@ -3204,7 +3210,6 @@ engine_generic_init (EngineGeneric *self)
   EngineGenericPrivate *priv;
   GstBus *bus;
   GstPlayFlags flags;
-  UMMS_DEBUG (" ***************************************************************************8888 \n");
 
   self->priv = PLAYER_PRIVATE (self);
   priv = self->priv;
@@ -3285,7 +3290,6 @@ engine_generic_init (EngineGeneric *self)
 EngineGeneric *
 engine_generic_new (void)
 {
-  UMMS_DEBUG (" ***************************************************************************8888 \n");
   return g_object_new (ENGINE_TYPE_GENERIC, NULL);
 }
 
@@ -3308,7 +3312,6 @@ _source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data)
 {
   GstElement *source;
   EngineGenericPrivate *priv = GET_PRIVATE (data);
-  UMMS_DEBUG (" ***************************************************************************8888 \n");
 
   g_object_get(priv->pipeline, "source", &source, NULL);
   gst_object_replace((GstObject**) &priv->source, (GstObject*) source);
@@ -3378,7 +3381,6 @@ autoplug_continue_cb (GstElement * element, GstPad * pad, GstCaps * caps,
   gboolean is_hw_vcaps = FALSE;
   gboolean ret = TRUE;
   EngineGenericPrivate *priv = GET_PRIVATE (control);
-  UMMS_DEBUG (" ***************************************************************************8888 \n");
 
   UMMS_DEBUG ( "pad caps : %" GST_PTR_FORMAT,
                caps);
@@ -3475,7 +3477,6 @@ parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri)
 {
   GstElement *uridecodebin;
   EngineGenericPrivate *priv = GET_PRIVATE (self);
-  UMMS_DEBUG (" ***************************************************************************8888 \n");
 
 
 #if 0

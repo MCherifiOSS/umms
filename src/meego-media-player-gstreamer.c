@@ -65,7 +65,7 @@ enum PROPTYPE{
 MeegoMediaPlayerControl* engine_fake_new(void)
 {
 
-  UMMS_DEBUG("fake engine error\n");
+  UMMS_DEBUG("fake engine error, is not supportted\n");
   return NULL;
 }
 
@@ -81,12 +81,12 @@ MeegoMediaPlayerControl* engine_fake_new(void)
 
 MeegoMediaPlayerControl* (*engine_factory[PLATFORM_INVALID][N_MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE])(void) =
 {
-/*00*/NULL, 
+/*00*/engine_fake_new, 
 /*01: CETV-Normal*/ engine_gst_new,
 /*02: CETV-DVB*/dvb_player_new,
 /*10: */NULL,
 /*11: Netbook->Normal*/engine_generic_new,
-/*12: Netbook->DVB*/NULL
+/*12: Netbook->DVB*/engine_fake_new
 };
 
 MeegoMediaPlayerControl *
@@ -99,13 +99,12 @@ create_engine (gint engine_type, PlatformType platform)
   g_return_val_if_fail((platform < PLATFORM_INVALID), NULL); 
   g_return_val_if_fail(( engine_factory[platform][engine_type] != NULL), NULL); 
 
-  g_print("addr of engien: %x\n", engine_factory[platform][engine_type]);
-
   engine = engine_factory[platform][engine_type]();
 
   g_return_val_if_fail((engine != NULL), NULL);
 
 #if 0
+  g_print("addr of engien: %x\n", engine_factory[platform][engine_type]);
   if (engine_type == MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_DVB)
     engine = dvb_player_new();
   else if (engine_type == MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_NORMAL)
