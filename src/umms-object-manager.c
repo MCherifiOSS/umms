@@ -21,13 +21,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-
-
-
 #include <dbus/dbus-glib-lowlevel.h>
 #include <dbus/dbus-glib.h>
 
 #include "umms-debug.h"
+#include "umms-common.h"
 #include "umms-object-manager.h"
 #include "meego-media-player-gstreamer.h"
 #include "./glue/umms-media-player-glue.h"
@@ -55,11 +53,19 @@ enum {
   N_SIGNALS
 };
 
+/*property for object manager*/
+enum PROPTYPE{
+  PROP_0,
+  PROP_PLATFORM,
+  PROP_LAST
+};
+
 static guint signals[N_SIGNALS] = {0};
 
 struct _UmmsObjectManagerPrivate {
   GList *player_list;
   gint  cur_player_id;
+  PlatformType platform_type;
 };
 
 static void
@@ -80,7 +86,16 @@ umms_object_manager_set_property (GObject      *object,
     const GValue *value,
     GParamSpec   *pspec)
 {
+  UmmsObjectManagerPrivate *priv = GET_PRIVATE (object);
+  gint tmp;
+
   switch (property_id) {
+    case PROP_PLATFORM:
+      tmp = g_value_get_int(value);
+      priv->platform_type = tmp;
+      UMMS_DEBUG("platform type: %d", tmp);
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
   }
@@ -124,6 +139,12 @@ umms_object_manager_class_init (UmmsObjectManagerClass *klass)
                   g_cclosure_marshal_VOID__OBJECT,
                   G_TYPE_NONE,
                   1, MEEGO_TYPE_MEDIA_PLAYER);
+
+
+  g_object_class_install_property (object_class, PROP_PLATFORM,
+      g_param_spec_int ("platform", "platform type", "indication for platform type: Tv, netbook, etc",0,PLATFORM_INVALID,
+          CETV, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
 }
 
 static void
@@ -140,10 +161,10 @@ umms_object_manager_init (UmmsObjectManager *self)
 static UmmsObjectManager *mngr_global = NULL;
 
 UmmsObjectManager *
-umms_object_manager_new (void)
+umms_object_manager_new (gint platform)
 {
   if (!mngr_global) {
-    mngr_global = g_object_new (UMMS_TYPE_OBJECT_MANAGER, NULL);
+    mngr_global = g_object_new (UMMS_TYPE_OBJECT_MANAGER, "platform", platform,NULL);
   }
   return mngr_global;
 }
@@ -271,10 +292,11 @@ static void _dump_player (gpointer a, gpointer b)
   MeegoMediaPlayer *player = (MeegoMediaPlayer *)a;
   gchar *name;
   gboolean attended;
+  gint type;
 
-  g_object_get (G_OBJECT (player), "name", &name, "attended", &attended, NULL);
+  g_object_get (G_OBJECT (player), "name", &name, "attended", &attended, "platform", &type, NULL);
 
-  UMMS_DEBUG ("player=%p, name=%s, attended=%d", player, name, attended);
+  UMMS_DEBUG ("player=%p, name=%s, attended=%d, platform_type=%d", player, name, attended, type);
   g_free (name);
   return;
 }
@@ -311,6 +333,7 @@ _gen_media_player (UmmsObjectManager *mngr, gboolean attended)
   player = (MeegoMediaPlayer *)g_object_new (MEEGO_TYPE_MEDIA_PLAYER_GSTREAMER,
            "name", object_path,
            "attended", attended,
+           "platform", priv->platform_type,
            NULL);
   priv->player_list = g_list_append (priv->player_list, player);
 

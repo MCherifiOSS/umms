@@ -70,6 +70,7 @@ struct _AudioManagerEnginePrivate {
   GstElement *asink;
 };
 
+
 static gboolean
 audio_manager_engine_set_volume (AudioManagerInterface *self, gint type, gint vol)
 {
@@ -191,14 +192,14 @@ audio_manager_interface_init (AudioManagerInterface *iface)
 {
   AudioManagerInterfaceClass *klass = (AudioManagerInterfaceClass *)iface;
 
-  audio_manager_interface_implement_set_volume (klass,
-      audio_manager_engine_set_volume);
-  audio_manager_interface_implement_get_volume (klass,
-      audio_manager_engine_get_volume);
-  audio_manager_interface_implement_set_state (klass,
-      audio_manager_engine_set_state);
-  audio_manager_interface_implement_get_state (klass,
-      audio_manager_engine_get_state);
+//  audio_manager_interface_implement_set_volume (klass,
+//      audio_manager_engine_set_volume);
+//  audio_manager_interface_implement_get_volume (klass,
+//      audio_manager_engine_get_volume);
+//  audio_manager_interface_implement_set_state (klass,
+//      audio_manager_engine_set_state);
+//  audio_manager_interface_implement_get_state (klass,
+//      audio_manager_engine_get_state);
 }
 
 static void
@@ -253,6 +254,7 @@ audio_manager_engine_class_init (AudioManagerEngineClass *klass)
   object_class->set_property = audio_manager_engine_set_property;
   object_class->dispose = audio_manager_engine_dispose;
   object_class->finalize = audio_manager_engine_finalize;
+
 }
 
 static void

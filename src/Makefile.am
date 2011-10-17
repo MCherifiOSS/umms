@@ -31,6 +31,8 @@ umms_server_SOURCES = umms-common.h \
 					          	meego-media-player-control.h \
 					            engine-gst.c \
 					          	engine-gst.h \
+					            engine-generic.c \
+					          	engine-generic.h \
 					            umms-object-manager.c \
 					          	umms-object-manager.h \
 					          	param-table.c \

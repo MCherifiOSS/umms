@@ -68,7 +68,7 @@ struct _UmmsObjectManagerClass
 
 
 GType umms_object_manager_get_type (void) G_GNUC_CONST;
-UmmsObjectManager *umms_object_manager_new (void);
+UmmsObjectManager *umms_object_manager_new (gint platform);
 gboolean umms_object_manager_request_media_player(UmmsObjectManager *self, gchar **object_path, GError **error);
 gboolean umms_object_manager_request_media_player_unattended(UmmsObjectManager *self, gdouble time_to_execution, 
         gchar **token, gchar **object_path, GError **error);

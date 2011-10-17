@@ -41,6 +41,7 @@
 
 static GMainLoop *loop = NULL;
 
+#define PLATFORM_CONFIG "/etc/system-release"
 
 static gboolean
 request_name (void)
@@ -74,6 +75,60 @@ request_name (void)
   UMMS_DEBUG ("request_status = %d",  request_status);
   return request_status == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER;
 }
+
+const gchar* platform_release[] = {
+  "intel-cetv",
+  "netbook-ia32",
+  "NULL"
+};
+
+/*
+ * probe system platform information to check
+ * if specific gst capability are supported.
+ */
+gint system_probe(void)
+{
+  gchar *filename = PLATFORM_CONFIG;
+  FILE* fd = 0;
+  gchar *contents;
+  gsize len;
+  GError *error = NULL;
+  gint ret = CETV;
+  
+  /*if the file is exist*/ 
+  if(g_file_test(filename, G_FILE_TEST_EXISTS )){
+
+    /*reading data here*/
+    g_assert (g_file_test (filename, G_FILE_TEST_EXISTS));
+    //g_assert (g_file_test (filename, G_FILE_TEST_IS_REGULAR));
+
+    if (! g_file_get_contents (filename, &contents, &len, &error))
+      g_error ("g_file_get_contents() failed: %s", error->message);
+
+    if(strstr(contents, platform_release[CETV])){
+      UMMS_DEBUG("is %s", platform_release[CETV]);
+      ret = CETV;
+    }else if(strstr(contents, platform_release[NETBOOK])){
+      UMMS_DEBUG("is %s", platform_release[NETBOOK]);
+      ret = NETBOOK;
+    }else {
+      g_error ("unknown platform, try generic config\n");
+      ret = NETBOOK;
+    }
+
+    g_free (contents);
+    
+  }else{
+    /**/
+    UMMS_DEBUG("file %s is NOT exist\n", filename); 
+    g_error ("unknown platform, try generic config\n");
+    ret = NETBOOK;
+  }
+
+  return ret;
+
+}
+
 
 //#define FAKE_UMMS_SIGNAL
 #ifdef FAKE_UMMS_SIGNAL
@@ -230,19 +285,22 @@ main (int    argc,
 #ifdef FAKE_UMMS_SIGNAL
   GIOChannel *chan;
 #endif
+  gint platform_type = CETV;
 
   g_thread_init (NULL);
   gst_init (&argc, &argv);
-
 
   if (!request_name ()) {
     UMMS_DEBUG("UMMS service already running");
     exit (1);
   }
 
+  /*system probe*/
+  platform_type = system_probe();
+
   UmmsObjectManager *umms_object_manager = NULL;
   dbus_g_object_type_install_info (UMMS_TYPE_OBJECT_MANAGER, &dbus_glib_umms_object_manager_object_info);
-  umms_object_manager = umms_object_manager_new ();
+  umms_object_manager = umms_object_manager_new (platform_type);
 
   UmmsPlayingContentMetadataViewer *metadata_viewer = NULL;
   dbus_g_object_type_install_info (UMMS_TYPE_PLAYING_CONTENT_METADATA_VIEWER, &dbus_glib_umms_playing_content_metadata_viewer_object_info);
@@ -250,7 +308,7 @@ main (int    argc,
 
   UmmsAudioManager *audio_manager = NULL;
   dbus_g_object_type_install_info (UMMS_TYPE_AUDIO_MANAGER, &dbus_glib_umms_audio_manager_object_info);
-  audio_manager = umms_audio_manager_new();
+  audio_manager = umms_audio_manager_new(platform_type);
 
 
   connection = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);

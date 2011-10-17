@@ -1325,7 +1325,8 @@ gboolean meego_media_player_control_get_pat (MeegoMediaPlayerControl *self, GPtr
   if (impl != NULL) {
     (impl) (self, pat);
   } else {
-    g_warning ("Method not implemented\n");
+    g_warning ("%s: Method not implemented\n", __FUNCTION__);
+    *pat = g_ptr_array_new ();
   }
   return TRUE;
 }
@@ -1346,6 +1347,7 @@ gboolean meego_media_player_control_get_pmt (MeegoMediaPlayerControl *self, guin
     (impl) (self, program_num, pcr_pid, stream_info);
   } else {
     g_warning ("Method not implemented\n");
+    *stream_info = g_ptr_array_new ();
   }
   return TRUE;
 }
