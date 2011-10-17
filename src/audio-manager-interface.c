@@ -142,6 +142,12 @@ gboolean
 audio_manager_interface_get_state (AudioManagerInterface *self,
     gint type, gint *state)
 {
+
+  /*disalbe audio setting while in generic mode*/
+  if(self == NULL){ /*for client-test.py: #32*/
+    g_warning ("%s: Method not implemented\n", __FUNCTION__);
+    return TRUE;
+  }
   audio_manager_interface_get_state_impl impl = (AUDIO_MANAGER_INTERFACE_GET_CLASS (self)->get_state);
 
   if (impl != NULL) {

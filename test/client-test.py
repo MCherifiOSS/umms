@@ -384,7 +384,7 @@ class CmdHandler(threading.Thread):
                 self.player.SetSubtitleUri(uri)
 	
         elif mid == SetCurrentSubtitle:
-            sub == raw_input("Input your expect subtitle, '%d'\n")
+            sub = int(raw_input("Input your expect subtitle: \n"))
             self.player.SetCurrentSubtitle(sub);
 
         elif mid == GetCurrentSubtitle:
