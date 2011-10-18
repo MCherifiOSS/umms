@@ -330,7 +330,7 @@ _gen_media_player (UmmsObjectManager *mngr, gboolean attended)
 
   dbus_g_object_type_install_info (TYPE_MEDIA_PLAYER, &dbus_glib_media_player_object_info);
 
-  player = (MediaPlayer *)g_object_new (TYPE_MEDIA_PLAYER_GSTREAMER,
+  player = (MediaPlayer *)g_object_new (TYPE_MEDIA_PLAYER_FACTORY,
            "name", object_path,
            "attended", attended,
            "platform", priv->platform_type,

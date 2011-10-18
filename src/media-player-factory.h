@@ -21,58 +21,58 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef _MEDIA_PLAYER_GSTREAMER_H
-#define _MEDIA_PLAYER_GSTREAMER_H
+#ifndef _MEDIA_PLAYER_FACTORY_H
+#define _MEDIA_PLAYER_FACTORY_H
 
 #include <glib-object.h>
 #include <media-player.h>
 
 G_BEGIN_DECLS
 
-#define TYPE_MEDIA_PLAYER_GSTREAMER media_player_gstreamer_get_type()
+#define TYPE_MEDIA_PLAYER_FACTORY media_player_factory_get_type()
 
-#define MEDIA_PLAYER_GSTREAMER(obj) \
+#define MEDIA_PLAYER_FACTORY(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST ((obj), \
-  TYPE_MEDIA_PLAYER_GSTREAMER, MediaPlayerGstreamer))
+  TYPE_MEDIA_PLAYER_FACTORY, MediaPlayerFactory))
 
-#define MEDIA_PLAYER_GSTREAMER_CLASS(klass) \
+#define MEDIA_PLAYER_FACTORY_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_CAST ((klass), \
-  TYPE_MEDIA_PLAYER_GSTREAMER, MediaPlayerGstreamerClass))
+  TYPE_MEDIA_PLAYER_FACTORY, MediaPlayerFactoryClass))
 
-#define IS_MEDIA_PLAYER_GSTREAMER(obj) \
+#define IS_MEDIA_PLAYER_FACTORY(obj) \
   (G_TYPE_CHECK_INSTANCE_TYPE ((obj), \
-  TYPE_MEDIA_PLAYER_GSTREAMER))
+  TYPE_MEDIA_PLAYER_FACTORY))
 
-#define IS_MEDIA_PLAYER_GSTREAMER_CLASS(klass) \
+#define IS_MEDIA_PLAYER_FACTORY_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE ((klass), \
-  TYPE_MEDIA_PLAYER_GSTREAMER))
+  TYPE_MEDIA_PLAYER_FACTORY))
 
-#define MEDIA_PLAYER_GSTREAMER_GET_CLASS(obj) \
+#define MEDIA_PLAYER_FACTORY_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), \
-  TYPE_MEDIA_PLAYER_GSTREAMER, MediaPlayerGstreamerClass))
+  TYPE_MEDIA_PLAYER_FACTORY, MediaPlayerFactoryClass))
 
-typedef struct _MediaPlayerGstreamer MediaPlayerGstreamer;
-typedef struct _MediaPlayerGstreamerClass MediaPlayerGstreamerClass;
-typedef struct _MediaPlayerGstreamerPrivate MediaPlayerGstreamerPrivate;
+typedef struct _MediaPlayerFactory MediaPlayerFactory;
+typedef struct _MediaPlayerFactoryClass MediaPlayerFactoryClass;
+typedef struct _MediaPlayerFactoryPrivate MediaPlayerFactoryPrivate;
 
-struct _MediaPlayerGstreamer
+struct _MediaPlayerFactory
 {
   MediaPlayer parent;
 
-  MediaPlayerGstreamerPrivate *priv;
+  MediaPlayerFactoryPrivate *priv;
 };
 
 
-struct _MediaPlayerGstreamerClass
+struct _MediaPlayerFactoryClass
 {
   MediaPlayerClass parent_class;
 
 };
 
-GType media_player_gstreamer_get_type (void) G_GNUC_CONST;
+GType media_player_factory_get_type (void) G_GNUC_CONST;
 
-MediaPlayerGstreamer *media_player_gstreamer_new (void);
+MediaPlayerFactory *media_player_factory_new (void);
 
 G_END_DECLS
 
-#endif /* _MEDIA_PLAYER_GSTREAMER_H */
+#endif /* _MEDIA_PLAYER_FACTORY_H */
