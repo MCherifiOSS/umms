@@ -1290,10 +1290,10 @@ engine_gst_set_volume (MeegoMediaPlayerControl *self, gint vol)
 
   UMMS_DEBUG ("invoked");
 
-  volume = CLAMP ((((gdouble)vol) / 100), 0.0, 1.0);
+  volume = (gdouble)(CLAMP (vol, 0, 100))/100;
   UMMS_DEBUG ("set volume to = %f", volume);
   gst_stream_volume_set_volume (GST_STREAM_VOLUME (pipe),
-      GST_STREAM_VOLUME_FORMAT_CUBIC,
+      GST_STREAM_VOLUME_FORMAT_LINEAR,
       volume);
 
   return TRUE;
@@ -1318,9 +1318,9 @@ engine_gst_get_volume (MeegoMediaPlayerControl *self, gint *volume)
   UMMS_DEBUG ("invoked");
 
   vol = gst_stream_volume_get_volume (GST_STREAM_VOLUME (pipe),
-        GST_STREAM_VOLUME_FORMAT_CUBIC);
+        GST_STREAM_VOLUME_FORMAT_LINEAR);
 
-  *volume = vol * 100;
+  *volume = (gint)(vol * 100 + 0.5);
   UMMS_DEBUG ("cur volume=%f(double), %d(int)", vol, *volume);
 
   return TRUE;
