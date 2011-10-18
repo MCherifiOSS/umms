@@ -24,16 +24,16 @@
 #ifndef _UMMS_COMMON_H
 #define _UMMS_COMMON_H
 
-#define UMMS_SERVICE_NAME "com.meego.UMMS"
-#define UMMS_OBJECT_MANAGER_OBJECT_PATH "/com/meego/UMMS/ObjectManager"
-#define UMMS_OBJECT_MANAGER_INTERFACE_NAME "com.meego.UMMS.ObjectManager.iface"
-#define MEDIA_PLAYER_INTERFACE_NAME "com.meego.UMMS.MediaPlayer"
+#define UMMS_SERVICE_NAME "com.UMMS"
+#define UMMS_OBJECT_MANAGER_OBJECT_PATH "/com/UMMS/ObjectManager"
+#define UMMS_OBJECT_MANAGER_INTERFACE_NAME "com.UMMS.ObjectManager.iface"
+#define MEDIA_PLAYER_INTERFACE_NAME "com.UMMS.MediaPlayer"
 
-#define UMMS_PLAYING_CONTENT_METADATA_VIEWER_OBJECT_PATH "/com/meego/UMMS/PlayingContentMetadataViewer"
-#define UMMS_PLAYING_CONTENT_METADATA_VIEWER_INTERFACE_NAME "com.meego.UMMS.PlayingContentMetadataViewer"
+#define UMMS_PLAYING_CONTENT_METADATA_VIEWER_OBJECT_PATH "/com/UMMS/PlayingContentMetadataViewer"
+#define UMMS_PLAYING_CONTENT_METADATA_VIEWER_INTERFACE_NAME "com.UMMS.PlayingContentMetadataViewer"
 
-#define UMMS_AUDIO_MANAGER_OBJECT_PATH "/com/meego/UMMS/AudioManager"
-#define UMMS_AUDIO_MANAGER_INTERFACE_NAME "com.meego.UMMS.AudioManger"
+#define UMMS_AUDIO_MANAGER_OBJECT_PATH "/com/UMMS/AudioManager"
+#define UMMS_AUDIO_MANAGER_INTERFACE_NAME "com.UMMS.AudioManger"
 
 
 #define RESET_STR(str) \

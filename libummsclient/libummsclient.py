@@ -21,20 +21,20 @@ def init():
 
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
     bus=dbus.SystemBus()
-    bus_obj=bus.get_object('com.meego.UMMS', '/com/meego/UMMS/ObjectManager')
-    obj_mngr=dbus.Interface(bus_obj, 'com.meego.UMMS.ObjectManager.iface')
+    bus_obj=bus.get_object('com.UMMS', '/com/UMMS/ObjectManager')
+    obj_mngr=dbus.Interface(bus_obj, 'com.UMMS.ObjectManager.iface')
     print "New obj_mngr"
 
-    bus_obj=bus.get_object('com.meego.UMMS', '/com/meego/UMMS/PlayingContentMetadataViewer')
-    metadata_viewer=dbus.Interface(bus_obj, 'com.meego.UMMS.PlayingContentMetadataViewer')
+    bus_obj=bus.get_object('com.UMMS', '/com/UMMS/PlayingContentMetadataViewer')
+    metadata_viewer=dbus.Interface(bus_obj, 'com.UMMS.PlayingContentMetadataViewer')
     print "New metadata_viewer"
 
-    bus_obj=bus.get_object('com.meego.UMMS', '/com/meego/UMMS/AudioManager')
-    audio_manager =dbus.Interface(bus_obj, 'com.meego.UMMS.AudioManager')
+    bus_obj=bus.get_object('com.UMMS', '/com/UMMS/AudioManager')
+    audio_manager =dbus.Interface(bus_obj, 'com.UMMS.AudioManager')
     print "New audio_manager"
 
 def need_reply_cb (obj_path):
-    client_monitor = get_iface (obj_path, 'com.meego.UMMS.MediaPlayer')
+    client_monitor = get_iface (obj_path, 'com.UMMS.MediaPlayer')
     client_monitor.Reply()
     #print "Reply to object '%s'" % obj_path
 
@@ -42,9 +42,9 @@ def get_iface(obj_path, iface_name):
     #print "Getting interface '%s' from '%s'" % (iface_name, obj_path)
     proxy = None
     bus=dbus.SystemBus()
-    bus_obj=bus.get_object("com.meego.UMMS", obj_path)
-    if iface_name == 'com.meego.UMMS.MediaPlayer':
-        proxy=dbus.Interface(bus_obj, 'com.meego.UMMS.MediaPlayer')
+    bus_obj=bus.get_object("com.UMMS", obj_path)
+    if iface_name == 'com.UMMS.MediaPlayer':
+        proxy=dbus.Interface(bus_obj, 'com.UMMS.MediaPlayer')
     else :
         print "Unknown interface '%s'" % iface_name
     return proxy
@@ -62,7 +62,7 @@ def request_player(attended, time_to_execution):
     else:
         (token, player_name) = obj_mngr.RequestMediaPlayerUnattended(time_to_execution)
 
-    player = get_iface (player_name, 'com.meego.UMMS.MediaPlayer') 
+    player = get_iface (player_name, 'com.UMMS.MediaPlayer') 
 
     if (attended) :
         connect_to_need_reply_sig(player)

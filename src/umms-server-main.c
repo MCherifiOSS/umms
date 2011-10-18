@@ -174,7 +174,7 @@ static void shell_help ()
 }
 
 #if 0
-static void emit_signal (MeegoMediaPlayer *obj, int sig_id)
+static void emit_signal (MediaPlayer *obj, int sig_id)
 {
   switch (sig_id) {
     case SIGNAL_MEDIA_PLAYER_IFACE_Initialized:

@@ -29,12 +29,12 @@
 
 #include "test-common.h"
 #include "../src/umms-debug.h"
-#include "../src/meego-media-player-control.h"
+#include "../src/media-player-control.h"
 #include "../src/engine-gst.h"
 
 extern gboolean to_continue;
 GMainLoop *loop = NULL;
-static MeegoMediaPlayerControl *player = NULL;
+static MediaPlayerControl *player = NULL;
 gboolean method_call (gpointer data)
 {
   gchar *uri;
@@ -67,16 +67,16 @@ gboolean method_call (gpointer data)
       else
         uri = args[1];
       TESTER_DEBUG ("uri = '%s'", uri);
-      meego_media_player_control_set_uri (player, uri);
+      media_player_control_set_uri (player, uri);
       break;
     case Play:
-      meego_media_player_control_play (player);
+      media_player_control_play (player);
       break;
     case Pause:
-      meego_media_player_control_pause (player);
+      media_player_control_pause (player);
       break;
     case Stop:
-      meego_media_player_control_stop (player);
+      media_player_control_stop (player);
       break;
     case SetPosition:
       sscanf (args[1], "%lld", &pos);
@@ -143,7 +143,7 @@ gboolean method_call (gpointer data)
       break;
     case SetTarget:
       //TESTER_DEBUG ("target_type=%d", ReservedType0);
-      //meego_media_player_control_set_target (player, ReservedType0, 0);
+      //media_player_control_set_target (player, ReservedType0, 0);
       break;
     default:
       TESTER_DEBUG ("Unknown method id: %d\n", method_id);
@@ -152,48 +152,48 @@ gboolean method_call (gpointer data)
   return FALSE;
 }
 
-void player_state_changed_cb(MeegoMediaPlayerControl *player, gint state, gpointer user_data)
+void player_state_changed_cb(MediaPlayerControl *player, gint state, gpointer user_data)
 {
   TESTER_DEBUG("State changed to '%s'", state_name[state]);
 }
 
-void eof_cb(MeegoMediaPlayerControl *player, gpointer user_data)
+void eof_cb(MediaPlayerControl *player, gpointer user_data)
 {
   TESTER_DEBUG( "EOF....");
 }
 
-void begin_buffering_cb(MeegoMediaPlayerControl *player, gpointer user_data)
+void begin_buffering_cb(MediaPlayerControl *player, gpointer user_data)
 {
   TESTER_DEBUG( "Begin buffering");
 }
 
-void buffered_cb(MeegoMediaPlayerControl *player, gpointer user_data)
+void buffered_cb(MediaPlayerControl *player, gpointer user_data)
 {
   TESTER_DEBUG( "Buffering completed");
 }
 
-void seeked_cb(MeegoMediaPlayerControl *player, gpointer user_data)
+void seeked_cb(MediaPlayerControl *player, gpointer user_data)
 {
   TESTER_DEBUG( "Seeking completed");
 }
 
-void stopped_cb(MeegoMediaPlayerControl *player, gpointer user_data)
+void stopped_cb(MediaPlayerControl *player, gpointer user_data)
 {
   TESTER_DEBUG( "Player stopped");
 }
 
-void error_cb(MeegoMediaPlayerControl *player, guint err_id, gchar *msg, gpointer user_data)
+void error_cb(MediaPlayerControl *player, guint err_id, gchar *msg, gpointer user_data)
 {
   TESTER_DEBUG( "Error: Domain='Engine', Type='%s', msg='%s'", engine_error_str[err_id], msg);
 }
 
-void request_window_cb(MeegoMediaPlayerControl *player, gpointer user_data)
+void request_window_cb(MediaPlayerControl *player, gpointer user_data)
 {
   TESTER_DEBUG( "Player engine request a X window");
 }
 
 static void
-connect_sigs(MeegoMediaPlayerControl *player)
+connect_sigs(MediaPlayerControl *player)
 {
     TESTER_DEBUG ("called");
     g_signal_connect_object (player, "request-window",
@@ -241,7 +241,7 @@ int main (int argc, char **argv)
   g_type_init ();
   gst_init (&argc, &argv);
 
-  player = (MeegoMediaPlayerControl*)engine_gst_new();
+  player = (MediaPlayerControl*)engine_gst_new();
   connect_sigs (player);
 
   loop = g_main_loop_new (NULL, TRUE);

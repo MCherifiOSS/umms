@@ -8,7 +8,7 @@ client_test_gobject_SOURCES = test-common.c test-common.h client-test-gobject.c 
 
 engine_test_CFLAGS = $(UMMS_CFLAGS)
 engine_test_LDADD = $(UMMS_LIBS)
-engine_test_SOURCES = test-common.c test-common.h ../src/meego-media-player-control.c ../src/meego-media-player-control.h \
+engine_test_SOURCES = test-common.c test-common.h ../src/media-player-control.c ../src/media-player-control.h \
 					  ../src/engine-gst.c ../src/engine-gst.h \
 					  ../src/param-table.c ../src/param-table.h \
 					  ../src/umms-marshals.c ../src/umms-marshals.h \

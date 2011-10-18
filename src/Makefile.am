@@ -23,12 +23,12 @@ umms_server_SOURCES = umms-common.h \
 					            umms-error.h \
 					          	umms-error.c \
 											umms-server-main.c \
-                      meego-media-player.c \
-					          	meego-media-player.h \
-					            meego-media-player-gstreamer.c \
-					          	meego-media-player-gstreamer.h \
-				              meego-media-player-control.c \
-					          	meego-media-player-control.h \
+                      media-player.c \
+					          	media-player.h \
+					            media-player-factory.c \
+					          	media-player-factory.h \
+				              media-player-control.c \
+					          	media-player-control.h \
 					            engine-gst.c \
 					          	engine-gst.h \
 					            engine-generic.c \
@@ -60,7 +60,7 @@ umms_server_SOURCES = umms-common.h \
 ./glue/%-glue.h: ../spec/%.xml Makefile.am
 	$(AM_V_GEN)mkdir -p glue
 	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=umms_object_manager --mode=glib-server ../spec/umms-object-manager.xml >  ./glue/umms-object-manager-glue.h
-	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=meego_media_player --mode=glib-server ../spec/umms-media-player.xml > ./glue/umms-media-player-glue.h
+	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=media_player --mode=glib-server ../spec/umms-media-player.xml > ./glue/umms-media-player-glue.h
 	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=umms_playing_content_metadata_viewer --mode=glib-server ../spec/umms-playing-content-metadata-viewer.xml > ./glue/umms-playing-content-metadata-viewer-glue.h
 	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=umms_audio_manager --mode=glib-server ../spec/umms-audio-manager.xml > ./glue/umms-audio-manager-glue.h
 
@@ -75,11 +75,11 @@ MARSHALS_LISTS = umms-marshals.list
 
 servicedir = $(datadir)/dbus-1/system-services/
 
-service_in_files = com.meego.UMMS.service.in
-service_DATA = com.meego.UMMS.service
+service_in_files = com.UMMS.service.in
+service_DATA = com.UMMS.service
 
 confdir = /etc/dbus-1/system.d/
-dist_conf_DATA = com.meego.UMMS.conf
+dist_conf_DATA = com.UMMS.conf
 
 CLEANFILES = $(GENERATED_SOURCE) $(service_DATA) 
 EXTRA_DIST = $(MARSHALS_LISTS) $(service_in_files)

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<node name="/com/meego/UMMS/PlayingContentMetadataViewer">
-	<interface name="com.meego.UMMS.PlayingContentMetadataViewer">
+<node name="/com/UMMS/PlayingContentMetadataViewer">
+	<interface name="com.UMMS.PlayingContentMetadataViewer">
 		<method name="GetPlayingContentMetadata">
 			<arg name="PlayingContentMetadata" type="aa{sv}" direction="out"/>
 		</method>

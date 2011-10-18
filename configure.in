@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.65])
 AC_INIT(umms, 0.0.1, http://www.intel.com)
-AC_CONFIG_SRCDIR([src/meego-media-player-gstreamer.h])
+AC_CONFIG_SRCDIR([src/media-player-factory.h])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE(umms, 0.0.1)
 

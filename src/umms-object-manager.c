@@ -27,7 +27,7 @@
 #include "umms-debug.h"
 #include "umms-common.h"
 #include "umms-object-manager.h"
-#include "meego-media-player-gstreamer.h"
+#include "media-player-factory.h"
 #include "./glue/umms-media-player-glue.h"
 
 
@@ -38,15 +38,15 @@ G_DEFINE_TYPE (UmmsObjectManager, umms_object_manager, G_TYPE_OBJECT)
 #define GET_PRIVATE(o) ((UmmsObjectManager *)o)->priv
 
 
-#define OBJ_NAME_PREFIX "/com/meego/UMMS/MediaPlayer"
+#define OBJ_NAME_PREFIX "/com/UMMS/MediaPlayer"
 
 static void _player_list_free (GList *player_list);
 static gint _find_player_by_name (gconstpointer player_in, gconstpointer  name);
 static gboolean _stop_execution(gpointer data);
 static void _dump_player (gpointer a, gpointer b);
 static void _dump_player_list (GList *players);
-static MeegoMediaPlayer *_gen_media_player (UmmsObjectManager *mngr, gboolean attended);
-static gboolean _remove_media_player (MeegoMediaPlayer *player);
+static MediaPlayer *_gen_media_player (UmmsObjectManager *mngr, gboolean attended);
+static gboolean _remove_media_player (MediaPlayer *player);
 
 enum {
   SIGNAL_PLAYER_ADDED,
@@ -138,7 +138,7 @@ umms_object_manager_class_init (UmmsObjectManagerClass *klass)
                   NULL, NULL,
                   g_cclosure_marshal_VOID__OBJECT,
                   G_TYPE_NONE,
-                  1, MEEGO_TYPE_MEDIA_PLAYER);
+                  1, TYPE_MEDIA_PLAYER);
 
 
   g_object_class_install_property (object_class, PROP_PLATFORM,
@@ -169,7 +169,7 @@ umms_object_manager_new (gint platform)
   return mngr_global;
 }
 
-static void client_no_reply_cb (MeegoMediaPlayer *player, gpointer user_data)
+static void client_no_reply_cb (MediaPlayer *player, gpointer user_data)
 {
   UMMS_DEBUG ("called");
   _remove_media_player (player);
@@ -179,7 +179,7 @@ static void client_no_reply_cb (MeegoMediaPlayer *player, gpointer user_data)
 gboolean
 umms_object_manager_request_media_player(UmmsObjectManager *self, gchar **object_path, GError **error)
 {
-  MeegoMediaPlayer *player;
+  MediaPlayer *player;
 
   UMMS_DEBUG("request attended media player");
 
@@ -193,7 +193,7 @@ umms_object_manager_request_media_player(UmmsObjectManager *self, gchar **object
 
   _dump_player_list (self->priv->player_list);
 
-  //FIXME:do something to munipulate MeegoMediaPlayer
+  //FIXME:do something to munipulate MediaPlayer
 
   return TRUE;
 }
@@ -207,7 +207,7 @@ umms_object_manager_request_media_player_unattended(UmmsObjectManager *self,
     gchar **object_path,
     GError **error)
 {
-  MeegoMediaPlayer *player;
+  MediaPlayer *player;
 
   UMMS_DEBUG("request unattened media player, time_to_execution = '%lf' seconds", time_to_execution);
 
@@ -238,7 +238,7 @@ umms_object_manager_remove_media_player(UmmsObjectManager *self, gchar *object_p
   priv = self->priv;
   ele = g_list_find_custom (priv->player_list, object_path, _find_player_by_name);
   g_return_val_if_fail (ele, FALSE);
-  _remove_media_player ((MeegoMediaPlayer *)(ele->data));
+  _remove_media_player ((MediaPlayer *)(ele->data));
 
   return TRUE;
 }
@@ -248,7 +248,7 @@ static void _player_list_free (GList *player_list)
   GList *g;
 
   for (g = player_list; g; g = g->next) {
-    MeegoMediaPlayer *player = (MeegoMediaPlayer *) (g->data);
+    MediaPlayer *player = (MediaPlayer *) (g->data);
     g_object_unref (player);
   }
   g_list_free (player_list);
@@ -261,13 +261,13 @@ _find_player_by_name (gconstpointer player_in, gconstpointer  name)
 {
   gchar *src, *dest;
   gint  res;
-  MeegoMediaPlayer *player;
+  MediaPlayer *player;
 
   g_return_val_if_fail (player_in, 1);
   g_return_val_if_fail (name, 1);
 
   dest = (gchar *)name;
-  player = (MeegoMediaPlayer *)player_in;
+  player = (MediaPlayer *)player_in;
 
   g_object_get (G_OBJECT(player), "name", &src, NULL);
   res = g_strcmp0 (src, dest);
@@ -278,7 +278,7 @@ _find_player_by_name (gconstpointer player_in, gconstpointer  name)
 
 static gboolean _stop_execution(gpointer data)
 {
-  MeegoMediaPlayer *player = (MeegoMediaPlayer *)data;
+  MediaPlayer *player = (MediaPlayer *)data;
 
   UMMS_DEBUG ("Stop unattended execution!");
 
@@ -289,7 +289,7 @@ static gboolean _stop_execution(gpointer data)
 
 static void _dump_player (gpointer a, gpointer b)
 {
-  MeegoMediaPlayer *player = (MeegoMediaPlayer *)a;
+  MediaPlayer *player = (MediaPlayer *)a;
   gchar *name;
   gboolean attended;
   gint type;
@@ -310,12 +310,12 @@ _dump_player_list (GList *players)
   g_list_foreach (players, _dump_player, NULL);
 }
 
-static MeegoMediaPlayer *
+static MediaPlayer *
 _gen_media_player (UmmsObjectManager *mngr, gboolean attended)
 {
 
   DBusGConnection    *connection;
-  MeegoMediaPlayer   *player;
+  MediaPlayer   *player;
   gchar              *object_path;
   gint                id;
   UmmsObjectManagerPrivate *priv;
@@ -328,9 +328,9 @@ _gen_media_player (UmmsObjectManager *mngr, gboolean attended)
 
   UMMS_DEBUG("object_path='%s' ", object_path);
 
-  dbus_g_object_type_install_info (MEEGO_TYPE_MEDIA_PLAYER, &dbus_glib_meego_media_player_object_info);
+  dbus_g_object_type_install_info (TYPE_MEDIA_PLAYER, &dbus_glib_media_player_object_info);
 
-  player = (MeegoMediaPlayer *)g_object_new (MEEGO_TYPE_MEDIA_PLAYER_GSTREAMER,
+  player = (MediaPlayer *)g_object_new (TYPE_MEDIA_PLAYER_GSTREAMER,
            "name", object_path,
            "attended", attended,
            "platform", priv->platform_type,
@@ -361,7 +361,7 @@ get_connection_failed: {
 }
 
 static gboolean
-_remove_media_player (MeegoMediaPlayer *player)
+_remove_media_player (MediaPlayer *player)
 {
   DBusGConnection *connection;
   UmmsObjectManagerPrivate *priv;

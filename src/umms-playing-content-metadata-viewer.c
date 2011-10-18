@@ -27,7 +27,7 @@
 #include "umms-error.h"
 #include "umms-playing-content-metadata-viewer.h"
 #include "umms-object-manager.h"
-#include "meego-media-player.h"
+#include "media-player.h"
 
 
 G_DEFINE_TYPE (UmmsPlayingContentMetadataViewer, umms_playing_content_metadata_viewer, G_TYPE_OBJECT)
@@ -65,7 +65,7 @@ umms_playing_content_metadata_viewer_get_property (GObject    *object,
 }
 
 static void
-player_state_changed_cb(MeegoMediaPlayer *player, gint old_state, gint new_state, UmmsPlayingContentMetadataViewer *viewer)
+player_state_changed_cb(MediaPlayer *player, gint old_state, gint new_state, UmmsPlayingContentMetadataViewer *viewer)
 {
   GPtrArray *metadata;
 
@@ -81,7 +81,7 @@ player_state_changed_cb(MeegoMediaPlayer *player, gint old_state, gint new_state
 }
 
 static void
-player_metadata_changed_cb(MeegoMediaPlayer *player, UmmsPlayingContentMetadataViewer *viewer)
+player_metadata_changed_cb(MediaPlayer *player, UmmsPlayingContentMetadataViewer *viewer)
 {
   GPtrArray *metadata;
 
@@ -95,7 +95,7 @@ player_metadata_changed_cb(MeegoMediaPlayer *player, UmmsPlayingContentMetadataV
 }
 
 static void
-player_added_cb(UmmsObjectManager *obj_mngr, MeegoMediaPlayer *player, UmmsPlayingContentMetadataViewer *viewer)
+player_added_cb(UmmsObjectManager *obj_mngr, MediaPlayer *player, UmmsPlayingContentMetadataViewer *viewer)
 {
   g_signal_connect (player, "player-state-changed", G_CALLBACK(player_state_changed_cb), viewer);
   g_signal_connect (player, "metadata-changed", G_CALLBACK(player_metadata_changed_cb), viewer);
@@ -194,7 +194,7 @@ umms_playing_content_metadata_viewer_get_playing_content_metadata (UmmsPlayingCo
   GValue *val;
   gint i, state;
   GList *players, *item;
-  MeegoMediaPlayer *player;
+  MediaPlayer *player;
   gchar *uri = NULL;
   gchar *title = NULL;
   gchar *artist = NULL;
@@ -212,17 +212,17 @@ umms_playing_content_metadata_viewer_get_playing_content_metadata (UmmsPlayingCo
   for (i = 0; i < g_list_length(players); i++) {
 
     item = g_list_nth (players, i);
-    player = MEEGO_MEDIA_PLAYER (item->data);
-    meego_media_player_get_player_state (player,  &state, NULL);
+    player = MEDIA_PLAYER (item->data);
+    media_player_get_player_state (player,  &state, NULL);
 
     if (state == PlayerStatePlaying || state == PlayerStatePaused) {
       /*
        * 1. get tags of URI, Title, Artist.
        * 2. Fill the metadata.
        */
-      meego_media_player_get_current_uri (player, &uri, NULL);
-      meego_media_player_get_title (player, &title, NULL);
-      meego_media_player_get_artist (player, &artist, NULL);
+      media_player_get_current_uri (player, &uri, NULL);
+      media_player_get_title (player, &title, NULL);
+      media_player_get_artist (player, &artist, NULL);
 
       ht = g_hash_table_new (NULL, NULL);
 

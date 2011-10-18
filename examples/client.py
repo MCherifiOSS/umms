@@ -77,8 +77,8 @@ class CmdHandler(threading.Thread):
     def get_player(self, name):
         print "Create proxy for remote player '%s'" % (name)
         bus=dbus.SessionBus()
-        bus_obj=bus.get_object("com.meego.UMMS", name)
-        proxy=dbus.Interface(bus_obj, 'com.meego.UMMS.MediaPlayer')
+        bus_obj=bus.get_object("com.UMMS", name)
+        proxy=dbus.Interface(bus_obj, 'com.UMMS.MediaPlayer')
         proxy.connect_to_signal("Initialized", initialized_cb)
         proxy.connect_to_signal("Eof", eof_cb)
         proxy.connect_to_signal("Buffering", begin_buffering_cb)
@@ -246,8 +246,8 @@ if __name__ == '__main__':
 
 
     bus=dbus.SessionBus()
-    bus_obj=bus.get_object('com.meego.UMMS', '/com/meego/UMMS/ObjectManager')
-    iface=dbus.Interface(bus_obj, 'com.meego.UMMS.ObjectManager.iface')
+    bus_obj=bus.get_object('com.UMMS', '/com/UMMS/ObjectManager')
+    iface=dbus.Interface(bus_obj, 'com.UMMS.ObjectManager.iface')
 	
     gobject.threads_init()
     dbus.glib.init_threads()

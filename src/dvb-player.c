@@ -19,20 +19,20 @@
 #include "umms-error.h"
 #include "umms-resource-manager.h"
 #include "dvb-player.h"
-#include "meego-media-player-control.h"
+#include "media-player-control.h"
 #include "param-table.h"
 
 /* add PAT, CAT, NIT, SDT, EIT to pids filter for dvbsrc */
 #define INIT_PIDS "0:1:16:17:18"
 #define DVB_SRC
 
-static void meego_media_player_control_init (MeegoMediaPlayerControl* iface);
+static void media_player_control_init (MediaPlayerControl* iface);
 static gpointer socket_listen_thread(DvbPlayer* dvd_player);
-static void socket_thread_join(MeegoMediaPlayerControl* dvd_player);
+static void socket_thread_join(MediaPlayerControl* dvd_player);
 static void send_socket_data(GstBuffer* buf, gpointer user_data);
 
 G_DEFINE_TYPE_WITH_CODE (DvbPlayer, dvb_player, G_TYPE_OBJECT,
-    G_IMPLEMENT_INTERFACE (MEEGO_TYPE_MEDIA_PLAYER_CONTROL, meego_media_player_control_init))
+    G_IMPLEMENT_INTERFACE (TYPE_MEDIA_PLAYER_CONTROL, media_player_control_init))
 
 #define PLAYER_PRIVATE(o) \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), DVB_TYPE_PLAYER, DvbPlayerPrivate))
@@ -131,11 +131,11 @@ struct _DvbPlayerPrivate {
   gint sock_exit_flag;
 };
 
-static gboolean _stop_pipe (MeegoMediaPlayerControl *control);
-static gboolean dvb_player_set_video_size (MeegoMediaPlayerControl *self, guint x, guint y, guint w, guint h);
-static gboolean create_xevent_handle_thread (MeegoMediaPlayerControl *self);
-static gboolean destroy_xevent_handle_thread (MeegoMediaPlayerControl *self);
-static void release_resource (MeegoMediaPlayerControl *self);
+static gboolean _stop_pipe (MediaPlayerControl *control);
+static gboolean dvb_player_set_video_size (MediaPlayerControl *self, guint x, guint y, guint w, guint h);
+static gboolean create_xevent_handle_thread (MediaPlayerControl *self);
+static gboolean destroy_xevent_handle_thread (MediaPlayerControl *self);
+static void release_resource (MediaPlayerControl *self);
 static void pad_added_cb (GstElement *element, GstPad *pad, gpointer data);
 static void no_more_pads_cb (GstElement *element, gpointer data);
 static gboolean autoplug_pad(DvbPlayer *player, GstPad *pad, gint chain_type);
@@ -144,8 +144,8 @@ static void update_elements_list (DvbPlayer *player);
 static gboolean autoplug_dec_element (DvbPlayer *player, GstElement * element);
 static gboolean link_sink (DvbPlayer *player, GstPad *pad);
 static GstPad *get_sink_pad (GstElement * element);
-static gboolean start_recording (MeegoMediaPlayerControl *self, gchar *location);
-static gboolean stop_recording (MeegoMediaPlayerControl *self);
+static gboolean start_recording (MediaPlayerControl *self, gchar *location);
+static gboolean stop_recording (MediaPlayerControl *self);
 gboolean set_ismd_audio_sink_property (GstElement *asink, const gchar *prop_name, gpointer val);
 gboolean get_ismd_audio_sink_property (GstElement *asink, const gchar *prop_name, gpointer val);
 
@@ -295,7 +295,7 @@ dvb_player_parse_uri (DvbPlayer *player, const gchar *uri)
 }
 
 static gboolean
-dvb_player_set_uri (MeegoMediaPlayerControl *self,
+dvb_player_set_uri (MediaPlayerControl *self,
                     const gchar           *uri)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
@@ -325,7 +325,7 @@ dvb_player_set_uri (MeegoMediaPlayerControl *self,
 }
 
 static gboolean
-get_video_rectangle (MeegoMediaPlayerControl *self, gint *ax, gint *ay, gint *w, gint *h, gint *rx, gint *ry)
+get_video_rectangle (MediaPlayerControl *self, gint *ax, gint *ay, gint *w, gint *h, gint *rx, gint *ry)
 {
   XWindowAttributes video_win_attr, app_win_attr;
   gint app_x, app_y;
@@ -367,7 +367,7 @@ get_video_rectangle (MeegoMediaPlayerControl *self, gint *ax, gint *ay, gint *w,
 }
 
 static gboolean
-cutout (MeegoMediaPlayerControl *self, gint x, gint y, gint w, gint h)
+cutout (MediaPlayerControl *self, gint x, gint y, gint w, gint h)
 {
   Atom property;
   gchar data[256];
@@ -379,8 +379,8 @@ cutout (MeegoMediaPlayerControl *self, gint x, gint y, gint w, gint h)
     return FALSE;
   }
 
-  g_sprintf (data, "meego-tv-cutout-x=%d:meego-tv-cutout-y=%d:meego-tv-cutout-width=%d:"
-             "meego-tv-cutout-height=%d:meego-tv-half-trans=0:meego-tv-full-window=0", x, y, w, h);
+  g_sprintf (data, "tv-cutout-x=%d:tv-cutout-y=%d:tv-cutout-width=%d:"
+             "tv-cutout-height=%d:tv-half-trans=0:tv-full-window=0", x, y, w, h);
 
   UMMS_DEBUG ("Hints to mtv-mutter = \"%s\"", data);
 
@@ -390,7 +390,7 @@ cutout (MeegoMediaPlayerControl *self, gint x, gint y, gint w, gint h)
 }
 
 static gboolean
-unset_xwindow_target (MeegoMediaPlayerControl *self)
+unset_xwindow_target (MediaPlayerControl *self)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
 
@@ -403,7 +403,7 @@ unset_xwindow_target (MeegoMediaPlayerControl *self)
 }
 
 static void
-dvb_player_handle_xevents (MeegoMediaPlayerControl *control)
+dvb_player_handle_xevents (MediaPlayerControl *control)
 {
   XEvent e;
   gint x, y, w, h, rx, ry;
@@ -428,7 +428,7 @@ dvb_player_handle_xevents (MeegoMediaPlayerControl *control)
 }
 
 static gpointer
-dvb_player_event_thread (MeegoMediaPlayerControl* control)
+dvb_player_event_thread (MediaPlayerControl* control)
 {
 
   DvbPlayerPrivate *priv = GET_PRIVATE (control);
@@ -449,7 +449,7 @@ dvb_player_event_thread (MeegoMediaPlayerControl* control)
 }
 
 static gboolean
-create_xevent_handle_thread (MeegoMediaPlayerControl *self)
+create_xevent_handle_thread (MediaPlayerControl *self)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
 
@@ -465,7 +465,7 @@ create_xevent_handle_thread (MeegoMediaPlayerControl *self)
 }
 
 static gboolean
-destroy_xevent_handle_thread (MeegoMediaPlayerControl *self)
+destroy_xevent_handle_thread (MediaPlayerControl *self)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
 
@@ -479,7 +479,7 @@ destroy_xevent_handle_thread (MeegoMediaPlayerControl *self)
   return TRUE;
 }
 
-static gboolean setup_ismd_vbin(MeegoMediaPlayerControl *self, gchar *rect, gint plane)
+static gboolean setup_ismd_vbin(MediaPlayerControl *self, gchar *rect, gint plane)
 {
   GstElement *new_vsink = NULL;
   gboolean   ret = TRUE;
@@ -509,7 +509,7 @@ OUT:
   return ret;
 }
 
-static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTable *params)
+static gboolean setup_gdl_plane_target (MediaPlayerControl *self, GHashTable *params)
 {
   gchar *rect = NULL;
   gint  plane = INVALID_PLANE_ID;
@@ -539,7 +539,7 @@ static gboolean setup_gdl_plane_target (MeegoMediaPlayerControl *self, GHashTabl
  * 1 and 2 are the case of xorg server.
  * 3 is always satisfied, unless subwindow is requested from a process which is not the same process hosting the top-level window.
 */
-static Window get_top_level_win (MeegoMediaPlayerControl *self, Window sub_win)
+static Window get_top_level_win (MediaPlayerControl *self, Window sub_win)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
   Display *disp = priv->disp;
@@ -578,7 +578,7 @@ static Window get_top_level_win (MeegoMediaPlayerControl *self, Window sub_win)
   return top_win;
 }
 
-static gboolean setup_datacopy_target (MeegoMediaPlayerControl *self, GHashTable *params)
+static gboolean setup_datacopy_target (MediaPlayerControl *self, GHashTable *params)
 {
   gchar *rect = NULL;
   GValue *val = NULL;
@@ -697,7 +697,7 @@ static int xerror_handler (
  * 4. Create xevent handle thread.
  */
 
-static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable *params)
+static gboolean setup_xwindow_target (MediaPlayerControl *self, GHashTable *params)
 {
   GValue *val;
   gint x, y, w, h, rx, ry;
@@ -753,7 +753,7 @@ static gboolean setup_xwindow_target (MeegoMediaPlayerControl *self, GHashTable 
 }
 
 static gboolean
-unset_target (MeegoMediaPlayerControl *self)
+unset_target (MediaPlayerControl *self)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
 
@@ -785,7 +785,7 @@ unset_target (MeegoMediaPlayerControl *self)
 }
 
 static gboolean
-dvb_player_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params)
+dvb_player_set_target (MediaPlayerControl *self, gint type, GHashTable *params)
 {
   gboolean ret = TRUE;
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
@@ -840,7 +840,7 @@ dvb_player_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *par
 }
 
 static gboolean
-prepare_plane (MeegoMediaPlayerControl *self)
+prepare_plane (MediaPlayerControl *self)
 {
   GstElement *vsink_bin;
   gint plane;
@@ -892,7 +892,7 @@ prepare_plane (MeegoMediaPlayerControl *self)
     res = umms_resource_manager_request_resource (priv->res_mngr, &req);      \
     if (!res) {                                                               \
       release_resource(self);                                                 \
-      meego_media_player_control_emit_error (self,                            \
+      media_player_control_emit_error (self,                            \
                                              UMMS_RESOURCE_ERROR_NO_RESOURCE, \
                                              e_msg);                          \
       return FALSE;                                                           \
@@ -902,7 +902,7 @@ prepare_plane (MeegoMediaPlayerControl *self)
 
 
 static gboolean
-request_resource (MeegoMediaPlayerControl *self)
+request_resource (MediaPlayerControl *self)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
 
@@ -919,7 +919,7 @@ request_resource (MeegoMediaPlayerControl *self)
 }
 
 static void
-release_resource (MeegoMediaPlayerControl *self)
+release_resource (MediaPlayerControl *self)
 {
   GList *g;
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
@@ -959,7 +959,7 @@ get_hw_clock(void)
 }
 
 static gboolean
-dvb_player_play (MeegoMediaPlayerControl *self)
+dvb_player_play (MediaPlayerControl *self)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE(self);
 
@@ -973,7 +973,7 @@ dvb_player_play (MeegoMediaPlayerControl *self)
 }
 
 static gboolean
-_stop_pipe (MeegoMediaPlayerControl *control)
+_stop_pipe (MediaPlayerControl *control)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (control);
 
@@ -993,7 +993,7 @@ _stop_pipe (MeegoMediaPlayerControl *control)
 }
 
 static gboolean
-dvb_player_stop (MeegoMediaPlayerControl *self)
+dvb_player_stop (MediaPlayerControl *self)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
   PlayerState old_state;
@@ -1005,15 +1005,15 @@ dvb_player_stop (MeegoMediaPlayerControl *self)
   priv->player_state = PlayerStateStopped;
 
   if (old_state != priv->player_state) {
-    meego_media_player_control_emit_player_state_changed (self, old_state, priv->player_state);
+    media_player_control_emit_player_state_changed (self, old_state, priv->player_state);
   }
-  meego_media_player_control_emit_stopped (self);
+  media_player_control_emit_stopped (self);
 
   return TRUE;
 }
 
 static gboolean
-dvb_player_set_video_size (MeegoMediaPlayerControl *self,
+dvb_player_set_video_size (MediaPlayerControl *self,
     guint x, guint y, guint w, guint h)
 
 {
@@ -1047,7 +1047,7 @@ dvb_player_set_video_size (MeegoMediaPlayerControl *self,
 }
 
 static gboolean
-dvb_player_get_video_size (MeegoMediaPlayerControl *self,
+dvb_player_get_video_size (MediaPlayerControl *self,
     guint *w, guint *h)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
@@ -1078,7 +1078,7 @@ dvb_player_get_video_size (MeegoMediaPlayerControl *self,
 }
 
 static gboolean
-dvb_player_is_seekable (MeegoMediaPlayerControl *self, gboolean *seekable)
+dvb_player_is_seekable (MediaPlayerControl *self, gboolean *seekable)
 {
   DvbPlayerPrivate *priv = NULL;
   GstElement *pipeline = NULL;
@@ -1087,7 +1087,7 @@ dvb_player_is_seekable (MeegoMediaPlayerControl *self, gboolean *seekable)
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (seekable != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   priv = GET_PRIVATE (self);
   pipeline = priv->pipeline;
@@ -1123,13 +1123,13 @@ dvb_player_is_seekable (MeegoMediaPlayerControl *self, gboolean *seekable)
 }
 
 static gboolean
-dvb_player_set_volume (MeegoMediaPlayerControl *self, gint vol)
+dvb_player_set_volume (MediaPlayerControl *self, gint vol)
 {
   DvbPlayerPrivate *priv;
   gdouble volume;
 
   g_return_val_if_fail (self != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   priv = GET_PRIVATE (self);
 
@@ -1141,13 +1141,13 @@ dvb_player_set_volume (MeegoMediaPlayerControl *self, gint vol)
 }
 
 static gboolean
-dvb_player_get_volume (MeegoMediaPlayerControl *self, gint *vol)
+dvb_player_get_volume (MediaPlayerControl *self, gint *vol)
 {
   gdouble volume;
   DvbPlayerPrivate *priv;
 
   g_return_val_if_fail (self != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   priv = GET_PRIVATE (self);
 
@@ -1162,7 +1162,7 @@ dvb_player_get_volume (MeegoMediaPlayerControl *self, gint *vol)
 }
 
 static gboolean
-dvb_player_support_fullscreen (MeegoMediaPlayerControl *self, gboolean *support_fullscreen)
+dvb_player_support_fullscreen (MediaPlayerControl *self, gboolean *support_fullscreen)
 {
   //We are using ismd_vidrend_bin, so this function always return TRUE.
   *support_fullscreen = TRUE;
@@ -1170,14 +1170,14 @@ dvb_player_support_fullscreen (MeegoMediaPlayerControl *self, gboolean *support_
 }
 
 static gboolean
-dvb_player_get_player_state (MeegoMediaPlayerControl *self,
+dvb_player_get_player_state (MediaPlayerControl *self,
     gint *state)
 {
   DvbPlayerPrivate *priv;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (state != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   priv = GET_PRIVATE (self);
 
@@ -1186,13 +1186,13 @@ dvb_player_get_player_state (MeegoMediaPlayerControl *self,
 }
 
 static gboolean
-dvb_player_set_mute (MeegoMediaPlayerControl *self, gint mute)
+dvb_player_set_mute (MediaPlayerControl *self, gint mute)
 {
   GstElement *pipeline;
   DvbPlayerPrivate *priv;
 
   g_return_val_if_fail (self != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   priv = GET_PRIVATE (self);
   pipeline = priv->pipeline;
@@ -1203,12 +1203,12 @@ dvb_player_set_mute (MeegoMediaPlayerControl *self, gint mute)
 }
 
 static gboolean
-dvb_player_is_mute (MeegoMediaPlayerControl *self, gint *mute)
+dvb_player_is_mute (MediaPlayerControl *self, gint *mute)
 {
   DvbPlayerPrivate *priv;
 
   g_return_val_if_fail (self != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   priv = GET_PRIVATE (self);
 
@@ -1217,7 +1217,7 @@ dvb_player_is_mute (MeegoMediaPlayerControl *self, gint *mute)
 
 
 static gboolean
-dvb_player_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode)
+dvb_player_set_scale_mode (MediaPlayerControl *self, gint scale_mode)
 {
   DvbPlayerPrivate *priv;
   GstElement *vsink_bin;
@@ -1228,7 +1228,7 @@ dvb_player_set_scale_mode (MeegoMediaPlayerControl *self, gint scale_mode)
   GEnumValue *eval;
 
   g_return_val_if_fail (self != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   priv = GET_PRIVATE (self);
 
@@ -1288,7 +1288,7 @@ OUT:
 }
 
 static gboolean
-dvb_player_get_scale_mode (MeegoMediaPlayerControl *self, gint *scale_mode)
+dvb_player_get_scale_mode (MediaPlayerControl *self, gint *scale_mode)
 {
   DvbPlayerPrivate *priv;
   GstElement *vsink_bin;
@@ -1301,7 +1301,7 @@ dvb_player_get_scale_mode (MeegoMediaPlayerControl *self, gint *scale_mode)
   *scale_mode = ScaleModeInvalid;
 
   g_return_val_if_fail (self != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   priv = GET_PRIVATE (self);
 
@@ -1358,26 +1358,26 @@ OUT:
 }
 
 static gboolean
-dvb_player_get_protocol_name(MeegoMediaPlayerControl *self, gchar ** prot_name)
+dvb_player_get_protocol_name(MediaPlayerControl *self, gchar ** prot_name)
 {
   *prot_name = "dvb";
   return TRUE;
 }
 
 static gboolean
-dvb_player_get_current_uri(MeegoMediaPlayerControl *self, gchar ** uri)
+dvb_player_get_current_uri(MediaPlayerControl *self, gchar ** uri)
 {
   DvbPlayerPrivate *priv = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   priv = GET_PRIVATE (self);
   *uri = priv->uri;
   return TRUE;
 }
 
-static gboolean start_recording (MeegoMediaPlayerControl *self, gchar *location)
+static gboolean start_recording (MediaPlayerControl *self, gchar *location)
 {
 
   gboolean ret = FALSE;
@@ -1461,7 +1461,7 @@ failed:
   goto out;
 }
 
-static gboolean stop_recording (MeegoMediaPlayerControl *self)
+static gboolean stop_recording (MediaPlayerControl *self)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (self);
 
@@ -1485,12 +1485,12 @@ static gboolean stop_recording (MeegoMediaPlayerControl *self)
 }
 
 static gboolean
-dvb_player_record (MeegoMediaPlayerControl *self, gboolean to_record, gchar *location)
+dvb_player_record (MediaPlayerControl *self, gboolean to_record, gchar *location)
 {
   DvbPlayerPrivate *priv = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
   priv = GET_PRIVATE (self);
 
@@ -1505,7 +1505,7 @@ dvb_player_record (MeegoMediaPlayerControl *self, gboolean to_record, gchar *loc
 }
 
 static gboolean
-dvb_player_get_pat (MeegoMediaPlayerControl *self, GPtrArray **pat)
+dvb_player_get_pat (MediaPlayerControl *self, GPtrArray **pat)
 {
   GValueArray *pat_info = NULL;
   GPtrArray *pat_out = NULL;
@@ -1514,7 +1514,7 @@ dvb_player_get_pat (MeegoMediaPlayerControl *self, GPtrArray **pat)
   gint i;
 
   g_return_val_if_fail (self != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
   g_return_val_if_fail (pat, FALSE);
 
   priv = GET_PRIVATE (self);
@@ -1592,7 +1592,7 @@ out:
  *
  */
 static gboolean
-dvb_player_get_pmt (MeegoMediaPlayerControl *self, guint *program_num, guint *pcr_pid, GPtrArray **stream_info)
+dvb_player_get_pmt (MediaPlayerControl *self, guint *program_num, guint *pcr_pid, GPtrArray **stream_info)
 {
   DvbPlayerPrivate *priv;
   gboolean ret = FALSE;
@@ -1603,7 +1603,7 @@ dvb_player_get_pmt (MeegoMediaPlayerControl *self, guint *program_num, guint *pc
   GValueArray *stream_info_array = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
   g_return_val_if_fail (program_num, FALSE);
   g_return_val_if_fail (pcr_pid, FALSE);
   g_return_val_if_fail (stream_info, FALSE);
@@ -1660,12 +1660,12 @@ out:
 }
 
 static gboolean
-dvb_player_get_associated_data_channel (MeegoMediaPlayerControl *self, gchar **ip, gint *port)
+dvb_player_get_associated_data_channel (MediaPlayerControl *self, gchar **ip, gint *port)
 {
   DvbPlayerPrivate *priv = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
-  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
   g_return_val_if_fail (ip, FALSE);
   g_return_val_if_fail (port, FALSE);
 
@@ -1764,51 +1764,51 @@ failed:
 }
 
 static void
-meego_media_player_control_init (MeegoMediaPlayerControl *iface)
+media_player_control_init (MediaPlayerControl *iface)
 {
-  MeegoMediaPlayerControlClass *klass = (MeegoMediaPlayerControlClass *)iface;
+  MediaPlayerControlClass *klass = (MediaPlayerControlClass *)iface;
 
-  meego_media_player_control_implement_set_uri (klass,
+  media_player_control_implement_set_uri (klass,
       dvb_player_set_uri);
-  meego_media_player_control_implement_set_target (klass,
+  media_player_control_implement_set_target (klass,
       dvb_player_set_target);
-  meego_media_player_control_implement_play (klass,
+  media_player_control_implement_play (klass,
       dvb_player_play);
-  meego_media_player_control_implement_stop (klass,
+  media_player_control_implement_stop (klass,
       dvb_player_stop);
-  meego_media_player_control_implement_set_video_size (klass,
+  media_player_control_implement_set_video_size (klass,
       dvb_player_set_video_size);
-  meego_media_player_control_implement_get_video_size (klass,
+  media_player_control_implement_get_video_size (klass,
       dvb_player_get_video_size);
-  meego_media_player_control_implement_is_seekable (klass,
+  media_player_control_implement_is_seekable (klass,
       dvb_player_is_seekable);
-  meego_media_player_control_implement_set_volume (klass,
+  media_player_control_implement_set_volume (klass,
       dvb_player_set_volume);
-  meego_media_player_control_implement_get_volume (klass,
+  media_player_control_implement_get_volume (klass,
       dvb_player_get_volume);
-  meego_media_player_control_implement_support_fullscreen (klass,
+  media_player_control_implement_support_fullscreen (klass,
       dvb_player_support_fullscreen);
-  meego_media_player_control_implement_get_player_state (klass,
+  media_player_control_implement_get_player_state (klass,
       dvb_player_get_player_state);
-  meego_media_player_control_implement_set_mute (klass,
+  media_player_control_implement_set_mute (klass,
       dvb_player_set_mute);
-  meego_media_player_control_implement_is_mute (klass,
+  media_player_control_implement_is_mute (klass,
       dvb_player_is_mute);
-  meego_media_player_control_implement_set_scale_mode (klass,
+  media_player_control_implement_set_scale_mode (klass,
       dvb_player_set_scale_mode);
-  meego_media_player_control_implement_get_scale_mode (klass,
+  media_player_control_implement_get_scale_mode (klass,
       dvb_player_get_scale_mode);
-  meego_media_player_control_implement_get_protocol_name (klass,
+  media_player_control_implement_get_protocol_name (klass,
       dvb_player_get_protocol_name);
-  meego_media_player_control_implement_get_current_uri (klass,
+  media_player_control_implement_get_current_uri (klass,
       dvb_player_get_current_uri);
-  meego_media_player_control_implement_record (klass,
+  media_player_control_implement_record (klass,
       dvb_player_record);
-  meego_media_player_control_implement_get_pat (klass,
+  media_player_control_implement_get_pat (klass,
       dvb_player_get_pat);
-  meego_media_player_control_implement_get_pmt (klass,
+  media_player_control_implement_get_pmt (klass,
       dvb_player_get_pmt);
-  meego_media_player_control_implement_get_associated_data_channel (klass,
+  media_player_control_implement_get_associated_data_channel (klass,
       dvb_player_get_associated_data_channel);
 }
 
@@ -1843,7 +1843,7 @@ dvb_player_dispose (GObject *object)
   int i;
 
   UMMS_DEBUG ("Begin");
-  dvb_player_stop ((MeegoMediaPlayerControl *)object);
+  dvb_player_stop ((MediaPlayerControl *)object);
 
   TEARDOWN_ELEMENT(priv->source);
   TEARDOWN_ELEMENT(priv->tsdemux);
@@ -1852,7 +1852,7 @@ dvb_player_dispose (GObject *object)
   TEARDOWN_ELEMENT(priv->pipeline);
 
   if (priv->listen_thread) {
-    socket_thread_join((MeegoMediaPlayerControl *)object);
+    socket_thread_join((MediaPlayerControl *)object);
     priv->listen_thread = NULL;
   }
 
@@ -1874,7 +1874,7 @@ dvb_player_dispose (GObject *object)
   }
 
   if (priv->target_type == XWindow) {
-    unset_xwindow_target ((MeegoMediaPlayerControl *)object);
+    unset_xwindow_target ((MediaPlayerControl *)object);
   }
 
   if (priv->disp) {
@@ -1949,7 +1949,7 @@ bus_message_state_change_cb (GstBus     *bus,
 
   if (priv->player_state != old_player_state) {
     UMMS_DEBUG ("emit state changed, old=%d, new=%d", old_player_state, priv->player_state);
-    meego_media_player_control_emit_player_state_changed (self, old_player_state, priv->player_state);
+    media_player_control_emit_player_state_changed (self, old_player_state, priv->player_state);
   }
 }
 
@@ -1959,7 +1959,7 @@ bus_message_eos_cb (GstBus     *bus,
                     DvbPlayer  *self)
 {
   UMMS_DEBUG ("message::eos received on bus");
-  meego_media_player_control_emit_eof (self);
+  media_player_control_emit_eof (self);
 }
 
 
@@ -1973,9 +1973,9 @@ bus_message_error_cb (GstBus     *bus,
   UMMS_DEBUG ("message::error received on bus");
 
   gst_message_parse_error (message, &error, NULL);
-  _stop_pipe (MEEGO_MEDIA_PLAYER_CONTROL(self));
+  _stop_pipe (MEDIA_PLAYER_CONTROL(self));
 
-  meego_media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, error->message);
+  media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, error->message);
 
   UMMS_DEBUG ("Error emitted with message = %s", error->message);
 
@@ -2005,7 +2005,7 @@ bus_sync_handler (GstBus *bus,
   vsink =  GST_ELEMENT(GST_MESSAGE_SRC (message));
   UMMS_DEBUG ("sync-handler received on bus: prepare-gdl-plane, source: %s", GST_ELEMENT_NAME(vsink));
 
-  if (!prepare_plane ((MeegoMediaPlayerControl *)engine)) {
+  if (!prepare_plane ((MediaPlayerControl *)engine)) {
     //Since we are in streame thread, let the vsink to post the error message. Handle it in bus_message_error_cb().
     err = g_error_new_literal (UMMS_RESOURCE_ERROR, UMMS_RESOURCE_ERROR_NO_RESOURCE, "Plane unavailable");
     msg = gst_message_new_error (GST_OBJECT_CAST(priv->pipeline), err, "No resource");
@@ -2013,7 +2013,7 @@ bus_sync_handler (GstBus *bus,
     g_error_free (err);
   }
 
-//  meego_media_player_control_emit_request_window (engine);
+//  media_player_control_emit_request_window (engine);
 
   if (message)
     gst_message_unref (message);
@@ -2094,7 +2094,7 @@ dvb_player_init (DvbPlayer *self)
     g_object_unref (clock);
   } else {
     UMMS_DEBUG ("Can't get HW clock");
-    meego_media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, "Can't get HW clock for live source");
+    media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, "Can't get HW clock for live source");
     goto failed;
   }
 #endif
@@ -2149,12 +2149,12 @@ dvb_player_init (DvbPlayer *self)
   priv->artist = NULL;
 
   //URI is one of metadatas whose change should be notified.
-  meego_media_player_control_emit_metadata_changed (self);
+  media_player_control_emit_metadata_changed (self);
 
 
   //Setup default target.
 #define FULL_SCREEN_RECT "0,0,0,0"
-  setup_ismd_vbin (MEEGO_MEDIA_PLAYER_CONTROL(self), FULL_SCREEN_RECT, UPP_A);
+  setup_ismd_vbin (MEDIA_PLAYER_CONTROL(self), FULL_SCREEN_RECT, UPP_A);
   priv->target_type = ReservedType0;
   priv->target_initialized = TRUE;
 
@@ -2686,7 +2686,7 @@ out:
 
 
 static void
-socket_thread_join(MeegoMediaPlayerControl* dvd_player)
+socket_thread_join(MediaPlayerControl* dvd_player)
 {
   DvbPlayerPrivate *priv = GET_PRIVATE (dvd_player);
   struct sockaddr_in server_addr;

@@ -2,7 +2,7 @@
 
 <node name="/Media_Player_Iface">
 
-	<interface name="com.meego.UMMS.MediaPlayer">
+	<interface name="com.UMMS.MediaPlayer">
 
 		<method name="SetUri">
 			<arg name="uri" type="s"/>

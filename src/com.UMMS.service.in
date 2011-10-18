@@ -1,4 +1,4 @@
 [D-BUS Service]
-Name=com.meego.UMMS
+Name=com.UMMS
 Exec=@dir@/umms-server
 User=root

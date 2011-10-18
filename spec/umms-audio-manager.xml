@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<node name="/com/meego/UMMS/AudioManager">
-	<interface name="com.meego.UMMS.AudioManager">
+<node name="/com/UMMS/AudioManager">
+	<interface name="com.UMMS.AudioManager">
 		<method name="SetVolume">
 			<arg name="output_type" type="i"/>
 			<arg name="volume" type="i"/>

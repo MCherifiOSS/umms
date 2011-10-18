@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<node name="/com/meego/UMMS/ObjectManager">
-	<interface name="com.meego.UMMS.ObjectManager.iface">
+<node name="/com/UMMS/ObjectManager">
+	<interface name="com.UMMS.ObjectManager.iface">
 		<method name="RequestMediaPlayer">
 			<arg name="object_path" type="s" direction="out"/>
 		</method>
