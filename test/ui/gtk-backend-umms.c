@@ -139,6 +139,17 @@ static void __text_tag_changed_cb(DBusGProxy *player, guint stream_id, gpointer 
     ui_callbacks_for_reason(UI_CALLBACK_TEXT_TAG_CHANGED, (void *)stream_id, NULL);
 }
 
+static void __reply_cb(DBusGProxy *player, guint stream_id, gpointer user_data)
+{
+    /* reply to keep alive. */
+    GError *error = NULL;
+
+    if (!dbus_g_proxy_call (player, "Reply", &error,
+            G_TYPE_INVALID, G_TYPE_INVALID)) {
+        UMMS_GERROR ("Failed to Reply", error);
+    }
+}
+
 static void
 connect_sigs(DBusGProxy *player)
 {
@@ -201,6 +212,11 @@ connect_sigs(DBusGProxy *player)
     dbus_g_proxy_connect_signal (player,
             "TextTagChanged",
             G_CALLBACK(__text_tag_changed_cb),
+            NULL, NULL);
+
+    dbus_g_proxy_connect_signal (player,
+            "NeedReply",
+            G_CALLBACK(__reply_cb),
             NULL, NULL);
 }
 
