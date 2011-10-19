@@ -3147,9 +3147,7 @@ bus_message_eos_cb (GstBus     *bus,
                     EngineGst  *self)
 {
   UMMS_DEBUG ("message::eos received on bus");
-
   media_player_control_emit_eof (self);
-  engine_gst_stop ((MediaPlayerControl *)self);
 }
 
 
