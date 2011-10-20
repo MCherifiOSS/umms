@@ -3200,7 +3200,11 @@ bus_message_buffering_cb (GstBus *bus,
         gst_element_set_state (priv->pipeline, GST_STATE_PLAYING);
 
       media_player_control_emit_buffered (self);
-    } else if (!priv->buffering && priv->pending_state == PlayerStatePlaying) {
+    } else if (!priv->buffering) {
+      
+      if (priv->player_state == PlayerStatePlaying) {
+        priv->pending_state = PlayerStatePlaying;//Use this to restore playing when buffering done.
+      }
       priv->buffering = TRUE;
       UMMS_DEBUG ("Set pipeline to paused for buffering data");
 
