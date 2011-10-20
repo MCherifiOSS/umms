@@ -112,7 +112,7 @@ gint system_probe(void)
       UMMS_DEBUG("is %s", platform_release[NETBOOK]);
       ret = NETBOOK;
     }else {
-      g_error ("unknown platform, try generic config\n");
+      g_warning ("unknown platform, try generic config\n");
       ret = NETBOOK;
     }
 
@@ -121,7 +121,7 @@ gint system_probe(void)
   }else{
     /**/
     UMMS_DEBUG("file %s is NOT exist\n", filename); 
-    g_error ("unknown platform, try generic config\n");
+    g_warning ("unknown platform, try generic config\n");
     ret = NETBOOK;
   }
 
