@@ -25,6 +25,7 @@
 #define _ENGINE_GENERIC_H
 
 #include <glib-object.h>
+#include "engine-common.h"
 
 G_BEGIN_DECLS
 
@@ -52,19 +53,21 @@ G_BEGIN_DECLS
 
 typedef struct _EngineGeneric EngineGeneric;
 typedef struct _EngineGenericClass EngineGenericClass;
-typedef struct _EngineGenericPrivate EngineGenericPrivate;
+//typedef struct _EngineGenericPrivate EngineGenericPrivate;
 
 struct _EngineGeneric
 {
-  GObject parent;
+  /*GObject parent;*/
+  EngineCommon parent;
 
-  EngineGenericPrivate *priv;
+  /*EngineGenericPrivate *priv;*/
 };
 
 
 struct _EngineGenericClass
 {
-  GObjectClass parent_class;
+  /*GObjectClass parent_class;*/
+  EngineCommonClass parent_class;
 
 };
 

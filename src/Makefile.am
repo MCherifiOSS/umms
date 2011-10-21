@@ -29,6 +29,8 @@ umms_server_SOURCES = umms-common.h \
 					          	media-player-factory.h \
 				              media-player-control.c \
 					          	media-player-control.h \
+					            engine-common.c \
+					          	engine-common.h \
 					            engine-gst.c \
 					          	engine-gst.h \
 					            engine-generic.c \
