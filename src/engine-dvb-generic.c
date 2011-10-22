@@ -19,7 +19,7 @@
 /* add PAT, CAT, NIT, SDT, EIT to pids filter for dvbsrc */
 #define INIT_PIDS "0:1:16:17:18"
 #define TEST_PIDS "0:257:1110:1120"
-//#define DVB_SRC
+#define DVB_SRC
 
 static void media_player_control_init (MediaPlayerControl* iface);
 
