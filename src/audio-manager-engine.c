@@ -192,14 +192,14 @@ audio_manager_interface_init (AudioManagerInterface *iface)
 {
   AudioManagerInterfaceClass *klass = (AudioManagerInterfaceClass *)iface;
 
-//  audio_manager_interface_implement_set_volume (klass,
-//      audio_manager_engine_set_volume);
-//  audio_manager_interface_implement_get_volume (klass,
-//      audio_manager_engine_get_volume);
-//  audio_manager_interface_implement_set_state (klass,
-//      audio_manager_engine_set_state);
-//  audio_manager_interface_implement_get_state (klass,
-//      audio_manager_engine_get_state);
+  audio_manager_interface_implement_set_volume (klass,
+      audio_manager_engine_set_volume);
+  audio_manager_interface_implement_get_volume (klass,
+      audio_manager_engine_get_volume);
+  audio_manager_interface_implement_set_state (klass,
+      audio_manager_engine_set_state);
+  audio_manager_interface_implement_get_state (klass,
+      audio_manager_engine_get_state);
 }
 
 static void
@@ -257,6 +257,45 @@ audio_manager_engine_class_init (AudioManagerEngineClass *klass)
 
 }
 
+static gboolean
+set_sink_caps (GstElement *asink)
+{
+  GstPad *sink_pad = NULL;
+  GstCaps *caps = NULL;
+  gboolean ret = FALSE;
+
+  caps = gst_caps_new_simple ("audio/x-raw-int", NULL);
+  sink_pad = gst_element_get_pad (asink, "sink");
+
+  if (!sink_pad) {
+    UMMS_DEBUG ("Getting sink pad failed");
+    goto out;
+  }
+
+  if (!(ret = gst_pad_set_caps (sink_pad, caps))) {
+    UMMS_DEBUG ("set caps failed");
+    goto out;
+  }
+
+  ret = TRUE;
+
+out:
+  if (caps) {
+    gst_caps_unref (caps);
+  }
+
+  if (sink_pad){
+    g_object_unref (sink_pad);
+  }
+
+  if (ret) {
+    UMMS_DEBUG ("Succeed");
+  }
+
+  return ret; 
+}
+
+
 static void
 audio_manager_engine_init (AudioManagerEngine *self)
 {
@@ -282,11 +321,13 @@ audio_manager_engine_init (AudioManagerEngine *self)
   UMMS_DEBUG ("get audio sink state = %d, ret = %d", state, ret);
   switch (ret) {
     case GST_STATE_CHANGE_FAILURE:
-      UMMS_DEBUG ("ismd_audio_sink failed to go playing");
+      UMMS_DEBUG ("ismd_audio_sink failed to go ready");
       goto FAILED;
       break;
     case GST_STATE_CHANGE_SUCCESS:
-      UMMS_DEBUG ("Setting ismd_audio_sink to playing succeed");
+      UMMS_DEBUG ("Setting ismd_audio_sink to ready succeed");
+      //to make the ismd_audio_sink configure the output.
+      set_sink_caps(priv->asink);
       return;
       break;
     default:
