@@ -1134,8 +1134,12 @@ engine_common_get_video_size (MediaPlayerControl *self,
   g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
   if (vsink_bin) {
     gchar *rectangle_des = NULL;
-    UMMS_DEBUG ("ismd_vidrend_bin: %p, name: %s", vsink_bin, GST_ELEMENT_NAME(vsink_bin));
+    UMMS_DEBUG ("bin: %p, name: %s", vsink_bin, GST_ELEMENT_NAME(vsink_bin));
     g_object_get (G_OBJECT(vsink_bin), "rectangle", &rectangle_des, NULL);
+    if(rectangle_des == NULL){
+      UMMS_DEBUG("Not support get video size");
+      return FALSE;
+    }
     sscanf (rectangle_des, "%u,%u,%u,%u", x, y, w, h);
     UMMS_DEBUG ("got rectangle damension :'%u,%u,%u,%u'", *x, *y, *w, *h);
     ret = TRUE;
