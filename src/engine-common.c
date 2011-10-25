@@ -2925,6 +2925,7 @@ engine_common_class_init (EngineCommonClass *klass)
   object_class->set_property = engine_common_set_property;
   object_class->dispose = engine_common_dispose;
   object_class->finalize = engine_common_finalize;
+  /*virtual APis*/
   klass->activate_engine = activate_engine;
   klass->set_target = set_target;
 }

@@ -6,54 +6,54 @@ umms_server_LDADD = $(UMMS_LIBS) -lgstapp-0.10
 
 
 GLUE = \
-			  ./glue/umms-object-manager-glue.h \
-			  ./glue/umms-media-player-glue.h \
-			  ./glue/umms-playing-content-metadata-viewer-glue.h \
-			  ./glue/umms-audio-manager-glue.h
+              ./glue/umms-object-manager-glue.h \
+              ./glue/umms-media-player-glue.h \
+              ./glue/umms-playing-content-metadata-viewer-glue.h \
+              ./glue/umms-audio-manager-glue.h
 
 
 MARSHALS = \
-	umms-marshals.c umms-marshals.h
+    umms-marshals.c umms-marshals.h
 
 GENERATED_SOURCE = $(GLUE) $(MARSHALS)
 BUILT_SOURCES = $(GENERATED_SOURCE)
 
 umms_server_SOURCES = umms-common.h \
-					            umms-debug.h \
-					            umms-error.h \
-					          	umms-error.c \
-											umms-server-main.c \
+                      umms-debug.h \
+                      umms-error.h \
+                      umms-error.c \
+                      umms-server-main.c \
                       media-player.c \
-					          	media-player.h \
-					            media-player-factory.c \
-					          	media-player-factory.h \
-				              media-player-control.c \
-					          	media-player-control.h \
-					            engine-common.c \
-					          	engine-common.h \
-					            engine-gst.c \
-					          	engine-gst.h \
-					            engine-generic.c \
-					          	engine-generic.h \
-					            engine-dvb-generic.c \
-					          	engine-dvb-generic.h \
-					            umms-object-manager.c \
-					          	umms-object-manager.h \
-					          	param-table.c \
-											param-table.h \
-					          	umms-resource-manager.c \
+                      media-player.h \
+                      media-player-factory.c \
+                      media-player-factory.h \
+                      media-player-control.c \
+                      media-player-control.h \
+                      engine-common.c \
+                      engine-common.h \
+                      engine-tv.c \
+                      engine-tv.h \
+                      engine-generic.c \
+                      engine-generic.h \
+                      engine-dvb-generic.c \
+                      engine-dvb-generic.h \
+                      umms-object-manager.c \
+                      umms-object-manager.h \
+                      param-table.c \
+                      param-table.h \
+                      umms-resource-manager.c \
                       umms-resource-manager.h \
                       umms-playing-content-metadata-viewer.c \
                       umms-playing-content-metadata-viewer.h \
-					          	umms-audio-manager.c \
-					          	umms-audio-manager.h \
-											audio-manager-interface.c \
-											audio-manager-interface.h \
-											audio-manager-engine.c \
-											audio-manager-engine.h \
-											dvb-player.c \
-											dvb-player.h \
-		    			        $(GENERATED_SOURCE)
+                      umms-audio-manager.c \
+                      umms-audio-manager.h \
+                      audio-manager-interface.c \
+                      audio-manager-interface.h \
+                      audio-manager-engine.c \
+                      audio-manager-engine.h \
+                      dvb-player.c \
+                      dvb-player.h \
+                      $(GENERATED_SOURCE)
 
 %.c: %.list Makefile.am
 	$(AM_V_GEN)glib-genmarshal --body --prefix=umms_marshal $< > $@

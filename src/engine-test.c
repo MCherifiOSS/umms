@@ -28,7 +28,7 @@
 #include "umms-common.h"
 #include "umms-debug.h"
 #include "media-player-control.h"
-#include "engine-gst.h"
+#include "engine-tv.h"
 
 const gchar *error_type[] = {
   "ErrorTypeEngine",
@@ -353,7 +353,7 @@ main (int argc, char **argv)
   g_type_init ();
   gst_init (&argc, &argv);
 
-  player = (MediaPlayerControl*)engine_gst_new();
+  player = (MediaPlayerControl*)engine_tv_new();
   connect_sigs (player);
 
   loop = g_main_loop_new (NULL, TRUE);

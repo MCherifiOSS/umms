@@ -21,57 +21,60 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef _ENGINE_GST_H
-#define _ENGINE_GST_H
+#ifndef _ENGINE_TV_H
+#define _ENGINE_TV_H
 
 #include <glib-object.h>
+#include "engine-common.h"
 
 G_BEGIN_DECLS
 
-#define ENGINE_TYPE_GST engine_gst_get_type()
+#define ENGINE_TYPE_TV engine_tv_get_type()
 
-#define ENGINE_GST(obj) \
+#define ENGINE_TV(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST ((obj), \
-  ENGINE_TYPE_GST, EngineGst))
+  ENGINE_TYPE_TV, EngineTv))
 
-#define ENGINE_GST_CLASS(klass) \
+#define ENGINE_TV_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_CAST ((klass), \
-  ENGINE_TYPE_GST, EngineGstClass))
+  ENGINE_TYPE_TV, EngineTvClass))
 
-#define ENGINE_IS_GST(obj) \
+#define ENGINE_IS_TV(obj) \
   (G_TYPE_CHECK_INSTANCE_TYPE ((obj), \
-  ENGINE_TYPE_GST))
+  ENGINE_TYPE_TV))
 
-#define ENGINE_IS_GST_CLASS(klass) \
+#define ENGINE_IS_TV_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE ((klass), \
-  ENGINE_TYPE_GST))
+  ENGINE_TYPE_TV))
 
-#define ENGINE_GST_GET_CLASS(obj) \
+#define ENGINE_TV_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), \
-  ENGINE_TYPE_GST, EngineGstClass))
+  ENGINE_TYPE_TV, EngineTvClass))
 
-typedef struct _EngineGst EngineGst;
-typedef struct _EngineGstClass EngineGstClass;
-typedef struct _EngineGstPrivate EngineGstPrivate;
+typedef struct _EngineTv EngineTv;
+typedef struct _EngineTvClass EngineTvClass;
+//typedef struct _EngineTvPrivate EngineTvPrivate;
 
-struct _EngineGst
+struct _EngineTv
 {
-  GObject parent;
+  /*GObject parent;*/
+  EngineCommon parent;
 
-  EngineGstPrivate *priv;
+  /*EngineTvPrivate *priv;*/
 };
 
 
-struct _EngineGstClass
+struct _EngineTvClass
 {
-  GObjectClass parent_class;
+  /*GObjectClass parent_class;*/
+  EngineCommonClass parent_class;
 
 };
 
-GType engine_gst_get_type (void) G_GNUC_CONST;
+GType engine_tv_get_type (void) G_GNUC_CONST;
 
-EngineGst *engine_gst_new (void);
+EngineTv *engine_tv_new (void);
 
 G_END_DECLS
 
-#endif /* _ENGINE_GST_H */
+#endif /* _ENGINE_TV_H */

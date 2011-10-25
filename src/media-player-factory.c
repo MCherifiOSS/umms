@@ -25,7 +25,7 @@
 #include "umms-common.h"
 #include "media-player-factory.h"
 #include "media-player-control.h"
-#include "engine-gst.h"
+#include "engine-tv.h"
 #include "engine-generic.h"
 #include "engine-dvb-generic.h"
 #include "dvb-player.h"
@@ -80,14 +80,16 @@ MediaPlayerControl* engine_fake_new(void)
  *
  */
 
+typedef MediaPlayerControl* (*func)(void);
+
 MediaPlayerControl* (*engine_factory[PLATFORM_INVALID][N_MEDIA_PLAYER_FACTORY_ENGINE_TYPE])(void) =
 {
 /*00*/engine_fake_new, 
-/*01: CETV-Normal*/ engine_gst_new,
-/*02: CETV-DVB*/dvb_player_new,
+/*01: CETV-Normal*/ (func)engine_tv_new,
+/*02: CETV-DVB*/(func)dvb_player_new,
 /*10: */NULL,
-/*11: Netbook->Normal*/ engine_generic_new,
-/*12: Netbook->DVB*/ engine_dvb_generic_new
+/*11: Netbook->Normal*/ (func)engine_generic_new,
+/*12: Netbook->DVB*/ (func)engine_dvb_generic_new
 };
 
 MediaPlayerControl *
