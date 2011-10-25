@@ -1396,7 +1396,10 @@ static gboolean start_recording (MediaPlayerControl *self, gchar *location)
     UMMS_DEBUG ("Creating filesink failed");
     goto out;
   }
+  /*Same reason with appsink*/
+  g_object_set (G_OBJECT (filesink), "async", FALSE, NULL);
   gst_object_ref_sink (filesink);
+
 
 #define DEFAULT_FILE_LOCATION "/tmp/record.ts"
   if (location && location[0] != '\0')
@@ -1725,6 +1728,11 @@ connect_appsink (DvbPlayer *self)
   gst_app_sink_set_callbacks (GST_APP_SINK_CAST (appsink), callbacks, self, NULL);
   g_free (callbacks);
 
+  /*
+   *If using async pause, when no buffer to appsink or the first buffer appears long after elementary stream buffers,
+   *appsink never transit to PASUED or PLAYING which make pipeline unable to PLAYING. So we disable "async"
+   */
+  g_object_set (G_OBJECT (appsink), "async", FALSE, NULL);
   gst_bin_add (GST_BIN(priv->pipeline), appsink);
 
   if (!(sinkpad = gst_element_get_static_pad (appsink, "sink"))) {
