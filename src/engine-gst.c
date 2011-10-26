@@ -1008,6 +1008,22 @@ engine_gst_stop (MediaPlayerControl *self)
   return TRUE;
 }
 
+static gboolean 
+validate_rect (uint x, uint y, uint w, uint h)
+{
+  //constraints due to ismd_vidpporc
+  if (w < 48 || h < 48) {
+    UMMS_DEBUG ("Invalid width(%u) or height(%u)", w, h);
+    return FALSE;
+  }
+
+  if (x > 1920 || y > 1080) {
+    UMMS_DEBUG ("Invalid x(%u) or y(%u)", x, y);
+    return FALSE;
+  }
+  return TRUE;
+}
+
 static gboolean
 engine_gst_set_video_size (MediaPlayerControl *self,
     guint x, guint y, guint w, guint h)
@@ -1019,7 +1035,9 @@ engine_gst_set_video_size (MediaPlayerControl *self,
   GstElement *tsink_bin = NULL;
 
   g_return_val_if_fail (pipe, FALSE);
-  UMMS_DEBUG ("invoked");
+
+  if (!validate_rect (x, y, w, h))
+    goto OUT;
 
   //We use ismd_vidrend_bin as video-sink, so we can set rectangle property.
   g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
