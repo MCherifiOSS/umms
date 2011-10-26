@@ -1974,6 +1974,7 @@ engine_gst_set_scale_mode (MediaPlayerControl *self, gint scale_mode)
   pipe = priv->pipeline;
   g_return_val_if_fail (GST_IS_ELEMENT (pipe), FALSE);
 
+  UMMS_DEBUG("Want to set the scale mode to %d", scale_mode);
   /* We assume that the video-sink is just ismd_vidrend_bin, because if not
      the scale mode is not supported yet in gst sink bins. */
   g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
@@ -2072,22 +2073,25 @@ engine_gst_get_scale_mode (MediaPlayerControl *self, gint *scale_mode)
       goto OUT;
     }
 
+    UMMS_DEBUG("scale_mode value number is %d", g_value_get_enum(&val));
     eval = g_enum_get_value (eclass, g_value_get_enum(&val));
     if (eval == NULL) {
       ret = FALSE;
       goto OUT;
     }
 
-    if (strcmp(eval->value_nick, "none")) {
+    UMMS_DEBUG("value_nick is %s", eval->value_nick);
+
+    if (!strcmp(eval->value_nick, "none")) {
       *scale_mode = ScaleModeNoScale;
       goto OUT;
-    } else if (strcmp(eval->value_nick, "scale2fit")) {
+    } else if (!strcmp(eval->value_nick, "scale2fit")) {
       *scale_mode = ScaleModeFill;
       goto OUT;
-    } else if (strcmp(eval->value_nick, "zoom2fit")) {
+    } else if (!strcmp(eval->value_nick, "zoom2fit")) {
       *scale_mode = ScaleModeKeepAspectRatio;
       goto OUT;
-    } else if (strcmp(eval->value_nick, "zoom2fill")) {
+    } else if (!strcmp(eval->value_nick, "zoom2fill")) {
       *scale_mode = ScaleModeFillKeepAspectRatio;
       goto OUT;
     } else {

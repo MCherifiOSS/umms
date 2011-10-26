@@ -331,9 +331,11 @@ class CmdHandler(threading.Thread):
             print "SetVideoSize (%d,%d,%d,%d)" % (x,y,w,h) 
             self.player.SetVideoSize(x,y,w,h)
         elif mid == SetScaleMode:
-            print "Do nothing"
+            mute = int(raw_input ("Scale mode: 0 ~ 3 "))
+            self.player.SetScaleMode(mute)
         elif mid == GetScaleMode:
-            print "Do nothing"
+            scale_mode = self.player.GetScaleMode()
+            print "scale_mode : %d" % scale_mode
         elif mid == GetVideoSize:
         	(width, height) = self.player.GetVideoSize()
         	print "width=%d, height=%d" % (width, height)
@@ -472,6 +474,7 @@ state_name = (
 
 
 #default_uri = "file:///root/video/720p.m4v"
+#default_uri = "file:///root/rpmbuild/BUILD/dvbsub.ts"
 default_uri = "dvb://?program-number=-1&type=0&modulation=1&trans-mod=0&bandwidth=0&frequency=578000000&code-rate-lp=0&code-rate-hp=3&guard=0&hierarchy=0"
 #default_uri = "file:///root/p.mkv"
 default_sub = "file:///root/video/subtest/text-subtitle.srt"
