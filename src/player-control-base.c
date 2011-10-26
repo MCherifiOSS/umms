@@ -36,19 +36,19 @@
 #include "umms-debug.h"
 #include "umms-error.h"
 #include "umms-resource-manager.h"
-#include "engine-common.h"
+#include "player-control-base.h"
 #include "media-player-control.h"
 #include "param-table.h"
 
 static void media_player_control_init (MediaPlayerControl* iface);
 
-G_DEFINE_TYPE_WITH_CODE (EngineCommon, engine_common, G_TYPE_OBJECT,
+G_DEFINE_TYPE_WITH_CODE (PlayerControlBase, player_control_base, G_TYPE_OBJECT,
     G_IMPLEMENT_INTERFACE (TYPE_MEDIA_PLAYER_CONTROL, media_player_control_init))
 
 #define PLAYER_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), ENGINE_TYPE_COMMON, EngineCommonPrivate))
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), PLAYER_CONTROL_TYPE_BASE, PlayerControlBasePrivate))
 
-#define GET_PRIVATE(o) ((EngineCommon *)o)->priv
+#define GET_PRIVATE(o) ((PlayerControlBase *)o)->priv
 
 #define TEARDOWN_ELEMENT(ele)                      \
     if (ele) {                                     \
@@ -93,7 +93,7 @@ static gchar *live_src_uri[] = {"mms://", "mmsh://", "rtsp://",
 #define UMMS_SOCKET_DEFAULT_ADDR NULL
 
 #if 0
-struct _EngineCommonPrivate {
+struct _PlayerControlBasePrivate {
   GstElement *pipeline;
 
   gchar *uri;
@@ -160,18 +160,18 @@ struct _EngineCommonPrivate {
 static gboolean _query_buffering_percent (GstElement *pipe, gdouble *percent);
 static void _source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data);
 static gboolean _stop_pipe (MediaPlayerControl *control);
-static gboolean engine_common_set_video_size (MediaPlayerControl *self, guint x, guint y, guint w, guint h);
+static gboolean player_control_base_set_video_size (MediaPlayerControl *self, guint x, guint y, guint w, guint h);
 static gboolean create_xevent_handle_thread (MediaPlayerControl *self);
 static gboolean destroy_xevent_handle_thread (MediaPlayerControl *self);
 static gboolean parse_uri_async (MediaPlayerControl *self, gchar *uri);
 static void release_resource (MediaPlayerControl *self);
-static void uri_parser_bus_message_error_cb (GstBus *bus, GstMessage *message, EngineCommon  *self);
+static void uri_parser_bus_message_error_cb (GstBus *bus, GstMessage *message, PlayerControlBase  *self);
 
 static gboolean
-engine_common_set_uri (MediaPlayerControl *self,
+player_control_base_set_uri (MediaPlayerControl *self,
                     const gchar           *uri)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   g_return_val_if_fail (uri, FALSE);
 
@@ -225,7 +225,7 @@ get_video_rectangle (MediaPlayerControl *self, gint *ax, gint *ay, gint *w, gint
   gint app_x, app_y;
   Window junkwin;
   Status status;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   status = XGetWindowAttributes (priv->disp, priv->app_win_id, &app_win_attr);
   if (!status) {
@@ -265,7 +265,7 @@ cutout (MediaPlayerControl *self, gint x, gint y, gint w, gint h)
 {
   Atom property;
   gchar data[256];
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   property = XInternAtom (priv->disp, "_MUTTER_HINTS", 0);
   if (!property) {
@@ -286,7 +286,7 @@ cutout (MediaPlayerControl *self, gint x, gint y, gint w, gint h)
 static gboolean
 unset_xwindow_target (MediaPlayerControl *self)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   if (!priv->xwin_initialized)
     return TRUE;
@@ -297,11 +297,11 @@ unset_xwindow_target (MediaPlayerControl *self)
 }
 
 static void
-engine_common_handle_xevents (MediaPlayerControl *control)
+player_control_base_handle_xevents (MediaPlayerControl *control)
 {
   XEvent e;
   gint x, y, w, h, rx, ry;
-  EngineCommonPrivate *priv = GET_PRIVATE (control);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (control);
 
   g_return_if_fail (control);
 
@@ -312,7 +312,7 @@ engine_common_handle_xevents (MediaPlayerControl *control)
       case ConfigureNotify:
         get_video_rectangle (control, &x, &y, &w, &h, &rx, &ry);
         cutout (control, rx, ry, w, h);
-        engine_common_set_video_size (control, x, y, w, h);
+        player_control_base_set_video_size (control, x, y, w, h);
         UMMS_DEBUG ("Got ConfigureNotify, video window abs_x=%d,abs_y=%d,w=%d,y=%d", x, y, w, h);
         break;
       default:
@@ -322,16 +322,16 @@ engine_common_handle_xevents (MediaPlayerControl *control)
 }
 
 static gpointer
-engine_common_event_thread (MediaPlayerControl* control)
+player_control_base_event_thread (MediaPlayerControl* control)
 {
 
-  EngineCommonPrivate *priv = GET_PRIVATE (control);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (control);
 
   UMMS_DEBUG ("Begin");
   while (priv->event_thread_running) {
 
     if (priv->app_win_id) {
-      engine_common_handle_xevents (control);
+      player_control_base_handle_xevents (control);
     }
     /* FIXME: do we want to align this with the framerate or anything else? */
     g_usleep (G_USEC_PER_SEC / 20);
@@ -345,7 +345,7 @@ engine_common_event_thread (MediaPlayerControl* control)
 static gboolean
 create_xevent_handle_thread (MediaPlayerControl *self)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   UMMS_DEBUG ("Begin");
   if (!priv->event_thread) {
@@ -353,7 +353,7 @@ create_xevent_handle_thread (MediaPlayerControl *self)
     UMMS_DEBUG ("run xevent thread");
     priv->event_thread_running = TRUE;
     priv->event_thread = g_thread_create (
-          (GThreadFunc) engine_common_event_thread, self, TRUE, NULL);
+          (GThreadFunc) player_control_base_event_thread, self, TRUE, NULL);
   }
   return TRUE;
 }
@@ -361,7 +361,7 @@ create_xevent_handle_thread (MediaPlayerControl *self)
 static gboolean
 destroy_xevent_handle_thread (MediaPlayerControl *self)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   UMMS_DEBUG ("Begin");
   if (priv->event_thread) {
@@ -383,7 +383,7 @@ static gboolean setup_ismd_vbin(MediaPlayerControl *self, gchar *rect, gint plan
   GstElement *new_vsink = NULL;
   GstElement *vsink = NULL;
   gboolean   ret = TRUE;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
   UMMS_DEBUG("");
 
   g_object_get (priv->pipeline, "video-sink", &cur_vsink, NULL);
@@ -454,7 +454,7 @@ static gboolean setup_gdl_plane_target (MediaPlayerControl *self, GHashTable *pa
 */
 static Window get_top_level_win (MediaPlayerControl *self, Window sub_win)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
   Display *disp = priv->disp;
   Window root_win, parent_win, cur_win;
   unsigned int num_children;
@@ -496,7 +496,7 @@ static gboolean setup_datacopy_target (MediaPlayerControl *self, GHashTable *par
   gchar *rect = NULL;
   GValue *val = NULL;
   GstElement *shmvbin = NULL;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
 
   UMMS_DEBUG ("setting up datacopy target");
@@ -610,7 +610,7 @@ static gboolean setup_xwindow_target (MediaPlayerControl *self, GHashTable *para
 {
   GValue *val;
   gint x, y, w, h, rx, ry;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   UMMS_DEBUG ("setting up xwindow target");
   if (priv->xwin_initialized) {
@@ -665,7 +665,7 @@ static gboolean setup_xwindow_target (MediaPlayerControl *self, GHashTable *para
 static gboolean
 unset_target (MediaPlayerControl *self)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   if (!priv->target_initialized)
     return TRUE;
@@ -696,10 +696,10 @@ unset_target (MediaPlayerControl *self)
 }
 
 static gboolean
-set_target (EngineCommon *self, gint type, GHashTable *params)
+set_target (PlayerControlBase *self, gint type, GHashTable *params)
 {
   gboolean ret = TRUE;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
   MediaPlayerControl *self_iface = (MediaPlayerControl *)self;
 
   /*
@@ -714,7 +714,7 @@ set_target (EngineCommon *self, gint type, GHashTable *params)
   }
 
   if (!priv->pipeline) {
-    UMMS_DEBUG ("Engine not loaded, reason may be SetUri not invoked");
+    UMMS_DEBUG ("PlayerControl not loaded, reason may be SetUri not invoked");
     return FALSE;
   }
 
@@ -753,10 +753,10 @@ set_target (EngineCommon *self, gint type, GHashTable *params)
 }
 
 static gboolean
-engine_common_set_target (MediaPlayerControl *self, gint type, GHashTable *params)
+player_control_base_set_target (MediaPlayerControl *self, gint type, GHashTable *params)
 {
-  EngineCommonClass *kclass = ENGINE_COMMON_GET_CLASS(self);
-  return kclass->set_target((EngineCommon *)self, type, params);
+  PlayerControlBaseClass *kclass = PLAYER_CONTROL_BASE_GET_CLASS(self);
+  return kclass->set_target((PlayerControlBase *)self, type, params);
 }
 
 static gboolean
@@ -765,7 +765,7 @@ prepare_plane (MediaPlayerControl *self)
   GstElement *vsink_bin = NULL;
   gint plane;
   gboolean ret = TRUE;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   g_object_get (G_OBJECT(priv->pipeline), "video-sink", &vsink_bin, NULL);
 
@@ -809,7 +809,7 @@ OUT:
 
 #define REQUEST_RES(self, t, p, e_msg)                                        \
   do{                                                                         \
-    EngineCommonPrivate *priv = GET_PRIVATE (self);                              \
+    PlayerControlBasePrivate *priv = GET_PRIVATE (self);                              \
     ResourceRequest req = {0,};                                               \
     Resource *res = NULL;                                                     \
     req.type = t;                                                             \
@@ -830,7 +830,7 @@ static gboolean
 request_resource (MediaPlayerControl *self)
 {
   gint i;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   g_return_val_if_fail (priv->uri_parsed, FALSE);//uri should already be parsed.
 
@@ -870,7 +870,7 @@ static void
 release_resource (MediaPlayerControl *self)
 {
   GList *g;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   for (g = priv->res_list; g; g = g->next) {
     Resource *res = (Resource *) (g->data);
@@ -907,11 +907,11 @@ get_hw_clock(void)
 }
 
 static gboolean
-activate_engine (EngineCommon *self, GstState target_state)
+activate_player_control (PlayerControlBase *self, GstState target_state)
 {
   gboolean ret;
   PlayerState old_pending;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
   MediaPlayerControl *self_iface = (MediaPlayerControl *)self;
 
   UMMS_DEBUG("virtual APIs default Impl");
@@ -974,30 +974,30 @@ uri_not_parsed:
 }
 
 static gboolean
-engine_common_pause (MediaPlayerControl *self)
+player_control_base_pause (MediaPlayerControl *self)
 {
 /*
-  return activate_engine (self, GST_STATE_PAUSED);
+  return activate_player_control (self, GST_STATE_PAUSED);
 */
-  EngineCommonClass *kclass = ENGINE_COMMON_GET_CLASS(self);
-  return kclass->activate_engine((EngineCommon *)self, GST_STATE_PAUSED);
+  PlayerControlBaseClass *kclass = PLAYER_CONTROL_BASE_GET_CLASS(self);
+  return kclass->activate_player_control((PlayerControlBase *)self, GST_STATE_PAUSED);
 
 }
 
 static gboolean
-engine_common_play (MediaPlayerControl *self)
+player_control_base_play (MediaPlayerControl *self)
 {
 /*
-  return activate_engine (self, GST_STATE_PLAYING);
+  return activate_player_control (self, GST_STATE_PLAYING);
 */
-  EngineCommonClass *kclass = ENGINE_COMMON_GET_CLASS(self);
-  return kclass->activate_engine((EngineCommon *)self, GST_STATE_PLAYING);
+  PlayerControlBaseClass *kclass = PLAYER_CONTROL_BASE_GET_CLASS(self);
+  return kclass->activate_player_control((PlayerControlBase *)self, GST_STATE_PLAYING);
 }
 
 static gboolean
 _stop_pipe (MediaPlayerControl *control)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (control);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (control);
 
   if (gst_element_set_state(priv->pipeline, GST_STATE_NULL) == GST_STATE_CHANGE_FAILURE) {
     UMMS_DEBUG ("Unable to set NULL state");
@@ -1007,14 +1007,14 @@ _stop_pipe (MediaPlayerControl *control)
 
   release_resource (control);
 
-  UMMS_DEBUG ("gstreamer engine stopped");
+  UMMS_DEBUG ("gstreamer player_control stopped");
   return TRUE;
 }
 
 static gboolean
-engine_common_stop (MediaPlayerControl *self)
+player_control_base_stop (MediaPlayerControl *self)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
   PlayerState old_state;
 
   if (!_stop_pipe (self))
@@ -1033,10 +1033,10 @@ engine_common_stop (MediaPlayerControl *self)
 }
 
 static gboolean
-engine_common_set_video_size (MediaPlayerControl *self,
+player_control_base_set_video_size (MediaPlayerControl *self,
     guint x, guint y, guint w, guint h)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
   GstElement *pipe = priv->pipeline;
   gboolean ret = FALSE;
   GstElement *vsink_bin = NULL;
@@ -1120,10 +1120,10 @@ OUT:
 }
 
 static gboolean
-engine_common_get_video_size (MediaPlayerControl *self,
+player_control_base_get_video_size (MediaPlayerControl *self,
     guint *w, guint *h)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
   GstElement *pipe = priv->pipeline;
   guint x[1], y[1];
   gboolean ret;
@@ -1154,9 +1154,9 @@ engine_common_get_video_size (MediaPlayerControl *self,
 }
 
 static gboolean
-engine_common_is_seekable (MediaPlayerControl *self, gboolean *seekable)
+player_control_base_is_seekable (MediaPlayerControl *self, gboolean *seekable)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   gboolean res = FALSE;
   gint old_seekable;
@@ -1199,10 +1199,10 @@ engine_common_is_seekable (MediaPlayerControl *self, gboolean *seekable)
 }
 
 static gboolean
-engine_common_set_position (MediaPlayerControl *self, gint64 in_pos)
+player_control_base_set_position (MediaPlayerControl *self, gint64 in_pos)
 {
   GstElement *pipe;
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   gboolean ret;
 
   g_return_val_if_fail (self != NULL, FALSE);
@@ -1224,9 +1224,9 @@ engine_common_set_position (MediaPlayerControl *self, gint64 in_pos)
 }
 
 static gboolean
-engine_common_get_position (MediaPlayerControl *self, gint64 *cur_pos)
+player_control_base_get_position (MediaPlayerControl *self, gint64 *cur_pos)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   GstFormat fmt;
   gint64 cur = 0;
@@ -1251,10 +1251,10 @@ engine_common_get_position (MediaPlayerControl *self, gint64 *cur_pos)
 }
 
 static gboolean
-engine_common_set_playback_rate (MediaPlayerControl *self, gdouble in_rate)
+player_control_base_set_playback_rate (MediaPlayerControl *self, gdouble in_rate)
 {
   GstElement *pipe;
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   gboolean ret = TRUE;
 
   g_return_val_if_fail (self != NULL, FALSE);
@@ -1275,10 +1275,10 @@ engine_common_set_playback_rate (MediaPlayerControl *self, gdouble in_rate)
 }
 
 static gboolean
-engine_common_get_playback_rate (MediaPlayerControl *self, gdouble *out_rate)
+player_control_base_get_playback_rate (MediaPlayerControl *self, gdouble *out_rate)
 {
   GstElement *pipe;
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   GstQuery *query;
 
   g_return_val_if_fail (self != NULL, FALSE);
@@ -1303,10 +1303,10 @@ engine_common_get_playback_rate (MediaPlayerControl *self, gdouble *out_rate)
 }
 
 static gboolean
-engine_common_set_volume (MediaPlayerControl *self, gint vol)
+player_control_base_set_volume (MediaPlayerControl *self, gint vol)
 {
   GstElement *pipe;
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   gdouble volume;
 
   g_return_val_if_fail (self != NULL, FALSE);
@@ -1328,10 +1328,10 @@ engine_common_set_volume (MediaPlayerControl *self, gint vol)
 }
 
 static gboolean
-engine_common_get_volume (MediaPlayerControl *self, gint *volume)
+player_control_base_get_volume (MediaPlayerControl *self, gint *volume)
 {
   GstElement *pipe;
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   gdouble vol;
 
   *volume = -1;
@@ -1355,10 +1355,10 @@ engine_common_get_volume (MediaPlayerControl *self, gint *volume)
 }
 
 static gboolean
-engine_common_get_media_size_time (MediaPlayerControl *self, gint64 *media_size_time)
+player_control_base_get_media_size_time (MediaPlayerControl *self, gint64 *media_size_time)
 {
   GstElement *pipe;
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   gint64 duration;
   gboolean ret = TRUE;
   GstFormat fmt = GST_FORMAT_TIME;
@@ -1386,10 +1386,10 @@ engine_common_get_media_size_time (MediaPlayerControl *self, gint64 *media_size_
 
 
 static gboolean
-engine_common_get_media_size_bytes (MediaPlayerControl *self, gint64 *media_size_bytes)
+player_control_base_get_media_size_bytes (MediaPlayerControl *self, gint64 *media_size_bytes)
 {
   GstElement *source;
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   gint64 length = 0;
   GstFormat fmt = GST_FORMAT_BYTES;
 
@@ -1442,10 +1442,10 @@ engine_common_get_media_size_bytes (MediaPlayerControl *self, gint64 *media_size
 }
 
 static gboolean
-engine_common_has_video (MediaPlayerControl *self, gboolean *has_video)
+player_control_base_has_video (MediaPlayerControl *self, gboolean *has_video)
 {
   GstElement *pipe;
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   gint n_video;
 
   g_return_val_if_fail (self != NULL, FALSE);
@@ -1465,10 +1465,10 @@ engine_common_has_video (MediaPlayerControl *self, gboolean *has_video)
 }
 
 static gboolean
-engine_common_has_audio (MediaPlayerControl *self, gboolean *has_audio)
+player_control_base_has_audio (MediaPlayerControl *self, gboolean *has_audio)
 {
   GstElement *pipe;
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   gint n_audio;
 
   g_return_val_if_fail (self != NULL, FALSE);
@@ -1488,7 +1488,7 @@ engine_common_has_audio (MediaPlayerControl *self, gboolean *has_audio)
 }
 
 static gboolean
-engine_common_support_fullscreen (MediaPlayerControl *self, gboolean *support_fullscreen)
+player_control_base_support_fullscreen (MediaPlayerControl *self, gboolean *support_fullscreen)
 {
   //We are using ismd_vidrend_bin, so this function always return TRUE.
   *support_fullscreen = TRUE;
@@ -1496,10 +1496,10 @@ engine_common_support_fullscreen (MediaPlayerControl *self, gboolean *support_fu
 }
 
 static gboolean
-engine_common_is_streaming (MediaPlayerControl *self, gboolean *is_streaming)
+player_control_base_is_streaming (MediaPlayerControl *self, gboolean *is_streaming)
 {
   GstElement *pipe;
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
@@ -1518,10 +1518,10 @@ engine_common_is_streaming (MediaPlayerControl *self, gboolean *is_streaming)
 }
 
 static gboolean
-engine_common_get_player_state (MediaPlayerControl *self,
+player_control_base_get_player_state (MediaPlayerControl *self,
     gint *state)
 {
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (state != NULL, FALSE);
@@ -1534,21 +1534,21 @@ engine_common_get_player_state (MediaPlayerControl *self,
 }
 
 static gboolean
-engine_common_get_buffered_bytes (MediaPlayerControl *self,
+player_control_base_get_buffered_bytes (MediaPlayerControl *self,
     gint64 *buffered_bytes)
 {
   gint64 total_bytes;
   gdouble percent;
 
   g_return_val_if_fail (self != NULL, FALSE);
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   if (!_query_buffering_percent(priv->pipeline, &percent)) {
     return FALSE;
   }
 
   if (priv->total_bytes == -1) {
-    engine_common_get_media_size_bytes (self, &total_bytes);
+    player_control_base_get_media_size_bytes (self, &total_bytes);
     priv->total_bytes = total_bytes;
   }
 
@@ -1587,11 +1587,11 @@ _query_buffering_percent (GstElement *pipe, gdouble *percent)
 }
 
 static gboolean
-engine_common_get_buffered_time (MediaPlayerControl *self, gint64 *buffered_time)
+player_control_base_get_buffered_time (MediaPlayerControl *self, gint64 *buffered_time)
 {
   gint64 duration;
   gdouble percent;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   g_return_val_if_fail (self != NULL, FALSE);
 
@@ -1600,7 +1600,7 @@ engine_common_get_buffered_time (MediaPlayerControl *self, gint64 *buffered_time
   }
 
   if (priv->duration == -1) {
-    engine_common_get_media_size_time (self, &duration);
+    player_control_base_get_media_size_time (self, &duration);
     priv->duration = duration;
   }
 
@@ -1611,9 +1611,9 @@ engine_common_get_buffered_time (MediaPlayerControl *self, gint64 *buffered_time
 }
 
 static gboolean
-engine_common_get_current_video (MediaPlayerControl *self, gint *cur_video)
+player_control_base_get_current_video (MediaPlayerControl *self, gint *cur_video)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   gint c_video = -1;
 
@@ -1632,9 +1632,9 @@ engine_common_get_current_video (MediaPlayerControl *self, gint *cur_video)
 
 
 static gboolean
-engine_common_get_current_audio (MediaPlayerControl *self, gint *cur_audio)
+player_control_base_get_current_audio (MediaPlayerControl *self, gint *cur_audio)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   gint c_audio = -1;
 
@@ -1653,9 +1653,9 @@ engine_common_get_current_audio (MediaPlayerControl *self, gint *cur_audio)
 
 
 static gboolean
-engine_common_set_current_video (MediaPlayerControl *self, gint cur_video)
+player_control_base_set_current_video (MediaPlayerControl *self, gint cur_video)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   gint n_video = -1;
 
@@ -1680,9 +1680,9 @@ engine_common_set_current_video (MediaPlayerControl *self, gint cur_video)
 
 
 static gboolean
-engine_common_set_current_audio (MediaPlayerControl *self, gint cur_audio)
+player_control_base_set_current_audio (MediaPlayerControl *self, gint cur_audio)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   gint n_audio = -1;
 
@@ -1707,9 +1707,9 @@ engine_common_set_current_audio (MediaPlayerControl *self, gint cur_audio)
 
 
 static gboolean
-engine_common_get_video_num (MediaPlayerControl *self, gint *video_num)
+player_control_base_get_video_num (MediaPlayerControl *self, gint *video_num)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   gint n_video = -1;
 
@@ -1728,9 +1728,9 @@ engine_common_get_video_num (MediaPlayerControl *self, gint *video_num)
 
 
 static gboolean
-engine_common_get_audio_num (MediaPlayerControl *self, gint *audio_num)
+player_control_base_get_audio_num (MediaPlayerControl *self, gint *audio_num)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   gint n_audio = -1;
 
@@ -1749,9 +1749,9 @@ engine_common_get_audio_num (MediaPlayerControl *self, gint *audio_num)
 
 
 static gboolean
-engine_common_set_subtitle_uri (MediaPlayerControl *self, gchar *sub_uri)
+player_control_base_set_subtitle_uri (MediaPlayerControl *self, gchar *sub_uri)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   GstElement *sub_sink = NULL;
 
@@ -1780,9 +1780,9 @@ engine_common_set_subtitle_uri (MediaPlayerControl *self, gchar *sub_uri)
 
 
 static gboolean
-engine_common_get_subtitle_num (MediaPlayerControl *self, gint *sub_num)
+player_control_base_get_subtitle_num (MediaPlayerControl *self, gint *sub_num)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   gint n_sub = -1;
 
@@ -1801,9 +1801,9 @@ engine_common_get_subtitle_num (MediaPlayerControl *self, gint *sub_num)
 
 
 static gboolean
-engine_common_get_current_subtitle (MediaPlayerControl *self, gint *cur_sub)
+player_control_base_get_current_subtitle (MediaPlayerControl *self, gint *cur_sub)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   gint c_sub = -1;
 
@@ -1822,9 +1822,9 @@ engine_common_get_current_subtitle (MediaPlayerControl *self, gint *cur_sub)
 
 
 static gboolean
-engine_common_set_current_subtitle (MediaPlayerControl *self, gint cur_sub)
+player_control_base_set_current_subtitle (MediaPlayerControl *self, gint cur_sub)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   gint n_sub = -1;
 
@@ -1849,9 +1849,9 @@ engine_common_set_current_subtitle (MediaPlayerControl *self, gint cur_sub)
 
 
 static gboolean
-engine_common_set_proxy (MediaPlayerControl *self, GHashTable *params)
+player_control_base_set_proxy (MediaPlayerControl *self, GHashTable *params)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GValue *val = NULL;
 
   g_return_val_if_fail ((self != NULL) && (params != NULL), FALSE);
@@ -1878,9 +1878,9 @@ engine_common_set_proxy (MediaPlayerControl *self, GHashTable *params)
 
 
 static gboolean
-engine_common_set_buffer_depth (MediaPlayerControl *self, gint format, gint64 buf_val)
+player_control_base_set_buffer_depth (MediaPlayerControl *self, gint format, gint64 buf_val)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
@@ -1909,9 +1909,9 @@ engine_common_set_buffer_depth (MediaPlayerControl *self, gint format, gint64 bu
 
 
 static gboolean
-engine_common_get_buffer_depth (MediaPlayerControl *self, gint format, gint64 *buf_val)
+player_control_base_get_buffer_depth (MediaPlayerControl *self, gint format, gint64 *buf_val)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   gint64 val;
 
@@ -1940,10 +1940,10 @@ engine_common_get_buffer_depth (MediaPlayerControl *self, gint format, gint64 *b
 
 
 static gboolean
-engine_common_set_mute (MediaPlayerControl *self, gint mute)
+player_control_base_set_mute (MediaPlayerControl *self, gint mute)
 {
   GstElement *pipe;
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
@@ -1960,10 +1960,10 @@ engine_common_set_mute (MediaPlayerControl *self, gint mute)
 
 
 static gboolean
-engine_common_is_mute (MediaPlayerControl *self, gint *mute)
+player_control_base_is_mute (MediaPlayerControl *self, gint *mute)
 {
   GstElement *pipe;
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   gboolean is_mute;
 
   *mute = 0;
@@ -1984,10 +1984,10 @@ engine_common_is_mute (MediaPlayerControl *self, gint *mute)
 
 
 static gboolean
-engine_common_set_scale_mode (MediaPlayerControl *self, gint scale_mode)
+player_control_base_set_scale_mode (MediaPlayerControl *self, gint scale_mode)
 {
   GstElement *pipe;
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   GstElement *vsink_bin;
   GParamSpec *pspec = NULL;
   GEnumClass *eclass = NULL;
@@ -2061,10 +2061,10 @@ OUT:
 
 
 static gboolean
-engine_common_get_scale_mode (MediaPlayerControl *self, gint *scale_mode)
+player_control_base_get_scale_mode (MediaPlayerControl *self, gint *scale_mode)
 {
   GstElement *pipe;
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   GstElement *vsink_bin;
   gboolean ret = TRUE;
   GValue val = { 0, };
@@ -2134,19 +2134,19 @@ OUT:
 }
 
 static gboolean
-engine_common_suspend (MediaPlayerControl *self)
+player_control_base_suspend (MediaPlayerControl *self)
 {
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   if (priv->suspended)
     return TRUE;
 
   if (priv->player_state == PlayerStatePaused || priv->player_state == PlayerStatePlaying) {
-    engine_common_get_position (self, &priv->pos);
-    engine_common_stop (self);
+    player_control_base_get_position (self, &priv->pos);
+    player_control_base_stop (self);
   } else if (priv->player_state == PlayerStateStopped) {
     priv->pos = 0;
   }
@@ -2159,25 +2159,25 @@ engine_common_suspend (MediaPlayerControl *self)
 //restore asynchronously.
 //Set to pause here, and do actual retoring operation in bus_message_state_change_cb().
 static gboolean
-engine_common_restore (MediaPlayerControl *self)
+player_control_base_restore (MediaPlayerControl *self)
 {
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   if (priv->player_state != PlayerStateStopped || !priv->suspended) {
     return FALSE;
   }
 
-  return engine_common_pause (self);
+  return player_control_base_pause (self);
 }
 
 
 static gboolean
-engine_common_get_video_codec (MediaPlayerControl *self, gint channel, gchar ** video_codec)
+player_control_base_get_video_codec (MediaPlayerControl *self, gint channel, gchar ** video_codec)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   int tol_channel;
   GstTagList * tag_list = NULL;
@@ -2237,9 +2237,9 @@ engine_common_get_video_codec (MediaPlayerControl *self, gint channel, gchar ** 
 
 
 static gboolean
-engine_common_get_audio_codec (MediaPlayerControl *self, gint channel, gchar ** audio_codec)
+player_control_base_get_audio_codec (MediaPlayerControl *self, gint channel, gchar ** audio_codec)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   int tol_channel;
   GstTagList * tag_list = NULL;
@@ -2298,9 +2298,9 @@ engine_common_get_audio_codec (MediaPlayerControl *self, gint channel, gchar ** 
 }
 
 static gboolean
-engine_common_get_video_bitrate (MediaPlayerControl *self, gint channel, gint *video_rate)
+player_control_base_get_video_bitrate (MediaPlayerControl *self, gint channel, gint *video_rate)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   int tol_channel;
   GstTagList * tag_list = NULL;
@@ -2347,9 +2347,9 @@ engine_common_get_video_bitrate (MediaPlayerControl *self, gint channel, gint *v
 
 
 static gboolean
-engine_common_get_audio_bitrate (MediaPlayerControl *self, gint channel, gint *audio_rate)
+player_control_base_get_audio_bitrate (MediaPlayerControl *self, gint channel, gint *audio_rate)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   int tol_channel;
   GstTagList * tag_list = NULL;
@@ -2396,9 +2396,9 @@ engine_common_get_audio_bitrate (MediaPlayerControl *self, gint channel, gint *a
 
 
 static gboolean
-engine_common_get_encapsulation(MediaPlayerControl *self, gchar ** encapsulation)
+player_control_base_get_encapsulation(MediaPlayerControl *self, gchar ** encapsulation)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   gchar *enca_name = NULL;
 
@@ -2425,10 +2425,10 @@ engine_common_get_encapsulation(MediaPlayerControl *self, gchar ** encapsulation
 
 
 static gboolean
-engine_common_get_audio_samplerate(MediaPlayerControl *self, gint channel, gint * sample_rate)
+player_control_base_get_audio_samplerate(MediaPlayerControl *self, gint channel, gint * sample_rate)
 {
   GstElement *pipe = NULL;
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   int tol_channel;
   GstCaps *caps = NULL;
   GstPad *pad = NULL;
@@ -2474,11 +2474,11 @@ engine_common_get_audio_samplerate(MediaPlayerControl *self, gint channel, gint 
 
 
 static gboolean
-engine_common_get_video_framerate(MediaPlayerControl *self, gint channel,
+player_control_base_get_video_framerate(MediaPlayerControl *self, gint channel,
     gint * frame_rate_num, gint * frame_rate_denom)
 {
   GstElement *pipe = NULL;
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   int tol_channel;
   GstCaps *caps = NULL;
   GstPad *pad = NULL;
@@ -2525,10 +2525,10 @@ engine_common_get_video_framerate(MediaPlayerControl *self, gint channel,
 
 
 static gboolean
-engine_common_get_video_resolution(MediaPlayerControl *self, gint channel, gint * width, gint * height)
+player_control_base_get_video_resolution(MediaPlayerControl *self, gint channel, gint * width, gint * height)
 {
   GstElement *pipe = NULL;
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   int tol_channel;
   GstCaps *caps = NULL;
   GstPad *pad = NULL;
@@ -2575,11 +2575,11 @@ engine_common_get_video_resolution(MediaPlayerControl *self, gint channel, gint 
 
 
 static gboolean
-engine_common_get_video_aspect_ratio(MediaPlayerControl *self, gint channel,
+player_control_base_get_video_aspect_ratio(MediaPlayerControl *self, gint channel,
     gint * ratio_num, gint * ratio_denom)
 {
   GstElement *pipe = NULL;
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   int tol_channel;
   GstCaps *caps = NULL;
   GstPad *pad = NULL;
@@ -2626,10 +2626,10 @@ engine_common_get_video_aspect_ratio(MediaPlayerControl *self, gint channel,
 
 
 static gboolean
-engine_common_get_protocol_name(MediaPlayerControl *self, gchar ** prot_name)
+player_control_base_get_protocol_name(MediaPlayerControl *self, gchar ** prot_name)
 {
   GstElement *pipe = NULL;
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   gchar * uri = NULL;
 
   *prot_name = NULL;
@@ -2664,9 +2664,9 @@ engine_common_get_protocol_name(MediaPlayerControl *self, gchar ** prot_name)
 
 
 static gboolean
-engine_common_get_current_uri(MediaPlayerControl *self, gchar ** uri)
+player_control_base_get_current_uri(MediaPlayerControl *self, gchar ** uri)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
   GstElement *pipe = NULL;
   gchar * s_uri = NULL;
 
@@ -2695,9 +2695,9 @@ engine_common_get_current_uri(MediaPlayerControl *self, gchar ** uri)
 }
 
 static gboolean
-engine_common_get_title(MediaPlayerControl *self, gchar ** title)
+player_control_base_get_title(MediaPlayerControl *self, gchar ** title)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
@@ -2710,9 +2710,9 @@ engine_common_get_title(MediaPlayerControl *self, gchar ** title)
 }
 
 static gboolean
-engine_common_get_artist(MediaPlayerControl *self, gchar ** artist)
+player_control_base_get_artist(MediaPlayerControl *self, gchar ** artist)
 {
-  EngineCommonPrivate *priv = NULL;
+  PlayerControlBasePrivate *priv = NULL;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (IS_MEDIA_PLAYER_CONTROL(self), FALSE);
@@ -2729,119 +2729,119 @@ media_player_control_init (MediaPlayerControl *iface)
   MediaPlayerControlClass *klass = (MediaPlayerControlClass *)iface;
 
   media_player_control_implement_set_uri (klass,
-      engine_common_set_uri);
+      player_control_base_set_uri);
   media_player_control_implement_set_target (klass,
-      engine_common_set_target);
+      player_control_base_set_target);
   media_player_control_implement_play (klass,
-      engine_common_play);
+      player_control_base_play);
   media_player_control_implement_pause (klass,
-      engine_common_pause);
+      player_control_base_pause);
   media_player_control_implement_stop (klass,
-      engine_common_stop);
+      player_control_base_stop);
   media_player_control_implement_set_video_size (klass,
-      engine_common_set_video_size);
+      player_control_base_set_video_size);
   media_player_control_implement_get_video_size (klass,
-      engine_common_get_video_size);
+      player_control_base_get_video_size);
   media_player_control_implement_is_seekable (klass,
-      engine_common_is_seekable);
+      player_control_base_is_seekable);
   media_player_control_implement_set_position (klass,
-      engine_common_set_position);
+      player_control_base_set_position);
   media_player_control_implement_get_position (klass,
-      engine_common_get_position);
+      player_control_base_get_position);
   media_player_control_implement_set_playback_rate (klass,
-      engine_common_set_playback_rate);
+      player_control_base_set_playback_rate);
   media_player_control_implement_get_playback_rate (klass,
-      engine_common_get_playback_rate);
+      player_control_base_get_playback_rate);
   media_player_control_implement_set_volume (klass,
-      engine_common_set_volume);
+      player_control_base_set_volume);
   media_player_control_implement_get_volume (klass,
-      engine_common_get_volume);
+      player_control_base_get_volume);
   media_player_control_implement_get_media_size_time (klass,
-      engine_common_get_media_size_time);
+      player_control_base_get_media_size_time);
   media_player_control_implement_get_media_size_bytes (klass,
-      engine_common_get_media_size_bytes);
+      player_control_base_get_media_size_bytes);
   media_player_control_implement_has_video (klass,
-      engine_common_has_video);
+      player_control_base_has_video);
   media_player_control_implement_has_audio (klass,
-      engine_common_has_audio);
+      player_control_base_has_audio);
   media_player_control_implement_support_fullscreen (klass,
-      engine_common_support_fullscreen);
+      player_control_base_support_fullscreen);
   media_player_control_implement_is_streaming (klass,
-      engine_common_is_streaming);
+      player_control_base_is_streaming);
   media_player_control_implement_get_player_state (klass,
-      engine_common_get_player_state);
+      player_control_base_get_player_state);
   media_player_control_implement_get_buffered_bytes (klass,
-      engine_common_get_buffered_bytes);
+      player_control_base_get_buffered_bytes);
   media_player_control_implement_get_buffered_time (klass,
-      engine_common_get_buffered_time);
+      player_control_base_get_buffered_time);
   media_player_control_implement_get_current_video (klass,
-      engine_common_get_current_video);
+      player_control_base_get_current_video);
   media_player_control_implement_get_current_audio (klass,
-      engine_common_get_current_audio);
+      player_control_base_get_current_audio);
   media_player_control_implement_set_current_video (klass,
-      engine_common_set_current_video);
+      player_control_base_set_current_video);
   media_player_control_implement_set_current_audio (klass,
-      engine_common_set_current_audio);
+      player_control_base_set_current_audio);
   media_player_control_implement_get_video_num (klass,
-      engine_common_get_video_num);
+      player_control_base_get_video_num);
   media_player_control_implement_get_audio_num (klass,
-      engine_common_get_audio_num);
+      player_control_base_get_audio_num);
   media_player_control_implement_set_proxy (klass,
-      engine_common_set_proxy);
+      player_control_base_set_proxy);
   media_player_control_implement_set_subtitle_uri (klass,
-      engine_common_set_subtitle_uri);
+      player_control_base_set_subtitle_uri);
   media_player_control_implement_get_subtitle_num (klass,
-      engine_common_get_subtitle_num);
+      player_control_base_get_subtitle_num);
   media_player_control_implement_set_current_subtitle (klass,
-      engine_common_set_current_subtitle);
+      player_control_base_set_current_subtitle);
   media_player_control_implement_get_current_subtitle (klass,
-      engine_common_get_current_subtitle);
+      player_control_base_get_current_subtitle);
   media_player_control_implement_set_buffer_depth (klass,
-      engine_common_set_buffer_depth);
+      player_control_base_set_buffer_depth);
   media_player_control_implement_get_buffer_depth (klass,
-      engine_common_get_buffer_depth);
+      player_control_base_get_buffer_depth);
   media_player_control_implement_set_mute (klass,
-      engine_common_set_mute);
+      player_control_base_set_mute);
   media_player_control_implement_is_mute (klass,
-      engine_common_is_mute);
+      player_control_base_is_mute);
   media_player_control_implement_suspend (klass,
-      engine_common_suspend);
+      player_control_base_suspend);
   media_player_control_implement_restore (klass,
-      engine_common_restore);
+      player_control_base_restore);
   media_player_control_implement_set_scale_mode (klass,
-      engine_common_set_scale_mode);
+      player_control_base_set_scale_mode);
   media_player_control_implement_get_scale_mode (klass,
-      engine_common_get_scale_mode);
+      player_control_base_get_scale_mode);
   media_player_control_implement_get_video_codec (klass,
-      engine_common_get_video_codec);
+      player_control_base_get_video_codec);
   media_player_control_implement_get_audio_codec (klass,
-      engine_common_get_audio_codec);
+      player_control_base_get_audio_codec);
   media_player_control_implement_get_video_bitrate (klass,
-      engine_common_get_video_bitrate);
+      player_control_base_get_video_bitrate);
   media_player_control_implement_get_audio_bitrate (klass,
-      engine_common_get_audio_bitrate);
+      player_control_base_get_audio_bitrate);
   media_player_control_implement_get_encapsulation (klass,
-      engine_common_get_encapsulation);
+      player_control_base_get_encapsulation);
   media_player_control_implement_get_audio_samplerate (klass,
-      engine_common_get_audio_samplerate);
+      player_control_base_get_audio_samplerate);
   media_player_control_implement_get_video_framerate (klass,
-      engine_common_get_video_framerate);
+      player_control_base_get_video_framerate);
   media_player_control_implement_get_video_resolution (klass,
-      engine_common_get_video_resolution);
+      player_control_base_get_video_resolution);
   media_player_control_implement_get_video_aspect_ratio (klass,
-      engine_common_get_video_aspect_ratio);
+      player_control_base_get_video_aspect_ratio);
   media_player_control_implement_get_protocol_name (klass,
-      engine_common_get_protocol_name);
+      player_control_base_get_protocol_name);
   media_player_control_implement_get_current_uri (klass,
-      engine_common_get_current_uri);
+      player_control_base_get_current_uri);
   media_player_control_implement_get_title (klass,
-      engine_common_get_title);
+      player_control_base_get_title);
   media_player_control_implement_get_artist (klass,
-      engine_common_get_artist);
+      player_control_base_get_artist);
 }
 
 static void
-engine_common_get_property (GObject    *object,
+player_control_base_get_property (GObject    *object,
     guint       property_id,
     GValue     *value,
     GParamSpec *pspec)
@@ -2853,7 +2853,7 @@ engine_common_get_property (GObject    *object,
 }
 
 static void
-engine_common_set_property (GObject      *object,
+player_control_base_set_property (GObject      *object,
     guint         property_id,
     const GValue *value,
     GParamSpec   *pspec)
@@ -2865,9 +2865,9 @@ engine_common_set_property (GObject      *object,
 }
 
 static void
-engine_common_dispose (GObject *object)
+player_control_base_dispose (GObject *object)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (object);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (object);
   int i;
 
   _stop_pipe ((MediaPlayerControl *)object);
@@ -2889,13 +2889,13 @@ engine_common_dispose (GObject *object)
     gst_tag_list_free(priv->tag_list);
   priv->tag_list = NULL;
 
-  G_OBJECT_CLASS (engine_common_parent_class)->dispose (object);
+  G_OBJECT_CLASS (player_control_base_parent_class)->dispose (object);
 }
 
 static void
-engine_common_finalize (GObject *object)
+player_control_base_finalize (GObject *object)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (object);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (object);
 
   RESET_STR(priv->uri);
   RESET_STR(priv->title);
@@ -2904,43 +2904,43 @@ engine_common_finalize (GObject *object)
   RESET_STR(priv->proxy_id);
   RESET_STR(priv->proxy_pw);
 
-  G_OBJECT_CLASS (engine_common_parent_class)->finalize (object);
+  G_OBJECT_CLASS (player_control_base_parent_class)->finalize (object);
 }
 
-static void engine_common_do_action(EngineCommon *self)
+static void player_control_base_do_action(PlayerControlBase *self)
 {
   g_warning("virtual func: %s is default\n", __FUNCTION__);
   return;
 }
 
 static void
-engine_common_class_init (EngineCommonClass *klass)
+player_control_base_class_init (PlayerControlBaseClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   UMMS_DEBUG("called");
 
-  g_type_class_add_private (klass, sizeof (EngineCommonPrivate));
+  g_type_class_add_private (klass, sizeof (PlayerControlBasePrivate));
 
-  object_class->get_property = engine_common_get_property;
-  object_class->set_property = engine_common_set_property;
-  object_class->dispose = engine_common_dispose;
-  object_class->finalize = engine_common_finalize;
+  object_class->get_property = player_control_base_get_property;
+  object_class->set_property = player_control_base_set_property;
+  object_class->dispose = player_control_base_dispose;
+  object_class->finalize = player_control_base_finalize;
   /*virtual APis*/
-  klass->activate_engine = activate_engine;
+  klass->activate_player_control = activate_player_control;
   klass->set_target = set_target;
 }
 
 static void
 bus_message_state_change_cb (GstBus     *bus,
     GstMessage *message,
-    EngineCommon  *self)
+    PlayerControlBase  *self)
 {
 
   GstState old_state, new_state;
   PlayerState old_player_state;
   gpointer src;
   gboolean seekable;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   src = GST_MESSAGE_SRC (message);
   if (src != priv->pipeline)
@@ -2955,11 +2955,11 @@ bus_message_state_change_cb (GstBus     *bus,
     priv->player_state = PlayerStatePaused;
     if (old_player_state == PlayerStateStopped && priv->suspended) {
       UMMS_DEBUG ("restoring suspended execution, pos = %lld", priv->pos);
-      engine_common_is_seekable (MEDIA_PLAYER_CONTROL(self), &seekable);
+      player_control_base_is_seekable (MEDIA_PLAYER_CONTROL(self), &seekable);
       if (seekable) {
-        engine_common_set_position (MEDIA_PLAYER_CONTROL(self), priv->pos);
+        player_control_base_set_position (MEDIA_PLAYER_CONTROL(self), priv->pos);
       }
-      engine_common_play(MEDIA_PLAYER_CONTROL(self));
+      player_control_base_play(MEDIA_PLAYER_CONTROL(self));
       priv->suspended = FALSE;
       UMMS_DEBUG ("media_player_control_emit_restored");
       media_player_control_emit_restored (self);
@@ -2981,10 +2981,10 @@ bus_message_state_change_cb (GstBus     *bus,
 }
 
 static void
-bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineCommon  *self)
+bus_message_get_tag_cb (GstBus *bus, GstMessage *message, PlayerControlBase  *self)
 {
   gpointer src;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
   GstPad * src_pad = NULL;
   GstTagList * tag_list = NULL;
   gchar * pad_name = NULL;
@@ -3062,7 +3062,7 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineCommon  *self)
     }
 
     /* store the name for later use. */
-    g_strlcpy(priv->video_codec, video_codec, ENGINE_GST_MAX_VIDEOCODEC_SIZE);
+    g_strlcpy(priv->video_codec, video_codec, PLAYER_CONTROL_GST_MAX_VIDEOCODEC_SIZE);
     UMMS_DEBUG("%s", video_codec);
   }
 
@@ -3087,8 +3087,8 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineCommon  *self)
     if (element_name && (g_strstr_len(element_name, strlen(element_name), "demux") ||
          g_strstr_len(element_name, strlen(element_name), "Demux") ||
          g_strstr_len(element_name, strlen(element_name), "DEMUX"))) {
-      if (priv->audio_codec_used < ENGINE_GST_MAX_AUDIO_STREAM) {
-        g_strlcpy(priv->audio_codec[priv->audio_codec_used], audio_codec, ENGINE_GST_MAX_AUDIOCODEC_SIZE);
+      if (priv->audio_codec_used < PLAYER_CONTROL_GST_MAX_AUDIO_STREAM) {
+        g_strlcpy(priv->audio_codec[priv->audio_codec_used], audio_codec, PLAYER_CONTROL_GST_MAX_AUDIOCODEC_SIZE);
         priv->audio_codec_used++;
       } else {
         UMMS_DEBUG("audio_codec need to discard because too many steams");
@@ -3182,7 +3182,7 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineCommon  *self)
 static void
 bus_message_eos_cb (GstBus     *bus,
                     GstMessage *message,
-                    EngineCommon  *self)
+                    PlayerControlBase  *self)
 {
   UMMS_DEBUG ("message::eos received on bus");
   media_player_control_emit_eof (self);
@@ -3192,7 +3192,7 @@ bus_message_eos_cb (GstBus     *bus,
 static void
 bus_message_error_cb (GstBus     *bus,
     GstMessage *message,
-    EngineCommon  *self)
+    PlayerControlBase  *self)
 {
   GError *error = NULL;
 
@@ -3211,12 +3211,12 @@ bus_message_error_cb (GstBus     *bus,
 static void
 bus_message_buffering_cb (GstBus *bus,
     GstMessage *message,
-    EngineCommon *self)
+    PlayerControlBase *self)
 {
   const GstStructure *str;
   gboolean res;
   gint buffer_percent;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   str = gst_message_get_structure (message);
   if (!str)
@@ -3257,9 +3257,9 @@ bus_message_buffering_cb (GstBus *bus,
 static GstBusSyncReply
 bus_sync_handler (GstBus *bus,
                   GstMessage *message,
-                  EngineCommon *engine)
+                  PlayerControlBase *player_control)
 {
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   GstElement *vsink;
   GError *err = NULL;
   GstMessage *msg = NULL;
@@ -3270,14 +3270,14 @@ bus_sync_handler (GstBus *bus,
   if ( ! gst_structure_has_name( message->structure, "prepare-gdl-plane" ) )
     return( GST_BUS_PASS );
 
-  g_return_val_if_fail (engine, GST_BUS_PASS);
-  g_return_val_if_fail (ENGINE_IS_COMMON (engine), GST_BUS_PASS);
-  priv = GET_PRIVATE (engine);
+  g_return_val_if_fail (player_control, GST_BUS_PASS);
+  g_return_val_if_fail (PLAYER_CONTROL_IS_BASE (player_control), GST_BUS_PASS);
+  priv = GET_PRIVATE (player_control);
 
   vsink =  GST_ELEMENT(GST_MESSAGE_SRC (message));
   UMMS_DEBUG ("sync-handler received on bus: prepare-gdl-plane, source: %s", GST_ELEMENT_NAME(vsink));
 
-  if (!prepare_plane ((MediaPlayerControl *)engine)) {
+  if (!prepare_plane ((MediaPlayerControl *)player_control)) {
     //Since we are in streame thread, let the vsink to post the error message. Handle it in bus_message_error_cb().
     err = g_error_new_literal (UMMS_RESOURCE_ERROR, UMMS_RESOURCE_ERROR_NO_RESOURCE, "Plane unavailable");
     msg = gst_message_new_error (GST_OBJECT_CAST(priv->pipeline), err, "No resource");
@@ -3285,7 +3285,7 @@ bus_sync_handler (GstBus *bus,
     g_error_free (err);
   }
 
-//  media_player_control_emit_request_window (engine);
+//  media_player_control_emit_request_window (player_control);
 
   if (message)
     gst_message_unref (message);
@@ -3295,21 +3295,21 @@ bus_sync_handler (GstBus *bus,
 static void
 video_tags_changed_cb (GstElement *playbin2, gint stream_id, gpointer user_data) /* Used as tag change monitor. */
 {
-  EngineCommon * priv = (EngineCommon *) user_data;
+  PlayerControlBase * priv = (PlayerControlBase *) user_data;
   media_player_control_emit_video_tag_changed(priv, stream_id);
 }
 
 static void
 audio_tags_changed_cb (GstElement *playbin2, gint stream_id, gpointer user_data) /* Used as tag change monitor. */
 {
-  EngineCommon * priv = (EngineCommon *) user_data;
+  PlayerControlBase * priv = (PlayerControlBase *) user_data;
   media_player_control_emit_audio_tag_changed(priv, stream_id);
 }
 
 static void
 text_tags_changed_cb (GstElement *playbin2, gint stream_id, gpointer user_data) /* Used as tag change monitor. */
 {
-  EngineCommon * priv = (EngineCommon *) user_data;
+  PlayerControlBase * priv = (PlayerControlBase *) user_data;
   media_player_control_emit_text_tag_changed(priv, stream_id);
 }
 
@@ -3328,9 +3328,9 @@ typedef enum {
 } GstPlayFlags;
 
 static void
-engine_common_init (EngineCommon *self)
+player_control_base_init (PlayerControlBase *self)
 {
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   GstBus *bus;
   GstPlayFlags flags;
 
@@ -3413,16 +3413,16 @@ engine_common_init (EngineCommon *self)
   priv->target_initialized = TRUE;
 }
 
-EngineCommon *
-engine_common_new (void)
+PlayerControlBase *
+player_control_base_new (void)
 {
-  return g_object_new (ENGINE_TYPE_COMMON, NULL);
+  return g_object_new (PLAYER_CONTROL_TYPE_BASE, NULL);
 }
 
 static void
 _set_proxy (MediaPlayerControl *self)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
   g_return_if_fail (priv->source);
   if (g_object_class_find_property (G_OBJECT_GET_CLASS (priv->source), "proxy") == NULL)
     return;
@@ -3437,7 +3437,7 @@ static void
 _uri_parser_source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data)
 {
   GstElement *source;
-  EngineCommonPrivate *priv = GET_PRIVATE (data);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (data);
 
   g_object_get(priv->uridecodebin, "source", &source, NULL);
   gst_object_replace((GstObject**) &priv->source, (GstObject*) source);
@@ -3451,7 +3451,7 @@ static void
 _source_changed_cb (GObject *object, GParamSpec *pspec, gpointer data)
 {
   GstElement *source;
-  EngineCommonPrivate *priv = GET_PRIVATE (data);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (data);
 
   g_object_get(priv->pipeline, "source", &source, NULL);
   gst_object_replace((GstObject**) &priv->source, (GstObject*) source);
@@ -3520,7 +3520,7 @@ autoplug_continue_cb (GstElement * element, GstPad * pad, GstCaps * caps,
   GstCaps *hw_caps = NULL;
   gboolean is_hw_vcaps = FALSE;
   gboolean ret = TRUE;
-  EngineCommonPrivate *priv = GET_PRIVATE (control);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (control);
 
   UMMS_DEBUG ( "pad caps : %" GST_PTR_FORMAT,
                caps);
@@ -3573,7 +3573,7 @@ hw_video_caps:
 static gboolean
 uri_parsing_finished_cb (MediaPlayerControl * self)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
   GstState target;
 
   UMMS_DEBUG("Begin");
@@ -3586,8 +3586,8 @@ uri_parsing_finished_cb (MediaPlayerControl * self)
 
   if (priv->pending_state >= PlayerStatePaused) {
     target = (priv->pending_state == PlayerStatePaused) ? (GST_STATE_PAUSED) : (GST_STATE_PLAYING);
-    EngineCommonClass *kclass = ENGINE_COMMON_GET_CLASS(self);
-    kclass->activate_engine ((EngineCommon*)self, target);
+    PlayerControlBaseClass *kclass = PLAYER_CONTROL_BASE_GET_CLASS(self);
+    kclass->activate_player_control ((PlayerControlBase*)self, target);
   }
 
   return FALSE;
@@ -3619,7 +3619,7 @@ parse_uri_async (MediaPlayerControl *self, gchar *uri)
   GstElement *uridecodebin = NULL;
   GstElement *uri_parse_pipe = NULL;
   GstBus *bus = NULL;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   g_return_val_if_fail (uri, FALSE);
 
@@ -3680,10 +3680,10 @@ parse_uri_async (MediaPlayerControl *self, gchar *uri)
 static void
 uri_parser_bus_message_error_cb (GstBus     *bus,
     GstMessage *message,
-    EngineCommon  *self)
+    PlayerControlBase  *self)
 {
   GError *error = NULL;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   UMMS_DEBUG ("message::URI parsing error received on bus");
 

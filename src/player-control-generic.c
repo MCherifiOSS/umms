@@ -36,31 +36,31 @@
 #include "umms-debug.h"
 #include "umms-error.h"
 #include "umms-resource-manager.h"
-#include "engine-generic.h"
+#include "player-control-generic.h"
 #include "media-player-control.h"
 #include "param-table.h"
 
-G_DEFINE_TYPE (EngineGeneric, engine_generic, ENGINE_TYPE_COMMON);
+G_DEFINE_TYPE (PlayerControlGeneric, player_control_generic, PLAYER_CONTROL_TYPE_BASE);
 
-#define GET_PRIVATE(o) ((ENGINE_COMMON(o))->priv)
+#define GET_PRIVATE(o) ((PLAYER_CONTROL_BASE(o))->priv)
 
 /*virtual Apis: */
 static gboolean
 set_target (MediaPlayerControl *self, gint type, GHashTable *params)
 {
   gboolean ret = TRUE;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
   UMMS_DEBUG("Not Supportted\n");
 
   return ret;
 }
 
 static gboolean
-activate_engine (EngineCommon *self, GstState target_state)
+activate_player_control (PlayerControlBase *self, GstState target_state)
 {
   gboolean ret;
   PlayerState old_pending;
-  EngineCommonPrivate *priv = GET_PRIVATE (self);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
   UMMS_DEBUG("derived one");
 
@@ -84,7 +84,7 @@ OUT:
 }
 
 static void
-engine_generic_get_property (GObject    *object,
+player_control_generic_get_property (GObject    *object,
     guint       property_id,
     GValue     *value,
     GParamSpec *pspec)
@@ -96,7 +96,7 @@ engine_generic_get_property (GObject    *object,
 }
 
 static void
-engine_generic_set_property (GObject      *object,
+player_control_generic_set_property (GObject      *object,
     guint         property_id,
     const GValue *value,
     GParamSpec   *pspec)
@@ -108,54 +108,54 @@ engine_generic_set_property (GObject      *object,
 }
 
 static void
-engine_generic_dispose (GObject *object)
+player_control_generic_dispose (GObject *object)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (object);
-  G_OBJECT_CLASS (engine_generic_parent_class)->dispose (object);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (object);
+  G_OBJECT_CLASS (player_control_generic_parent_class)->dispose (object);
 }
 
 static void
-engine_generic_finalize (GObject *object)
+player_control_generic_finalize (GObject *object)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (object);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (object);
 
-  G_OBJECT_CLASS (engine_generic_parent_class)->finalize (object);
+  G_OBJECT_CLASS (player_control_generic_parent_class)->finalize (object);
 }
 
 static void
-engine_generic_class_init (EngineGenericClass *klass)
+player_control_generic_class_init (PlayerControlGenericClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
   UMMS_DEBUG("Called");
 
-  g_type_class_add_private (klass, sizeof (EngineCommonPrivate));
+  g_type_class_add_private (klass, sizeof (PlayerControlBasePrivate));
 
-  object_class->get_property = engine_generic_get_property;
-  object_class->set_property = engine_generic_set_property;
-  object_class->dispose = engine_generic_dispose;
-  object_class->finalize = engine_generic_finalize;
+  object_class->get_property = player_control_generic_get_property;
+  object_class->set_property = player_control_generic_set_property;
+  object_class->dispose = player_control_generic_dispose;
+  object_class->finalize = player_control_generic_finalize;
 
-  EngineCommonClass *parent_class = ENGINE_COMMON_CLASS(klass);
+  PlayerControlBaseClass *parent_class = PLAYER_CONTROL_BASE_CLASS(klass);
   /*derived one*/
-  parent_class->activate_engine = activate_engine;
+  parent_class->activate_player_control = activate_player_control;
   parent_class->set_target = set_target;
 
 }
 
 static void
-engine_generic_init (EngineGeneric *self)
+player_control_generic_init (PlayerControlGeneric *self)
 {
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   GstBus *bus;
 
   UMMS_DEBUG("Called");
 }
 
-EngineGeneric *
-engine_generic_new (void)
+PlayerControlGeneric *
+player_control_generic_new (void)
 {
   UMMS_DEBUG("Called");
-  return g_object_new (ENGINE_TYPE_GENERIC, NULL);
+  return g_object_new (PLAYER_CONTROL_TYPE_GENERIC, NULL);
 }
 

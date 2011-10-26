@@ -21,8 +21,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef _ENGINE_COMMON_H
-#define _ENGINE_COMMON_H
+#ifndef _PLAYER_CONTROL_BASE_H
+#define _PLAYER_CONTROL_BASE_H
 
 #include <glib-object.h>
 #include <gst/gst.h>
@@ -34,55 +34,55 @@
 
 G_BEGIN_DECLS
 
-#define ENGINE_TYPE_COMMON engine_common_get_type()
+#define PLAYER_CONTROL_TYPE_BASE player_control_base_get_type()
 
-#define ENGINE_COMMON(obj) \
+#define PLAYER_CONTROL_BASE(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST ((obj), \
-  ENGINE_TYPE_COMMON, EngineCommon))
+  PLAYER_CONTROL_TYPE_BASE, PlayerControlBase))
 
-#define ENGINE_COMMON_CLASS(klass) \
+#define PLAYER_CONTROL_BASE_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_CAST ((klass), \
-  ENGINE_TYPE_COMMON, EngineCommonClass))
+  PLAYER_CONTROL_TYPE_BASE, PlayerControlBaseClass))
 
-#define ENGINE_IS_COMMON(obj) \
+#define PLAYER_CONTROL_IS_BASE(obj) \
   (G_TYPE_CHECK_INSTANCE_TYPE ((obj), \
-  ENGINE_TYPE_COMMON))
+  PLAYER_CONTROL_TYPE_BASE))
 
-#define ENGINE_IS_COMMON_CLASS(klass) \
+#define PLAYER_CONTROL_IS_BASE_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE ((klass), \
-  ENGINE_TYPE_COMMON))
+  PLAYER_CONTROL_TYPE_BASE))
 
-#define ENGINE_COMMON_GET_CLASS(obj) \
+#define PLAYER_CONTROL_BASE_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), \
-  ENGINE_TYPE_COMMON, EngineCommonClass))
+  PLAYER_CONTROL_TYPE_BASE, PlayerControlBaseClass))
 
-typedef struct _EngineCommon EngineCommon;
-typedef struct _EngineCommonClass EngineCommonClass;
-typedef struct _EngineCommonPrivate EngineCommonPrivate;
+typedef struct _PlayerControlBase PlayerControlBase;
+typedef struct _PlayerControlBaseClass PlayerControlBaseClass;
+typedef struct _PlayerControlBasePrivate PlayerControlBasePrivate;
 
-struct _EngineCommon
+struct _PlayerControlBase
 {
   GObject parent;
 
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
 };
 
 
-struct _EngineCommonClass
+struct _PlayerControlBaseClass
 {
   GObjectClass parent_class;
 
   /*virtual APIs*/
-  gboolean (*activate_engine) (EngineCommon *self, GstState target_state);
-  gboolean (*set_target) (EngineCommon *self, gint type, GHashTable *params);
+  gboolean (*activate_player_control) (PlayerControlBase *self, GstState target_state);
+  gboolean (*set_target) (PlayerControlBase *self, gint type, GHashTable *params);
 };
 
-GType engine_common_get_type (void) G_GNUC_CONST;
+GType player_control_base_get_type (void) G_GNUC_CONST;
 
-EngineCommon *engine_common_new (void);
+PlayerControlBase *player_control_base_new (void);
 
 
-struct _EngineCommonPrivate {
+struct _PlayerControlBasePrivate {
   GstElement *pipeline;
 
   gchar *uri;
@@ -148,4 +148,4 @@ struct _EngineCommonPrivate {
 
 G_END_DECLS
 
-#endif /* _ENGINE_COMMON_H */
+#endif /* _PLAYER_CONTROL_BASE_H */

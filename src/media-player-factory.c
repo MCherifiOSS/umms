@@ -25,8 +25,8 @@
 #include "umms-common.h"
 #include "media-player-factory.h"
 #include "media-player-control.h"
-#include "engine-tv.h"
-#include "engine-generic.h"
+#include "player-control-tv.h"
+#include "player-control-generic.h"
 #include "engine-dvb-generic.h"
 #include "dvb-player.h"
 
@@ -70,10 +70,10 @@ enum {
  * fake engine 
  *
  */
-MediaPlayerControl* engine_fake_new(void)
+MediaPlayerControl* player_control_fake_new(void)
 {
 
-  UMMS_DEBUG("fake engine error, is not supportted\n");
+  UMMS_DEBUG("fake player_control error, is not supportted\n");
   return NULL;
 }
 
@@ -91,11 +91,11 @@ typedef MediaPlayerControl* (*func)(void);
 
 MediaPlayerControl* (*engine_factory[PLATFORM_INVALID][N_MEDIA_PLAYER_FACTORY_ENGINE_TYPE])(void) =
 {
-/*00*/engine_fake_new, 
-/*01: CETV-Normal*/ (func)engine_tv_new,
+/*00*/player_control_fake_new, 
+/*01: CETV-Normal*/ (func)player_control_tv_new,
 /*02: CETV-DVB*/(func)dvb_player_new,
 /*10: */NULL,
-/*11: Netbook->Normal*/ (func)engine_generic_new,
+/*11: Netbook->Normal*/ (func)player_control_generic_new,
 /*12: Netbook->DVB*/ (func)engine_dvb_generic_new
 };
 

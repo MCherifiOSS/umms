@@ -21,60 +21,60 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef _ENGINE_TV_H
-#define _ENGINE_TV_H
+#ifndef _PLAYER_CONTROL_GENERIC_H
+#define _PLAYER_CONTROL_GENERIC_H
 
 #include <glib-object.h>
-#include "engine-common.h"
+#include "player-control-base.h"
 
 G_BEGIN_DECLS
 
-#define ENGINE_TYPE_TV engine_tv_get_type()
+#define PLAYER_CONTROL_TYPE_GENERIC player_control_generic_get_type()
 
-#define ENGINE_TV(obj) \
+#define PLAYER_CONTROL_GENERIC(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST ((obj), \
-  ENGINE_TYPE_TV, EngineTv))
+  PLAYER_CONTROL_TYPE_GENERIC, PlayerControlGeneric))
 
-#define ENGINE_TV_CLASS(klass) \
+#define PLAYER_CONTROL_GENERIC_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_CAST ((klass), \
-  ENGINE_TYPE_TV, EngineTvClass))
+  PLAYER_CONTROL_TYPE_GENERIC, PlayerControlGenericClass))
 
-#define ENGINE_IS_TV(obj) \
+#define PLAYER_CONTROL_IS_GENERIC(obj) \
   (G_TYPE_CHECK_INSTANCE_TYPE ((obj), \
-  ENGINE_TYPE_TV))
+  PLAYER_CONTROL_TYPE_GENERIC))
 
-#define ENGINE_IS_TV_CLASS(klass) \
+#define PLAYER_CONTROL_IS_GENERIC_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE ((klass), \
-  ENGINE_TYPE_TV))
+  PLAYER_CONTROL_TYPE_GENERIC))
 
-#define ENGINE_TV_GET_CLASS(obj) \
+#define PLAYER_CONTROL_GENERIC_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), \
-  ENGINE_TYPE_TV, EngineTvClass))
+  PLAYER_CONTROL_TYPE_GENERIC, PlayerControlGenericClass))
 
-typedef struct _EngineTv EngineTv;
-typedef struct _EngineTvClass EngineTvClass;
-//typedef struct _EngineTvPrivate EngineTvPrivate;
+typedef struct _PlayerControlGeneric PlayerControlGeneric;
+typedef struct _PlayerControlGenericClass PlayerControlGenericClass;
+//typedef struct _PlayerControlGenericPrivate PlayerControlGenericPrivate;
 
-struct _EngineTv
+struct _PlayerControlGeneric
 {
   /*GObject parent;*/
-  EngineCommon parent;
+  PlayerControlBase parent;
 
-  /*EngineTvPrivate *priv;*/
+  /*PlayerControlGenericPrivate *priv;*/
 };
 
 
-struct _EngineTvClass
+struct _PlayerControlGenericClass
 {
   /*GObjectClass parent_class;*/
-  EngineCommonClass parent_class;
+  PlayerControlBaseClass parent_class;
 
 };
 
-GType engine_tv_get_type (void) G_GNUC_CONST;
+GType player_control_generic_get_type (void) G_GNUC_CONST;
 
-EngineTv *engine_tv_new (void);
+PlayerControlGeneric *player_control_generic_new (void);
 
 G_END_DECLS
 
-#endif /* _ENGINE_TV_H */
+#endif /* _PLAYER_CONTROL_GENERIC_H */

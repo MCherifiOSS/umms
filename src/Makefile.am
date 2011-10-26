@@ -29,12 +29,12 @@ umms_server_SOURCES = umms-common.h \
                       media-player-factory.h \
                       media-player-control.c \
                       media-player-control.h \
-                      engine-common.c \
-                      engine-common.h \
-                      engine-tv.c \
-                      engine-tv.h \
-                      engine-generic.c \
-                      engine-generic.h \
+                      player-control-base.c \
+                      player-control-base.h \
+                      player-control-tv.c \
+                      player-control-tv.h \
+                      player-control-generic.c \
+                      player-control-generic.h \
                       engine-dvb-generic.c \
                       engine-dvb-generic.h \
                       umms-object-manager.c \

@@ -36,13 +36,13 @@
 #include "umms-debug.h"
 #include "umms-error.h"
 #include "umms-resource-manager.h"
-#include "engine-tv.h"
+#include "player-control-tv.h"
 #include "media-player-control.h"
 #include "param-table.h"
 
-G_DEFINE_TYPE (EngineTv, engine_tv, ENGINE_TYPE_COMMON);
+G_DEFINE_TYPE (PlayerControlTv, player_control_tv, PLAYER_CONTROL_TYPE_BASE);
 
-#define GET_PRIVATE(o) ((ENGINE_COMMON(o))->priv)
+#define GET_PRIVATE(o) ((PLAYER_CONTROL_BASE(o))->priv)
 
 /*virtual Apis: */
 #if 0
@@ -50,11 +50,11 @@ static gboolean
 set_target (MediaPlayerControl *self, gint type, GHashTable *params)
 
 static gboolean
-activate_engine (EngineCommon *self, GstState target_state)
+activate_player_control (PlayerControlBase *self, GstState target_state)
 #endif
 
 static void
-engine_tv_get_property (GObject    *object,
+player_control_tv_get_property (GObject    *object,
     guint       property_id,
     GValue     *value,
     GParamSpec *pspec)
@@ -66,7 +66,7 @@ engine_tv_get_property (GObject    *object,
 }
 
 static void
-engine_tv_set_property (GObject      *object,
+player_control_tv_set_property (GObject      *object,
     guint         property_id,
     const GValue *value,
     GParamSpec   *pspec)
@@ -78,56 +78,56 @@ engine_tv_set_property (GObject      *object,
 }
 
 static void
-engine_tv_dispose (GObject *object)
+player_control_tv_dispose (GObject *object)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (object);
-  G_OBJECT_CLASS (engine_tv_parent_class)->dispose (object);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (object);
+  G_OBJECT_CLASS (player_control_tv_parent_class)->dispose (object);
 }
 
 static void
-engine_tv_finalize (GObject *object)
+player_control_tv_finalize (GObject *object)
 {
-  EngineCommonPrivate *priv = GET_PRIVATE (object);
+  PlayerControlBasePrivate *priv = GET_PRIVATE (object);
 
-  G_OBJECT_CLASS (engine_tv_parent_class)->finalize (object);
+  G_OBJECT_CLASS (player_control_tv_parent_class)->finalize (object);
 }
 
 static void
-engine_tv_class_init (EngineTvClass *klass)
+player_control_tv_class_init (PlayerControlTvClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
   UMMS_DEBUG("Called");
 
-  g_type_class_add_private (klass, sizeof (EngineCommonPrivate));
+  g_type_class_add_private (klass, sizeof (PlayerControlBasePrivate));
 
-  object_class->get_property = engine_tv_get_property;
-  object_class->set_property = engine_tv_set_property;
-  object_class->dispose = engine_tv_dispose;
-  object_class->finalize = engine_tv_finalize;
+  object_class->get_property = player_control_tv_get_property;
+  object_class->set_property = player_control_tv_set_property;
+  object_class->dispose = player_control_tv_dispose;
+  object_class->finalize = player_control_tv_finalize;
 
-  EngineCommonClass *parent_class = ENGINE_COMMON_CLASS(klass);
+  PlayerControlBaseClass *parent_class = PLAYER_CONTROL_BASE_CLASS(klass);
   /*derived one*/
 #if 0
-  parent_class->activate_engine = activate_engine;
+  parent_class->activate_player_control = activate_player_control;
   parent_class->set_target = set_target;
 #endif
 
 }
 
 static void
-engine_tv_init (EngineTv *self)
+player_control_tv_init (PlayerControlTv *self)
 {
-  EngineCommonPrivate *priv;
+  PlayerControlBasePrivate *priv;
   GstBus *bus;
 
   UMMS_DEBUG("Called");
 }
 
-EngineTv *
-engine_tv_new (void)
+PlayerControlTv *
+player_control_tv_new (void)
 {
   UMMS_DEBUG("Called");
-  return g_object_new (ENGINE_TYPE_TV, NULL);
+  return g_object_new (PLAYER_CONTROL_TYPE_TV, NULL);
 }
 
