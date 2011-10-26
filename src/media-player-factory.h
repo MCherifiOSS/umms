@@ -25,7 +25,8 @@
 #define _MEDIA_PLAYER_FACTORY_H
 
 #include <glib-object.h>
-#include <media-player.h>
+//#include <media-player.h>
+#include "media-player-control.h"
 
 G_BEGIN_DECLS
 
@@ -57,7 +58,8 @@ typedef struct _MediaPlayerFactoryPrivate MediaPlayerFactoryPrivate;
 
 struct _MediaPlayerFactory
 {
-  MediaPlayer parent;
+ // MediaPlayer parent;
+  GObject parent;
 
   MediaPlayerFactoryPrivate *priv;
 };
@@ -65,7 +67,24 @@ struct _MediaPlayerFactory
 
 struct _MediaPlayerFactoryClass
 {
-  MediaPlayerClass parent_class;
+ // MediaPlayerClass parent_class;
+  GObjectClass parent_class;
+
+  /*
+     *
+     * self:            A MediaPlayer
+     * uri:             Uri to play
+     * new_engine[out]: TRUE if loaded a new engine and destroyed old engine
+     *                  FALSE if not
+     *
+     * Returns:         TRUE if successful
+     *                  FALSE if not
+     *
+     * Load engine according to uri prefix which indicates the source type, and store it in MediaPlayer::player_control.
+     * Subclass should implement this vmethod to customize the procedure of backend engine loading.
+     *          
+     */
+  MediaPlayerControl* (*load_engine) (MediaPlayerFactory *self, const char *uri, gboolean *new_engine);
 
 };
 

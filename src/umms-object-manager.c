@@ -27,7 +27,7 @@
 #include "umms-debug.h"
 #include "umms-common.h"
 #include "umms-object-manager.h"
-#include "media-player-factory.h"
+#include "media-player.h"
 #include "./glue/umms-media-player-glue.h"
 
 
@@ -330,11 +330,21 @@ _gen_media_player (UmmsObjectManager *mngr, gboolean attended)
 
   dbus_g_object_type_install_info (TYPE_MEDIA_PLAYER, &dbus_glib_media_player_object_info);
 
+#if 0
   player = (MediaPlayer *)g_object_new (TYPE_MEDIA_PLAYER_FACTORY,
            "name", object_path,
            "attended", attended,
            "platform", priv->platform_type,
            NULL);
+#else
+  /*create a media player instance*/
+  player = (MediaPlayer *)g_object_new (TYPE_MEDIA_PLAYER,
+           "name", object_path,
+           "attended", attended,
+           "platform", priv->platform_type,
+           NULL);
+#endif
+
   priv->player_list = g_list_append (priv->player_list, player);
 
   //register object with connection
@@ -384,6 +394,12 @@ _remove_media_player (MediaPlayer *player)
 
   //remove from player list
   priv->player_list = g_list_remove (priv->player_list, player);
+
+  /*distory its factory*/
+  if(player->factory){
+    g_object_unref (player->factory);
+    player->factory = NULL;
+  }
 
   //distory player
   g_object_unref (player);

@@ -31,7 +31,11 @@
 #include "dvb-player.h"
 
 
-G_DEFINE_TYPE (MediaPlayerFactory, media_player_factory, TYPE_MEDIA_PLAYER)
+/*
+ * G_DEFINE_TYPE (MediaPlayerFactory, media_player_factory, TYPE_MEDIA_PLAYER)
+ */
+G_DEFINE_TYPE (MediaPlayerFactory, media_player_factory, G_TYPE_OBJECT)
+
 #define PLAYER_PRIVATE(o) \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), TYPE_MEDIA_PLAYER_FACTORY, MediaPlayerFactoryPrivate))
 
@@ -52,12 +56,15 @@ struct _MediaPlayerFactoryPrivate {
 //implement load_engine vmethod
 #define TV_PREFIX "dvb:"
 
-/*property for object manager*/
-enum PROPTYPE{
+enum {
   PROP_0,
+  PROP_NAME,
+  PROP_ATTENDED,
   PROP_PLATFORM,
   PROP_LAST
 };
+
+
 
 /*
  * fake engine 
@@ -123,7 +130,40 @@ create_engine (gint engine_type, PlatformType platform)
 /* extend API to support multi-platform and multi-engine
  *
  */
+static MediaPlayerControl* media_player_factory_load_engine (MediaPlayerFactory *self, const char *uri, gboolean *new_engine)
+{
+  gboolean updated;
+  gint type;
+  MediaPlayerFactoryPrivate *priv = NULL;
+  MediaPlayerControl *player_control = NULL;
 
+  g_return_val_if_fail (IS_MEDIA_PLAYER_FACTORY(self), FALSE);
+  g_return_val_if_fail (uri, FALSE);
+
+  priv = self->priv;
+  type = (g_str_has_prefix (uri, TV_PREFIX)) ? (MEDIA_PLAYER_FACTORY_ENGINE_TYPE_DVB): (MEDIA_PLAYER_FACTORY_ENGINE_TYPE_NORMAL);
+
+  if (priv->engine_type == type) {
+    UMMS_DEBUG ("Already loaded engine(type = %d), no need to load again", type);
+    updated = FALSE;
+  } else {
+    UMMS_DEBUG ("Changing engine from type(%d) to type(%d)", priv->engine_type, type);
+    player_control = create_engine (type, priv->platform_type);
+
+    if(!player_control){
+      UMMS_DEBUG ("Loading engine failed");
+      return player_control;
+    }
+    updated = TRUE;
+  }
+
+  priv->engine_type = type;
+  *new_engine = updated;
+
+  return player_control;
+}
+
+#if 0
 static gboolean media_player_factory_load_engine (MediaPlayer *player, const char *uri, gboolean *new_engine)
 {
   gboolean ret;
@@ -164,6 +204,7 @@ static gboolean media_player_factory_load_engine (MediaPlayer *player, const cha
 
   return ret;
 }
+#endif
 
 
 static void
@@ -173,11 +214,11 @@ media_player_factory_get_property (GObject    *object,
     GParamSpec *pspec)
 {
   MediaPlayerFactoryPrivate *priv = GET_PRIVATE (object);
+  gint tmp;
   switch (property_id) {
     case PROP_PLATFORM:
-      g_value_set_int(value, priv->platform_type);
-      UMMS_DEBUG("platform type: %d", priv->platform_type);
-      break;
+      priv->platform_type = g_value_get_int(value);
+      UMMS_DEBUG("platform type: %d", tmp);
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
   }
@@ -193,9 +234,8 @@ media_player_factory_set_property (GObject      *object,
   gint tmp;
   switch (property_id) {
     case PROP_PLATFORM:
-      tmp = g_value_get_int(value);
-      priv->platform_type = tmp;
-      UMMS_DEBUG("platform type: %d", tmp);
+      g_value_set_int(value, priv->platform_type);
+      UMMS_DEBUG("platform type: %d", priv->platform_type);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -220,7 +260,9 @@ static void
 media_player_factory_class_init (MediaPlayerFactoryClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
+/*
   MediaPlayerClass *p_class = MEDIA_PLAYER_CLASS (klass);
+*/
 
   g_type_class_add_private (klass, sizeof (MediaPlayerFactoryPrivate));
 
@@ -228,13 +270,15 @@ media_player_factory_class_init (MediaPlayerFactoryClass *klass)
   object_class->set_property = media_player_factory_set_property;
   object_class->dispose = media_player_factory_dispose;
   object_class->finalize = media_player_factory_finalize;
+  klass->load_engine = media_player_factory_load_engine;
 
+/*
   p_class->load_engine = media_player_factory_load_engine;
+*/
 
   g_object_class_install_property (object_class, PROP_PLATFORM,
       g_param_spec_int ("platform", "platform type", "indication for platform type: Tv, netbook, etc",0,PLATFORM_INVALID,
           CETV, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
 }
 
 static void
@@ -246,6 +290,7 @@ media_player_factory_init (MediaPlayerFactory *self)
   priv = self->priv;
 
   priv->engine_type = MEDIA_PLAYER_FACTORY_ENGINE_TYPE_INVALID;
+
 }
 
 MediaPlayerFactory *
