@@ -21,8 +21,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef _MEDIA_PLAYER_FACTORY_H
-#define _MEDIA_PLAYER_FACTORY_H
+#ifndef _PLAYER_CONTROL_FACTORY_H
+#define _PLAYER_CONTROL_FACTORY_H
 
 #include <glib-object.h>
 //#include <media-player.h>
@@ -30,49 +30,49 @@
 
 G_BEGIN_DECLS
 
-#define TYPE_MEDIA_PLAYER_FACTORY media_player_factory_get_type()
+#define PLAYER_CONTROL_TYPE_FACTORY player_control_factory_get_type()
 
-#define MEDIA_PLAYER_FACTORY(obj) \
+#define PLAYER_CONTROL_FACTORY(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST ((obj), \
-  TYPE_MEDIA_PLAYER_FACTORY, MediaPlayerFactory))
+  PLAYER_CONTROL_TYPE_FACTORY, PlayerControlFactory))
 
-#define MEDIA_PLAYER_FACTORY_CLASS(klass) \
+#define PLAYER_CONTROL_FACTORY_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_CAST ((klass), \
-  TYPE_MEDIA_PLAYER_FACTORY, MediaPlayerFactoryClass))
+  PLAYER_CONTROL_TYPE_FACTORY, PlayerControlFactoryClass))
 
-#define IS_MEDIA_PLAYER_FACTORY(obj) \
+#define IS_PLAYER_CONTROL_FACTORY(obj) \
   (G_TYPE_CHECK_INSTANCE_TYPE ((obj), \
-  TYPE_MEDIA_PLAYER_FACTORY))
+  PLAYER_CONTROL_TYPE_FACTORY))
 
-#define IS_MEDIA_PLAYER_FACTORY_CLASS(klass) \
+#define IS_PLAYER_CONTROL_FACTORY_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE ((klass), \
-  TYPE_MEDIA_PLAYER_FACTORY))
+  PLAYER_CONTROL_TYPE_FACTORY))
 
-#define MEDIA_PLAYER_FACTORY_GET_CLASS(obj) \
+#define PLAYER_CONTROL_FACTORY_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), \
-  TYPE_MEDIA_PLAYER_FACTORY, MediaPlayerFactoryClass))
+  PLAYER_CONTROL_TYPE_FACTORY, PlayerControlFactoryClass))
 
-typedef struct _MediaPlayerFactory MediaPlayerFactory;
-typedef struct _MediaPlayerFactoryClass MediaPlayerFactoryClass;
-typedef struct _MediaPlayerFactoryPrivate MediaPlayerFactoryPrivate;
+typedef struct _PlayerControlFactory PlayerControlFactory;
+typedef struct _PlayerControlFactoryClass PlayerControlFactoryClass;
+typedef struct _PlayerControlFactoryPrivate PlayerControlFactoryPrivate;
 
-struct _MediaPlayerFactory
+struct _PlayerControlFactory
 {
- // MediaPlayer parent;
+ // PlayerControl parent;
   GObject parent;
 
-  MediaPlayerFactoryPrivate *priv;
+  PlayerControlFactoryPrivate *priv;
 };
 
 
-struct _MediaPlayerFactoryClass
+struct _PlayerControlFactoryClass
 {
- // MediaPlayerClass parent_class;
+ // PlayerControlClass parent_class;
   GObjectClass parent_class;
 
   /*
      *
-     * self:            A MediaPlayer
+     * self:            A PlayerControl
      * uri:             Uri to play
      * new_engine[out]: TRUE if loaded a new engine and destroyed old engine
      *                  FALSE if not
@@ -80,18 +80,18 @@ struct _MediaPlayerFactoryClass
      * Returns:         TRUE if successful
      *                  FALSE if not
      *
-     * Load engine according to uri prefix which indicates the source type, and store it in MediaPlayer::player_control.
+     * Load engine according to uri prefix which indicates the source type, and store it in PlayerControl::player_control.
      * Subclass should implement this vmethod to customize the procedure of backend engine loading.
      *          
      */
-  MediaPlayerControl* (*load_engine) (MediaPlayerFactory *self, const char *uri, gboolean *new_engine);
+  MediaPlayerControl* (*load_engine) (PlayerControlFactory *self, const char *uri, gboolean *new_engine);
 
 };
 
-GType media_player_factory_get_type (void) G_GNUC_CONST;
+GType player_control_factory_get_type (void) G_GNUC_CONST;
 
-MediaPlayerFactory *media_player_factory_new (void);
+PlayerControlFactory *player_control_factory_new (void);
 
 G_END_DECLS
 
-#endif /* _MEDIA_PLAYER_FACTORY_H */
+#endif /* _PLAYER_CONTROL_FACTORY_H */

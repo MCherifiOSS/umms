@@ -23,7 +23,7 @@
 
 #include "umms-debug.h"
 #include "umms-common.h"
-#include "media-player-factory.h"
+#include "player-control-factory.h"
 #include "media-player-control.h"
 #include "player-control-tv.h"
 #include "player-control-generic.h"
@@ -32,23 +32,23 @@
 
 
 /*
- * G_DEFINE_TYPE (MediaPlayerFactory, media_player_factory, TYPE_MEDIA_PLAYER)
+ * G_DEFINE_TYPE (PlayerControlFactory, player_control_factory, TYPE_MEDIA_PLAYER)
  */
-G_DEFINE_TYPE (MediaPlayerFactory, media_player_factory, G_TYPE_OBJECT)
+G_DEFINE_TYPE (PlayerControlFactory, player_control_factory, G_TYPE_OBJECT)
 
 #define PLAYER_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), TYPE_MEDIA_PLAYER_FACTORY, MediaPlayerFactoryPrivate))
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), PLAYER_CONTROL_TYPE_FACTORY, PlayerControlFactoryPrivate))
 
-#define GET_PRIVATE(o) ((MediaPlayerFactory *)o)->priv
+#define GET_PRIVATE(o) ((PlayerControlFactory *)o)->priv
 
 enum EngineType {
-  MEDIA_PLAYER_FACTORY_ENGINE_TYPE_INVALID,
-  MEDIA_PLAYER_FACTORY_ENGINE_TYPE_NORMAL,
-  MEDIA_PLAYER_FACTORY_ENGINE_TYPE_DVB,
-  N_MEDIA_PLAYER_FACTORY_ENGINE_TYPE
+  PLAYER_CONTROL_FACTORY_ENGINE_TYPE_INVALID,
+  PLAYER_CONTROL_FACTORY_ENGINE_TYPE_NORMAL,
+  PLAYER_CONTROL_FACTORY_ENGINE_TYPE_DVB,
+  N_PLAYER_CONTROL_FACTORY_ENGINE_TYPE
 };
 
-struct _MediaPlayerFactoryPrivate {
+struct _PlayerControlFactoryPrivate {
   enum EngineType engine_type;
   PlatformType platform_type;
 };
@@ -63,7 +63,6 @@ enum {
   PROP_PLATFORM,
   PROP_LAST
 };
-
 
 
 /*
@@ -89,7 +88,7 @@ MediaPlayerControl* player_control_fake_new(void)
 
 typedef MediaPlayerControl* (*func)(void);
 
-MediaPlayerControl* (*engine_factory[PLATFORM_INVALID][N_MEDIA_PLAYER_FACTORY_ENGINE_TYPE])(void) =
+MediaPlayerControl* (*engine_factory[PLATFORM_INVALID][N_PLAYER_CONTROL_FACTORY_ENGINE_TYPE])(void) =
 {
 /*00*/player_control_fake_new, 
 /*01: CETV-Normal*/ (func)player_control_tv_new,
@@ -105,7 +104,7 @@ create_engine (gint engine_type, PlatformType platform)
   MediaPlayerControl *engine = NULL;
   UMMS_DEBUG ("Trying to create engine type (%d) on platform (%d)", engine_type, platform);
 
-  g_return_val_if_fail((engine_type < N_MEDIA_PLAYER_FACTORY_ENGINE_TYPE), NULL); 
+  g_return_val_if_fail((engine_type < N_PLAYER_CONTROL_FACTORY_ENGINE_TYPE), NULL); 
   g_return_val_if_fail((platform < PLATFORM_INVALID), NULL); 
   g_return_val_if_fail(( engine_factory[platform][engine_type] != NULL), NULL); 
 
@@ -115,9 +114,9 @@ create_engine (gint engine_type, PlatformType platform)
 
 #if 0
   g_print("addr of engien: %x\n", engine_factory[platform][engine_type]);
-  if (engine_type == MEDIA_PLAYER_FACTORY_ENGINE_TYPE_DVB)
+  if (engine_type == PLAYER_CONTROL_FACTORY_ENGINE_TYPE_DVB)
     engine = dvb_player_new();
-  else if (engine_type == MEDIA_PLAYER_FACTORY_ENGINE_TYPE_NORMAL)
+  else if (engine_type == PLAYER_CONTROL_FACTORY_ENGINE_TYPE_NORMAL)
     engine = engine_gst_new();
   else {
     UMMS_DEBUG ("Unknown engine type (%d)", engine_type);
@@ -130,18 +129,18 @@ create_engine (gint engine_type, PlatformType platform)
 /* extend API to support multi-platform and multi-engine
  *
  */
-static MediaPlayerControl* media_player_factory_load_engine (MediaPlayerFactory *self, const char *uri, gboolean *new_engine)
+static MediaPlayerControl* player_control_factory_load_engine (PlayerControlFactory *self, const char *uri, gboolean *new_engine)
 {
   gboolean updated;
   gint type;
-  MediaPlayerFactoryPrivate *priv = NULL;
+  PlayerControlFactoryPrivate *priv = NULL;
   MediaPlayerControl *player_control = NULL;
 
-  g_return_val_if_fail (IS_MEDIA_PLAYER_FACTORY(self), FALSE);
+  g_return_val_if_fail (IS_PLAYER_CONTROL_FACTORY(self), FALSE);
   g_return_val_if_fail (uri, FALSE);
 
   priv = self->priv;
-  type = (g_str_has_prefix (uri, TV_PREFIX)) ? (MEDIA_PLAYER_FACTORY_ENGINE_TYPE_DVB): (MEDIA_PLAYER_FACTORY_ENGINE_TYPE_NORMAL);
+  type = (g_str_has_prefix (uri, TV_PREFIX)) ? (PLAYER_CONTROL_FACTORY_ENGINE_TYPE_DVB): (PLAYER_CONTROL_FACTORY_ENGINE_TYPE_NORMAL);
 
   if (priv->engine_type == type) {
     UMMS_DEBUG ("Already loaded engine(type = %d), no need to load again", type);
@@ -164,18 +163,18 @@ static MediaPlayerControl* media_player_factory_load_engine (MediaPlayerFactory 
 }
 
 #if 0
-static gboolean media_player_factory_load_engine (MediaPlayer *player, const char *uri, gboolean *new_engine)
+static gboolean player_control_factory_load_engine (PlayerControl *player, const char *uri, gboolean *new_engine)
 {
   gboolean ret;
   gboolean updated;
   gint type;
-  MediaPlayerFactoryPrivate *priv;
+  PlayerControlFactoryPrivate *priv;
 
-  g_return_val_if_fail (IS_MEDIA_PLAYER_FACTORY(player), FALSE);
+  g_return_val_if_fail (IS_PLAYER_CONTROL_FACTORY(player), FALSE);
   g_return_val_if_fail (uri, FALSE);
 
   priv = GET_PRIVATE(player);
-  type = (g_str_has_prefix (uri, TV_PREFIX)) ? (MEDIA_PLAYER_FACTORY_ENGINE_TYPE_DVB): (MEDIA_PLAYER_FACTORY_ENGINE_TYPE_NORMAL);
+  type = (g_str_has_prefix (uri, TV_PREFIX)) ? (PLAYER_CONTROL_FACTORY_ENGINE_TYPE_DVB): (PLAYER_CONTROL_FACTORY_ENGINE_TYPE_NORMAL);
 
   if (!player->player_control) {
     UMMS_DEBUG ("We have no engine loaded, to load one(type = %d)", type);
@@ -208,12 +207,12 @@ static gboolean media_player_factory_load_engine (MediaPlayer *player, const cha
 
 
 static void
-media_player_factory_get_property (GObject    *object,
+player_control_factory_get_property (GObject    *object,
     guint       property_id,
     GValue     *value,
     GParamSpec *pspec)
 {
-  MediaPlayerFactoryPrivate *priv = GET_PRIVATE (object);
+  PlayerControlFactoryPrivate *priv = GET_PRIVATE (object);
   gint tmp;
   switch (property_id) {
     case PROP_PLATFORM:
@@ -225,12 +224,12 @@ media_player_factory_get_property (GObject    *object,
 }
 
 static void
-media_player_factory_set_property (GObject      *object,
+player_control_factory_set_property (GObject      *object,
     guint         property_id,
     const GValue *value,
     GParamSpec   *pspec)
 {
-  MediaPlayerFactoryPrivate *priv = GET_PRIVATE (object);
+  PlayerControlFactoryPrivate *priv = GET_PRIVATE (object);
   gint tmp;
   switch (property_id) {
     case PROP_PLATFORM:
@@ -243,37 +242,37 @@ media_player_factory_set_property (GObject      *object,
 }
 
 static void
-media_player_factory_dispose (GObject *object)
+player_control_factory_dispose (GObject *object)
 {
-  //MediaPlayerFactoryPrivate *priv = GET_PRIVATE (object);
+  //PlayerControlFactoryPrivate *priv = GET_PRIVATE (object);
 
-  G_OBJECT_CLASS (media_player_factory_parent_class)->dispose (object);
+  G_OBJECT_CLASS (player_control_factory_parent_class)->dispose (object);
 }
 
 static void
-media_player_factory_finalize (GObject *object)
+player_control_factory_finalize (GObject *object)
 {
-  G_OBJECT_CLASS (media_player_factory_parent_class)->finalize (object);
+  G_OBJECT_CLASS (player_control_factory_parent_class)->finalize (object);
 }
 
 static void
-media_player_factory_class_init (MediaPlayerFactoryClass *klass)
+player_control_factory_class_init (PlayerControlFactoryClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 /*
-  MediaPlayerClass *p_class = MEDIA_PLAYER_CLASS (klass);
+  PlayerControlClass *p_class = PLAYER_CONTROL_CLASS (klass);
 */
 
-  g_type_class_add_private (klass, sizeof (MediaPlayerFactoryPrivate));
+  g_type_class_add_private (klass, sizeof (PlayerControlFactoryPrivate));
 
-  object_class->get_property = media_player_factory_get_property;
-  object_class->set_property = media_player_factory_set_property;
-  object_class->dispose = media_player_factory_dispose;
-  object_class->finalize = media_player_factory_finalize;
-  klass->load_engine = media_player_factory_load_engine;
+  object_class->get_property = player_control_factory_get_property;
+  object_class->set_property = player_control_factory_set_property;
+  object_class->dispose = player_control_factory_dispose;
+  object_class->finalize = player_control_factory_finalize;
+  klass->load_engine = player_control_factory_load_engine;
 
 /*
-  p_class->load_engine = media_player_factory_load_engine;
+  p_class->load_engine = player_control_factory_load_engine;
 */
 
   g_object_class_install_property (object_class, PROP_PLATFORM,
@@ -282,21 +281,21 @@ media_player_factory_class_init (MediaPlayerFactoryClass *klass)
 }
 
 static void
-media_player_factory_init (MediaPlayerFactory *self)
+player_control_factory_init (PlayerControlFactory *self)
 {
-  MediaPlayerFactoryPrivate *priv;
+  PlayerControlFactoryPrivate *priv;
 
   self->priv = PLAYER_PRIVATE (self);
   priv = self->priv;
 
-  priv->engine_type = MEDIA_PLAYER_FACTORY_ENGINE_TYPE_INVALID;
+  priv->engine_type = PLAYER_CONTROL_FACTORY_ENGINE_TYPE_INVALID;
 
 }
 
-MediaPlayerFactory *
-media_player_factory_new (void)
+PlayerControlFactory *
+player_control_factory_new (void)
 {
-  return g_object_new (TYPE_MEDIA_PLAYER_FACTORY, NULL);
+  return g_object_new (PLAYER_CONTROL_TYPE_FACTORY, NULL);
 }
 
 

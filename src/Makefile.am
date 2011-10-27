@@ -25,8 +25,8 @@ umms_server_SOURCES = umms-common.h \
                       umms-server-main.c \
                       media-player.c \
                       media-player.h \
-                      media-player-factory.c \
-                      media-player-factory.h \
+                      player-control-factory.c \
+                      player-control-factory.h \
                       media-player-control.c \
                       media-player-control.h \
                       player-control-base.c \

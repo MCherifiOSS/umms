@@ -251,11 +251,11 @@ gboolean media_player_load_engine (MediaPlayer *player, const gchar *uri, gboole
 {
   MediaPlayerClass *kclass = MEDIA_PLAYER_GET_CLASS (player);
   MediaPlayerPrivate *priv = GET_PRIVATE (player);
-  MediaPlayerFactory *factory = player->factory;
+  PlayerControlFactory *factory = player->factory;
 
   if(factory == NULL){
     /*new a factory*/
-    factory = player->factory = (MediaPlayerFactory *)g_object_new (TYPE_MEDIA_PLAYER_FACTORY,
+    factory = player->factory = (PlayerControlFactory *)g_object_new (PLAYER_CONTROL_TYPE_FACTORY,
                                         "platform", priv->platform_type,
                                         NULL);
     if(!factory){
@@ -266,7 +266,7 @@ gboolean media_player_load_engine (MediaPlayer *player, const gchar *uri, gboole
 
   if(player->player_control == NULL){
     /*load a new engine*/
-    MediaPlayerFactoryClass *fclass = MEDIA_PLAYER_FACTORY_GET_CLASS(factory);
+    PlayerControlFactoryClass *fclass = PLAYER_CONTROL_FACTORY_GET_CLASS(factory);
     UMMS_DEBUG ("We have no engine loaded, to load one");
     if(fclass->load_engine == NULL){
       UMMS_DEBUG("NULL Load Engine\n");

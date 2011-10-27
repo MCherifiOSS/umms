@@ -26,7 +26,7 @@
 
 #include <glib-object.h>
 #include "media-player-control.h"
-#include "media-player-factory.h"
+#include "player-control-factory.h"
 
 G_BEGIN_DECLS
 
@@ -61,7 +61,7 @@ struct _MediaPlayer
   GObject parent;
   MediaPlayerControl *player_control;
 
-  MediaPlayerFactory *factory;
+  PlayerControlFactory *factory;
 
   MediaPlayerPrivate *priv;
 };
