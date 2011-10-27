@@ -46,7 +46,7 @@ G_DEFINE_TYPE (PlayerControlGeneric, player_control_generic, PLAYER_CONTROL_TYPE
 
 /*virtual Apis: */
 static gboolean
-set_target (MediaPlayerControl *self, gint type, GHashTable *params)
+set_target (PlayerControlBase *self, gint type, GHashTable *params)
 {
   gboolean ret = TRUE;
   PlayerControlBasePrivate *priv = GET_PRIVATE (self);

@@ -73,8 +73,19 @@ struct _PlayerControlBaseClass
   GObjectClass parent_class;
 
   /*virtual APIs*/
+  /*platform specified*/
   gboolean (*activate_player_control) (PlayerControlBase *self, GstState target_state);
   gboolean (*set_target) (PlayerControlBase *self, gint type, GHashTable *params);
+
+  void     (*release_resource) (PlayerControlBase *self);
+  gboolean (*request_resource) (PlayerControlBase *self);
+  gboolean (*setup_xwindow_target) (PlayerControlBase *self, GHashTable *params);
+  gboolean (*unset_xwindow_target) (PlayerControlBase *self);
+  gboolean (*setup_ismd_vbin)(PlayerControlBase *self, gchar *rect, gint plane);
+  gboolean (*set_subtitle_uri) (PlayerControlBase *self, gchar *sub_uri);
+
+  /*used by both base class and platform specified class*/
+  void     (*set_proxy) (PlayerControlBase *self);
 };
 
 GType player_control_base_get_type (void) G_GNUC_CONST;

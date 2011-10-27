@@ -216,8 +216,9 @@ player_control_factory_get_property (GObject    *object,
   gint tmp;
   switch (property_id) {
     case PROP_PLATFORM:
-      priv->platform_type = g_value_get_int(value);
-      UMMS_DEBUG("platform type: %d", tmp);
+      g_value_set_int(value, priv->platform_type);
+      UMMS_DEBUG("platform type: %d", priv->platform_type);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
   }
@@ -233,8 +234,8 @@ player_control_factory_set_property (GObject      *object,
   gint tmp;
   switch (property_id) {
     case PROP_PLATFORM:
-      g_value_set_int(value, priv->platform_type);
-      UMMS_DEBUG("platform type: %d", priv->platform_type);
+      priv->platform_type = g_value_get_int(value);
+      UMMS_DEBUG("platform type: %d", tmp);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
