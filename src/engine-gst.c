@@ -406,6 +406,7 @@ static gboolean setup_ismd_vbin(MediaPlayerControl *self, gchar *rect, gint plan
     g_object_set (vsink, "gdl-plane", plane, NULL);
 
   if (new_vsink) {
+    g_object_set (new_vsink, "qos", FALSE, NULL);
     g_object_set (priv->pipeline, "video-sink", vsink, NULL);
     UMMS_DEBUG ("Set ismd_vidrend_bin to playbin2");
   }
