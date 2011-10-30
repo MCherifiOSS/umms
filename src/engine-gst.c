@@ -153,6 +153,19 @@ struct _EngineGstPrivate {
   GstTagList *tag_list;
   gchar *title;
   gchar *artist;
+
+  /*audio/video tag stuff*/
+  //stream number
+  gint video_stream_id;
+  gint audio_stream_id;
+
+  //idle source id
+  guint video_tags_change_id;
+  guint audio_tags_change_id;
+
+  //locks for idle source
+  GMutex *video_tags_change_lock;
+  GMutex *audio_tags_change_lock;
 };
 
 static gboolean _query_buffering_percent (GstElement *pipe, gdouble *percent);
@@ -2884,6 +2897,22 @@ engine_gst_dispose (GObject *object)
     gst_tag_list_free(priv->tag_list);
   priv->tag_list = NULL;
 
+  if (priv->video_tags_change_id) {
+    g_source_remove (priv->video_tags_change_id);
+  }
+
+  if (priv->audio_tags_change_id) {
+    g_source_remove (priv->audio_tags_change_id);
+  }
+
+  if (priv->video_tags_change_lock) {
+    g_mutex_free (priv->video_tags_change_lock);
+  }
+
+  if (priv->audio_tags_change_lock) {
+    g_mutex_free (priv->audio_tags_change_lock);
+  }
+
   G_OBJECT_CLASS (engine_gst_parent_class)->dispose (object);
 }
 
@@ -2972,6 +3001,7 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   EngineGstPrivate *priv = GET_PRIVATE (self);
   GstPad * src_pad = NULL;
   GstTagList * tag_list = NULL;
+  GstTagList * result_list = NULL;
   gchar * pad_name = NULL;
   gchar * element_name = NULL;
   gchar * title = NULL;
@@ -3019,8 +3049,12 @@ bus_message_get_tag_cb (GstBus *bus, GstMessage *message, EngineGst  *self)
   }
 
   //tag_list will be freed in gst_tag_list_merge(), so we don't need to free it by ourself
-  priv->tag_list =
+  result_list =
     gst_tag_list_merge(priv->tag_list, tag_list, GST_TAG_MERGE_REPLACE);
+
+  if (priv->tag_list)
+    gst_tag_list_free (priv->tag_list);
+  priv->tag_list = result_list;
 
 #if 0
   gint size, i;
@@ -3277,25 +3311,78 @@ bus_sync_handler (GstBus *bus,
   return( GST_BUS_DROP );
 }
 
+
+
+static gboolean video_tags_changed_nofity (EngineGst *player)                                
+{                                                                               
+  EngineGstPrivate *priv = GET_PRIVATE (player);                                
+  //UMMS_DEBUG ("Begin");
+  g_mutex_lock (priv->video_tags_change_lock);                               
+  media_player_control_emit_video_tag_changed(player, priv->video_stream_id);
+  priv->video_tags_change_id = 0;                                            
+  g_mutex_unlock (priv->video_tags_change_lock);                             
+  //UMMS_DEBUG ("End");
+  return FALSE;                                                                 
+};
+
+static gboolean audio_tags_changed_nofity (EngineGst *player)                 
+{                                                                               
+  EngineGstPrivate *priv = GET_PRIVATE (player);                                
+  //UMMS_DEBUG ("Begin");
+  g_mutex_lock (priv->audio_tags_change_lock);                               
+  media_player_control_emit_audio_tag_changed(player, priv->audio_stream_id);
+  priv->audio_tags_change_id = 0;                                            
+  g_mutex_unlock (priv->audio_tags_change_lock);                             
+  //UMMS_DEBUG ("End");
+  return FALSE;                                                                 
+};
+
 static void
 video_tags_changed_cb (GstElement *playbin2, gint stream_id, gpointer user_data) /* Used as tag change monitor. */
 {
-  EngineGst * priv = (EngineGst *) user_data;
-  media_player_control_emit_video_tag_changed(priv, stream_id);
+  EngineGst * player = (EngineGst *) user_data;
+  EngineGstPrivate *priv = GET_PRIVATE (player);
+  gint cur_stream_id = 0;
+
+  UMMS_DEBUG ("Begin");
+  g_object_get (G_OBJECT (playbin2), "current-video", &cur_stream_id, NULL);
+
+  /* Only get the updated tags if it's for our current stream id */
+  if (cur_stream_id != stream_id)
+    return;
+
+  g_mutex_lock (priv->video_tags_change_lock);
+  priv->video_stream_id = stream_id;
+  if (priv->video_tags_change_id) {
+    g_source_remove (priv->video_tags_change_id);
+  }
+  priv->video_tags_change_id = g_idle_add ((GSourceFunc) video_tags_changed_nofity, player);
+  g_mutex_unlock (priv->video_tags_change_lock);
+  UMMS_DEBUG ("End");
 }
 
 static void
 audio_tags_changed_cb (GstElement *playbin2, gint stream_id, gpointer user_data) /* Used as tag change monitor. */
 {
-  EngineGst * priv = (EngineGst *) user_data;
-  media_player_control_emit_audio_tag_changed(priv, stream_id);
-}
+  EngineGst * player = (EngineGst *) user_data;
+  EngineGstPrivate *priv = GET_PRIVATE (player);
+  gint cur_stream_id = 0;
 
-static void
-text_tags_changed_cb (GstElement *playbin2, gint stream_id, gpointer user_data) /* Used as tag change monitor. */
-{
-  EngineGst * priv = (EngineGst *) user_data;
-  media_player_control_emit_text_tag_changed(priv, stream_id);
+  UMMS_DEBUG ("Begin");
+  g_object_get (G_OBJECT (playbin2), "current-audio", &cur_stream_id, NULL);
+
+  /* Only get the updated tags if it's for our current stream id */
+  if (cur_stream_id != stream_id)
+    return;
+
+  g_mutex_lock (priv->audio_tags_change_lock);
+  priv->audio_stream_id = stream_id;
+  if (priv->audio_tags_change_id) {
+    g_source_remove (priv->audio_tags_change_id);
+  }
+  priv->audio_tags_change_id = g_idle_add ((GSourceFunc) audio_tags_changed_nofity, player);
+  g_mutex_unlock (priv->audio_tags_change_lock);
+  UMMS_DEBUG ("End");
 }
 
 /* GstPlayFlags flags from playbin2 */
@@ -3369,9 +3456,6 @@ engine_gst_init (EngineGst *self)
   g_signal_connect (priv->pipeline,
                     "audio-tags-changed", G_CALLBACK (audio_tags_changed_cb), self);
 
-  g_signal_connect (priv->pipeline,
-                    "text-tags-changed", G_CALLBACK (text_tags_changed_cb), self);
-
   /*
    *Use GST_PLAY_FLAG_DOWNLOAD flag to enable Gstreamer Download buffer mode,
    *so that we can query the buffered time/bytes, and further the time rangs.
@@ -3388,6 +3472,15 @@ engine_gst_init (EngineGst *self)
   priv->res_list = NULL;
 
   priv->tag_list = NULL;
+
+  priv->video_stream_id = 0;
+  priv->video_tags_change_id = 0;
+  priv->video_tags_change_lock = g_mutex_new ();
+
+  priv->audio_stream_id = 0;
+  priv->audio_tags_change_id = 0;
+  priv->audio_tags_change_lock = g_mutex_new ();
+  
 
   //Setup default target.
 #define FULL_SCREEN_RECT "0,0,0,0"
