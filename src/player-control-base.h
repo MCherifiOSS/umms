@@ -81,7 +81,6 @@ struct _PlayerControlBaseClass
   gboolean (*request_resource) (PlayerControlBase *self);
   gboolean (*setup_xwindow_target) (PlayerControlBase *self, GHashTable *params);
   gboolean (*unset_xwindow_target) (PlayerControlBase *self);
-  gboolean (*setup_ismd_vbin)(PlayerControlBase *self, gchar *rect, gint plane);
   gboolean (*set_subtitle_uri) (PlayerControlBase *self, gchar *sub_uri);
 
   /*used by both base class and platform specified class*/

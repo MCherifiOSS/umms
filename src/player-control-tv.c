@@ -76,6 +76,7 @@ static gchar *live_src_uri[] = {"mms://", "mmsh://", "rtsp://",
 })
 
 static void uri_parser_bus_message_error_cb (GstBus *bus, GstMessage *message, PlayerControlBase  *self);
+static gboolean setup_ismd_vbin(PlayerControlBase *self, gchar *rect, gint plane);
 
 #define HW_FORMAT_NUM 4
 #define HW_H264_CAPS \
@@ -561,7 +562,8 @@ static gboolean setup_gdl_plane_target (MediaPlayerControl *self, GHashTable *pa
     UMMS_DEBUG ("gdl plane = '%d'", plane);
   }
 
-  return kclass->setup_ismd_vbin (pbase, rect, plane);
+  return setup_ismd_vbin (pbase, rect, plane);
+  //return kclass->setup_ismd_vbin (pbase, rect, plane);
 }
 
 /*
@@ -949,7 +951,8 @@ static gboolean setup_xwindow_target (PlayerControlBase *self, GHashTable *param
   rectangle_des = g_strdup_printf ("%u,%u,%u,%u", x, y, w, h);
 
   UMMS_DEBUG ("set rectangle damension :'%s'", rectangle_des);
-  kclass->setup_ismd_vbin (self, rectangle_des, INVALID_PLANE_ID);
+  setup_ismd_vbin (self, rectangle_des, INVALID_PLANE_ID);
+  //kclass->setup_ismd_vbin (self, rectangle_des, INVALID_PLANE_ID);
   g_free (rectangle_des);
 
   //Monitor top-level window's structure change event.
@@ -1154,7 +1157,7 @@ player_control_tv_class_init (PlayerControlTvClass *klass)
   parent_class->set_target = set_target;
   parent_class->unset_xwindow_target = unset_xwindow_target;
   parent_class->setup_xwindow_target = setup_xwindow_target;
-  parent_class->setup_ismd_vbin = setup_ismd_vbin;
+  //parent_class->setup_ismd_vbin = setup_ismd_vbin;
   parent_class->set_subtitle_uri = set_subtitle_uri;
 
 }
@@ -1166,6 +1169,10 @@ player_control_tv_init (PlayerControlTv *self)
   GstBus *bus;
 
   UMMS_DEBUG("Called");
+
+#define FULL_SCREEN_RECT "0,0,0,0"
+  setup_ismd_vbin (self, FULL_SCREEN_RECT, UPP_A);
+
 }
 
 PlayerControlTv *

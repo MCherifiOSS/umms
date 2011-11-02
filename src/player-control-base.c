@@ -168,19 +168,6 @@ unset_xwindow_target (PlayerControlBase *self)
   return TRUE;
 }
 
-static gboolean setup_ismd_vbin(PlayerControlBase *self, gchar *rect, gint plane)
-{
-  GstElement *cur_vsink = NULL;
-  GstElement *new_vsink = NULL;
-  GstElement *vsink = NULL;
-  gboolean   ret = TRUE;
-  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
-  UMMS_DEBUG("virtual APIs default Impl: NULL");
-
-  return ret;
-}
-
-
 static gboolean
 set_target (PlayerControlBase *self, gint type, GHashTable *params)
 {
@@ -2220,7 +2207,6 @@ player_control_base_class_init (PlayerControlBaseClass *klass)
   klass->request_resource = request_resource;
   klass->unset_xwindow_target = unset_xwindow_target;
   klass->setup_xwindow_target = setup_xwindow_target;
-  klass->setup_ismd_vbin = setup_ismd_vbin;
   klass->set_subtitle_uri = set_subtitle_uri;
 }
 
@@ -2569,8 +2555,10 @@ player_control_base_init (PlayerControlBase *self)
   priv->tag_list = NULL;
 
   //Setup default target.
+  /*
 #define FULL_SCREEN_RECT "0,0,0,0"
   kclass->setup_ismd_vbin (self, FULL_SCREEN_RECT, UPP_A);
+*/
   priv->target_type = ReservedType0;
   priv->target_initialized = TRUE;
 }
