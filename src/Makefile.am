@@ -35,8 +35,12 @@ umms_server_SOURCES = umms-common.h \
                       player-control-tv.h \
                       player-control-generic.c \
                       player-control-generic.h \
-                      engine-dvb-generic.c \
-                      engine-dvb-generic.h \
+                      dvb-player-control-base.c \
+                      dvb-player-control-base.h \
+                      dvb-player-control-tv.c \
+                      dvb-player-control-tv.h \
+                      dvb-player-control-generic.c \
+                      dvb-player-control-generic.h \
                       umms-object-manager.c \
                       umms-object-manager.h \
                       param-table.c \
@@ -51,8 +55,6 @@ umms_server_SOURCES = umms-common.h \
                       audio-manager-interface.h \
                       audio-manager-engine.c \
                       audio-manager-engine.h \
-                      dvb-player.c \
-                      dvb-player.h \
                       $(GENERATED_SOURCE)
 
 %.c: %.list Makefile.am

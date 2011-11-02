@@ -27,8 +27,11 @@
 #include "media-player-control.h"
 #include "player-control-tv.h"
 #include "player-control-generic.h"
-#include "engine-dvb-generic.h"
-#include "dvb-player.h"
+
+#include "dvb-player-control-tv.h"
+#include "dvb-player-control-generic.h"
+#include "dvb-player-control-base.h"
+
 
 
 /*
@@ -92,10 +95,10 @@ MediaPlayerControl* (*engine_factory[PLATFORM_INVALID][N_PLAYER_CONTROL_FACTORY_
 {
 /*00*/player_control_fake_new, 
 /*01: CETV-Normal*/ (func)player_control_tv_new,
-/*02: CETV-DVB*/(func)dvb_player_new,
+/*02: CETV-DVB*/(func)dvb_player_control_tv_new,
 /*10: */NULL,
 /*11: Netbook->Normal*/ (func)player_control_generic_new,
-/*12: Netbook->DVB*/ (func)engine_dvb_generic_new
+/*12: Netbook->DVB*/ (func)dvb_player_control_generic_new
 };
 
 MediaPlayerControl *
