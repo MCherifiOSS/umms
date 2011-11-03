@@ -30,7 +30,7 @@
 #include "test-common.h"
 #include "../src/umms-debug.h"
 #include "../src/media-player-control.h"
-#include "../src/engine-gst.h"
+#include "../src/player-control-tv.h"
 
 extern gboolean to_continue;
 GMainLoop *loop = NULL;
@@ -241,7 +241,7 @@ int main (int argc, char **argv)
   g_type_init ();
   gst_init (&argc, &argv);
 
-  player = (MediaPlayerControl*)engine_gst_new();
+  player = (MediaPlayerControl*)player_control_tv_new();
   connect_sigs (player);
 
   loop = g_main_loop_new (NULL, TRUE);

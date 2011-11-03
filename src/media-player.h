@@ -26,6 +26,7 @@
 
 #include <glib-object.h>
 #include "media-player-control.h"
+#include "player-control-factory.h"
 
 G_BEGIN_DECLS
 
@@ -60,6 +61,8 @@ struct _MediaPlayer
   GObject parent;
   MediaPlayerControl *player_control;
 
+  PlayerControlFactory *factory;
+
   MediaPlayerPrivate *priv;
 };
 
@@ -68,6 +71,7 @@ struct _MediaPlayerClass
 {
     GObjectClass parent_class;
 
+#if 0
     /*
      *
      * self:            A MediaPlayer
@@ -83,6 +87,7 @@ struct _MediaPlayerClass
      *          
      */
     gboolean (*load_engine) (MediaPlayer *self, const char *uri, gboolean *new_engine);
+#endif
 
 };
 

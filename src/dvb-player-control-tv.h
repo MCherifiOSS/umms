@@ -21,57 +21,55 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef _ENGINE_GST_H
-#define _ENGINE_GST_H
+#ifndef _DVB_PLAYER_CONTROL_TV_H
+#define _DVB_PLAYER_CONTROL_TV_H
 
 #include <glib-object.h>
+#include "dvb-player-control-base.h" 
 
 G_BEGIN_DECLS
 
-#define ENGINE_TYPE_GST engine_gst_get_type()
+#define DVB_PLAYER_CONTROL_TYPE_TV dvb_player_control_tv_get_type()
 
-#define ENGINE_GST(obj) \
+#define DVB_PLAYER_CONTROL_TV(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST ((obj), \
-  ENGINE_TYPE_GST, EngineGst))
+  DVB_PLAYER_CONTROL_TYPE_TV, DvbPlayerControlTv))
 
-#define ENGINE_GST_CLASS(klass) \
+#define DVB_PLAYER_CONTROL_TV_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_CAST ((klass), \
-  ENGINE_TYPE_GST, EngineGstClass))
+  DVB_PLAYER_CONTROL_TYPE_TV, DvbPlayerControlTvClass))
 
-#define ENGINE_IS_GST(obj) \
+#define DVB_PLAYER_CONTROL_IS_TV(obj) \
   (G_TYPE_CHECK_INSTANCE_TYPE ((obj), \
-  ENGINE_TYPE_GST))
+  DVB_PLAYER_CONTROL_TYPE_TV))
 
-#define ENGINE_IS_GST_CLASS(klass) \
+#define DVB_PLAYER_CONTROL_IS_TV_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE ((klass), \
-  ENGINE_TYPE_GST))
+  DVB_PLAYER_CONTROL_TYPE_TV))
 
-#define ENGINE_GST_GET_CLASS(obj) \
+#define DVB_PLAYER_CONTROL_TV_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), \
-  ENGINE_TYPE_GST, EngineGstClass))
+  DVB_PLAYER_CONTROL_TYPE_TV, DvbPlayerControlTvClass))
 
-typedef struct _EngineGst EngineGst;
-typedef struct _EngineGstClass EngineGstClass;
-typedef struct _EngineGstPrivate EngineGstPrivate;
+typedef struct _DvbPlayerControlTv DvbPlayerControlTv;
+typedef struct _DvbPlayerControlTvClass DvbPlayerControlTvClass;
 
-struct _EngineGst
+struct _DvbPlayerControlTv
 {
-  GObject parent;
-
-  EngineGstPrivate *priv;
-};
-
-
-struct _EngineGstClass
-{
-  GObjectClass parent_class;
+  //  GObject parent;
+  DvbPlayerControlBase parent;
 
 };
 
-GType engine_gst_get_type (void) G_GNUC_CONST;
+struct _DvbPlayerControlTvClass
+{
+  DvbPlayerControlBaseClass parent_class;
+};
 
-EngineGst *engine_gst_new (void);
+GType dvb_player_control_tv_get_type (void) G_GNUC_CONST;
+
+DvbPlayerControlTv *dvb_player_control_tv_new (void);
 
 G_END_DECLS
 
-#endif /* _ENGINE_GST_H */
+#endif /* _DVB_PLAYER_CONTROL_TV_H */

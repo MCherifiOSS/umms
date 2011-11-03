@@ -1,78 +1,78 @@
-/* 
+/*
  * UMMS (Unified Multi Media Service) provides a set of DBus APIs to support
  * playing Audio and Video as well as DVB playback.
  *
  * Authored by Zhiwen Wu <zhiwen.wu@intel.com>
  *             Junyan He <junyan.he@intel.com>
  * Copyright (c) 2011 Intel Corp.
- * 
+ *
  * UMMS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * UMMS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with UMMS; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef _MEDIA_PLAYER_FACTORY_H
-#define _MEDIA_PLAYER_FACTORY_H
+#ifndef _DVB_PLAYER_CONTROL_GENERIC_H 
+#define _DVB_PLAYER_CONTROL_GENERIC_H
 
 #include <glib-object.h>
-#include <media-player.h>
+#include "dvb-player-control-base.h" 
 
 G_BEGIN_DECLS
 
-#define TYPE_MEDIA_PLAYER_FACTORY media_player_factory_get_type()
+#define DVB_PLAYER_CONTROL_TYPE_GENERIC dvb_player_control_generic_get_type()
 
-#define MEDIA_PLAYER_FACTORY(obj) \
+#define DVB_PLAYER_CONTROL_GENERIC(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST ((obj), \
-  TYPE_MEDIA_PLAYER_FACTORY, MediaPlayerFactory))
+  DVB_PLAYER_CONTROL_TYPE_GENERIC, DvbPlayerControlGeneric))
 
-#define MEDIA_PLAYER_FACTORY_CLASS(klass) \
+#define DVB_PLAYER_CONTROL_GENERIC_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_CAST ((klass), \
-  TYPE_MEDIA_PLAYER_FACTORY, MediaPlayerFactoryClass))
+  DVB_PLAYER_CONTROL_TYPE_GENERIC, DvbPlayerControlGenericClass))
 
-#define IS_MEDIA_PLAYER_FACTORY(obj) \
+#define DVB_PLAYER_CONTROL_IS_GENERIC(obj) \
   (G_TYPE_CHECK_INSTANCE_TYPE ((obj), \
-  TYPE_MEDIA_PLAYER_FACTORY))
+  DVB_PLAYER_CONTROL_TYPE_GENERIC))
 
-#define IS_MEDIA_PLAYER_FACTORY_CLASS(klass) \
+#define DVB_PLAYER_CONTROL_IS_GENERIC_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE ((klass), \
-  TYPE_MEDIA_PLAYER_FACTORY))
+  DVB_PLAYER_CONTROL_TYPE_GENERIC))
 
-#define MEDIA_PLAYER_FACTORY_GET_CLASS(obj) \
+#define DVB_PLAYER_CONTROL_GENERIC_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), \
-  TYPE_MEDIA_PLAYER_FACTORY, MediaPlayerFactoryClass))
+  DVB_PLAYER_CONTROL_TYPE_GENERIC, DvbPlayerControlGenericClass))
 
-typedef struct _MediaPlayerFactory MediaPlayerFactory;
-typedef struct _MediaPlayerFactoryClass MediaPlayerFactoryClass;
-typedef struct _MediaPlayerFactoryPrivate MediaPlayerFactoryPrivate;
 
-struct _MediaPlayerFactory
+typedef struct _DvbPlayerControlGeneric DvbPlayerControlGeneric;
+typedef struct _DvbPlayerControlGenericClass DvbPlayerControlGenericClass;
+
+struct _DvbPlayerControlGeneric
 {
-  MediaPlayer parent;
-
-  MediaPlayerFactoryPrivate *priv;
+  //  GObject parent;
+  DvbPlayerControlBase parent;
 };
 
 
-struct _MediaPlayerFactoryClass
+struct _DvbPlayerControlGenericClass
 {
-  MediaPlayerClass parent_class;
-
+  //  GObjectClass parent_class;
+  DvbPlayerControlBaseClass parent_class;
 };
 
-GType media_player_factory_get_type (void) G_GNUC_CONST;
 
-MediaPlayerFactory *media_player_factory_new (void);
+GType dvb_player_control_generic_get_type (void) G_GNUC_CONST;
+
+DvbPlayerControlGeneric *dvb_player_control_generic_new (void);
 
 G_END_DECLS
 
-#endif /* _MEDIA_PLAYER_FACTORY_H */
+#endif /* _DVB_PLAYER_CONTROL_GENERIC_H */

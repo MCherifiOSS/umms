@@ -61,11 +61,11 @@ G_DEFINE_TYPE (MediaPlayer, media_player, G_TYPE_OBJECT)
 #define   DEFAULT_WIDTH  720
 #define   DEFAULT_HIGHT  576
 
-
 enum {
   PROP_0,
   PROP_NAME,
   PROP_ATTENDED,
+  PROP_PLATFORM,
   PROP_LAST
 };
 
@@ -119,6 +119,9 @@ struct _MediaPlayerPrivate {
 
   //Media player "snapshot", for suspend/restore operation.
   gint64   position;
+
+  /*platform type*/
+  PlatformType platform_type;
 
   };
 
@@ -248,7 +251,36 @@ gboolean media_player_load_engine (MediaPlayer *player, const gchar *uri, gboole
 {
   MediaPlayerClass *kclass = MEDIA_PLAYER_GET_CLASS (player);
   MediaPlayerPrivate *priv = GET_PRIVATE (player);
+  PlayerControlFactory *factory = player->factory;
 
+  if(factory == NULL){
+    /*new a factory*/
+    factory = player->factory = (PlayerControlFactory *)g_object_new (PLAYER_CONTROL_TYPE_FACTORY,
+                                        "platform", priv->platform_type,
+                                        NULL);
+    if(!factory){
+      UMMS_DEBUG("create factory failed\n");
+      return FALSE;
+    }
+  }
+
+  if(player->player_control == NULL){
+    /*load a new engine*/
+    PlayerControlFactoryClass *fclass = PLAYER_CONTROL_FACTORY_GET_CLASS(factory);
+    UMMS_DEBUG ("We have no engine loaded, to load one");
+    if(fclass->load_engine == NULL){
+      UMMS_DEBUG("NULL Load Engine\n");
+      return FALSE;
+    }
+    player->player_control = fclass->load_engine(factory, uri, new_engine);
+
+    if(player->player_control == NULL){
+      UMMS_DEBUG("create Engine failed\n");
+      return FALSE;
+    }
+  }
+
+#if 0
   if (!kclass->load_engine) {
     UMMS_DEBUG ("virtual method \"load_engine\" not implemented");
     return FALSE;
@@ -258,6 +290,7 @@ gboolean media_player_load_engine (MediaPlayer *player, const gchar *uri, gboole
     UMMS_DEBUG ("loading pipeline engine failed");
     return FALSE;
   }
+#endif
 
   if (*new_engine) {
     connect_signals (player, player->player_control);
@@ -378,6 +411,11 @@ media_player_stop (MediaPlayer *player,
 {
   if (player->player_control) {
     media_player_control_stop (player->player_control);
+    /*destory factory*/
+    if(player->factory){
+      g_object_unref (player->factory);
+      player->factory = NULL;
+    }
     g_object_unref (player->player_control);
     player->player_control = NULL;
   }
@@ -942,6 +980,10 @@ media_player_get_property (GObject    *object,
     case PROP_ATTENDED:
       g_value_set_boolean (value, priv->attended);
       break;
+    case PROP_PLATFORM:
+      g_value_set_int(value, priv->platform_type);
+      UMMS_DEBUG("platform type: %d", priv->platform_type);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
   }
@@ -965,6 +1007,10 @@ media_player_set_property (GObject      *object,
     case PROP_ATTENDED:
       priv->attended = g_value_get_boolean (value);
       UMMS_DEBUG ("attended=%d", priv->attended);
+      break;
+    case PROP_PLATFORM:
+      priv->platform_type = g_value_get_int(value);
+      UMMS_DEBUG("platform type: %d", tmp);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -1040,6 +1086,10 @@ media_player_class_init (MediaPlayerClass *klass)
   g_object_class_install_property (object_class, PROP_ATTENDED,
       g_param_spec_boolean ("attended", "Attended", "Flag to indicate whether this execution is attended",
           TRUE, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (object_class, PROP_PLATFORM,
+      g_param_spec_int ("platform", "platform type", "indication for platform type: Tv, netbook, etc",0,PLATFORM_INVALID,
+          CETV, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   media_player_signals[SIGNAL_MEDIA_PLAYER_Initialized] =
     g_signal_new ("initialized",

@@ -36,10 +36,12 @@
                 g_error_free(gerror); \
           }while(0)
 
+/* redefine 
 typedef enum {
     UMMS_ENGINE_ERROR_NOT_LOADED,
     UMMS_ENGINE_ERROR_FAILED
 }UmmsEngineError;
+*/
 
 typedef enum {
   SetUri,
@@ -74,6 +76,8 @@ typedef enum {
     NumOfErrorType
 }ErrorType;
 
+/*
+ * redefine
 typedef enum {
     PlayerStateNull,
     PlayerStatePaused,
@@ -81,6 +85,7 @@ typedef enum {
     PlayerStateStopped,
     NumOfPlayerState
 }PlayerState;
+*/
 
 
 extern const gchar *engine_error_str[];
