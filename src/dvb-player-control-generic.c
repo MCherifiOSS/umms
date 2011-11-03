@@ -288,11 +288,9 @@ static void autoplug_multiqueue (DvbPlayerControlBase *player,GstPad *srcpad,gch
 
 
 static void
-slice_init (DvbPlayerControlBase *self)
+element_link (GstElement *pipeline, DvbPlayerControlBase *self)
 {
   DvbPlayerControlBasePrivate *priv;
-  GstBus *bus;
-  GstElement *pipeline = NULL;
   GstElement *source = NULL;
   GstElement *front_queue = NULL;
   GstElement *tsdemux = NULL;
@@ -302,14 +300,6 @@ slice_init (DvbPlayerControlBase *self)
 
   self->priv = PLAYER_PRIVATE (self);
   priv = self->priv;
-
-  priv->pipeline = pipeline = gst_pipeline_new ("dvb-player-control-generic");
-  if (!pipeline) {
-    UMMS_DEBUG ("Creating pipeline elment failed");
-    goto failed;
-  }
-
-  kclass->bus_group(pipeline,self);
 
 /*frontend pipeline: dvbsrc --> queue  --> flutsdemux*/
 #ifdef DVB_SRC
@@ -391,9 +381,17 @@ failed:
 static void
 dvb_player_control_generic_init (DvbPlayerControlGeneric *self)
 {
-  UMMS_DEBUG("dvb_player_control_generic_init derived one");
-  slice_init(self);
+  GstElement *pipeline = NULL;
+  DvbPlayerControlBaseClass *kclass = DVB_PLAYER_CONTROL_BASE_GET_CLASS((DvbPlayerControlBase *)self);
 
+  pipeline = kclass->pipeline_init((DvbPlayerControlBase *)self);
+
+  if(pipeline==NULL){
+    UMMS_DEBUG("dvb_player_control_generic_init pipeline error.");
+    return;
+  }
+
+  element_link(pipeline,(DvbPlayerControlBase *)self);
   return;
 }
 
@@ -401,6 +399,7 @@ static void
 dvb_player_control_generic_class_init (DvbPlayerControlGenericClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
+ 
 
   g_type_class_add_private (klass, sizeof (DvbPlayerControlBasePrivate));
 
@@ -422,7 +421,7 @@ dvb_player_control_generic_class_init (DvbPlayerControlGenericClass *klass)
   parent_class->get_scale_mode = get_scale_mode;
   parent_class->get_video_size = get_video_size;
   parent_class->set_video_size = set_video_size;
-  parent_class->autoplug_multiqueue = autoplug_multiqueue;
+  parent_class->autoplug_multiqueue = autoplug_multiqueue; // Differ Implement
 
 }
 

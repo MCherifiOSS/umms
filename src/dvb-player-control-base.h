@@ -40,7 +40,7 @@ G_BEGIN_DECLS
 #define SOCK_SOCKET_DEFAULT_PORT 0 // The port number will be get by socket create.
 #define SOCK_SOCKET_DEFAULT_ADDR "127.0.0.1"
 #define INIT_PIDS "0:1:16:17:18"
-//#define DVB_SRC
+#define DVB_SRC
 
 
 #define HW_FORMAT_NUM 4
@@ -149,6 +149,8 @@ struct _DvbPlayerControlBaseClass
   gboolean (*autoplug_pad) (DvbPlayerControlBase *player, GstPad *pad, gint chain_type);
   gboolean (*link_sink) (DvbPlayerControlBase *player, GstPad *pad);
   void (*bus_group) (GstElement *pipeline, DvbPlayerControlBase *self);
+  GstElement *(*pipeline_init) (DvbPlayerControlBase *self);
+
 };
 
 GType dvb_player_control_base_get_type (void) G_GNUC_CONST;

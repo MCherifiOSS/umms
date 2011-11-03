@@ -90,19 +90,6 @@ static gchar *dvb_player_control_base_type_name[] = {
   "DVB-S"
 };
 
-/*
-static GstStaticCaps hw_h264_static_caps = GST_STATIC_CAPS (HW_H264_CAPS);
-static GstStaticCaps hw_mpeg2_static_caps = GST_STATIC_CAPS (HW_MPEG2_CAPS);
-static GstStaticCaps hw_mpeg4_static_caps = GST_STATIC_CAPS (HW_MPEG4_CAPS);
-static GstStaticCaps hw_vc1_static_caps = GST_STATIC_CAPS (HW_VC1_CAPS);
-
-static GstStaticCaps *hw_static_caps[HW_FORMAT_NUM] = {&hw_h264_static_caps,
-    &hw_mpeg2_static_caps,
-    &hw_mpeg4_static_caps,
-    &hw_vc1_static_caps
-                                                      };
-*/
-
 static gboolean
 set_properties(DvbPlayerControlBase *player, const gchar *location)
 {
@@ -148,7 +135,7 @@ set_properties(DvbPlayerControlBase *player, const gchar *location)
 
   //setting dvbsrc properties
   for (i = 0; i < DVB_PLAYER_CONTROL_BASE_PARAMS_NUM; i++) {
-    UMMS_DEBUG ("dvbt_param_name[%d]=%s", i, dvb_player_control_base_param_name[i]);
+    UMMS_DEBUG ("dvb_player_control_param_name[%d]=%s", i, dvb_player_control_base_param_name[i]);
     format = g_strconcat (dvb_player_control_base_param_name[i], "=%u", NULL);
     sscanf (params[i+2], format, &dvb_player_control_base_param_val[i]);
     g_free (format);
@@ -369,8 +356,6 @@ static gboolean stop_recording (DvbPlayerControlBase *self)
 {
   DvbPlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
-  UMMS_DEBUG ("Begin");
-
   if (!priv->tsfilesink) {
     UMMS_DEBUG ("We don't have filesink, can't remove it");
     return FALSE;
@@ -384,7 +369,7 @@ static gboolean stop_recording (DvbPlayerControlBase *self)
   priv->request_pad = NULL;
 
   priv->recording = FALSE;
-  UMMS_DEBUG ("End");
+
   return TRUE;
 }
 
@@ -445,7 +430,6 @@ dvb_player_control_base_is_seekable (MediaPlayerControl *self, gboolean *seekabl
   priv = GET_PRIVATE (self);
   pipeline = priv->pipeline;
   g_return_val_if_fail (GST_IS_ELEMENT (pipeline), FALSE);
-
 
   if (priv->uri == NULL)
     return FALSE;
@@ -722,7 +706,6 @@ static gboolean start_recording (DvbPlayerControlBase *self, gchar *location)
     goto failed;
   }
 
-
   ret = TRUE;
   priv->recording = TRUE;
   priv->tsfilesink = filesink;
@@ -803,7 +786,6 @@ dvb_player_control_base_get_pat (MediaPlayerControl *self, GPtrArray **pat)
     GValue *val_out = NULL;
     guint program_num = 0;
     guint pid = 0;
-
 
     //get program-number and pid
     val = g_value_array_get_nth (pat_info, i);
@@ -1221,7 +1203,7 @@ bus_sync_handler (GstBus *bus,
     return( GST_BUS_PASS );
 
   g_return_val_if_fail (engine, GST_BUS_PASS);
-  //g_return_val_if_fail (DVB_IS_GPLAYER (engine), GST_BUS_PASS);
+  g_return_val_if_fail (DVB_PLAYER_CONTROL_IS_COMMON (engine), GST_BUS_PASS);
   priv = GET_PRIVATE (engine);
 
   vsink =  GST_ELEMENT(GST_MESSAGE_SRC (message));
@@ -1278,11 +1260,33 @@ static void bus_group(GstElement *pipeline, DvbPlayerControlBase *self)
 
 }
 
+static GstElement *
+pipeline_init (DvbPlayerControlBase *self)
+{
+  DvbPlayerControlBasePrivate *priv;
+  GstElement *pipeline = NULL;
+  DvbPlayerControlBaseClass *kclass = DVB_PLAYER_CONTROL_BASE_GET_CLASS(self);
+
+  self->priv = PLAYER_PRIVATE (self);
+  priv = self->priv;
+
+  priv->pipeline = pipeline = gst_pipeline_new ("dvb_player_control_engine");
+  if (!pipeline) {
+    UMMS_DEBUG ("Creating pipeline elment failed");
+    TEARDOWN_ELEMENT(pipeline);
+    return NULL;
+  }
+
+  kclass->bus_group(pipeline,(DvbPlayerControlBase *)self);
+
+  return pipeline;
+}
 
 static void
 dvb_player_control_base_init (DvbPlayerControlBase *self)
 {
   UMMS_DEBUG("dvb_player_control_base_init empty! ");
+
   return ;
 }
 
@@ -1354,13 +1358,12 @@ static gboolean link_sink (DvbPlayerControlBase *player, GstPad *pad)
   GstCaps *caps   = NULL;
   gboolean ret = TRUE;
 
-  // g_return_val_if_fail (DVB_IS_PLAYER (player), FALSE);
+  g_return_val_if_fail (DVB_PLAYER_CONTROL_IS_COMMON(player), FALSE);
   g_return_val_if_fail (GST_IS_PAD (pad), FALSE);
 
   priv = GET_PRIVATE (player);
 
   caps = gst_pad_get_caps_reffed (pad);
-  //  UMMS_DEBUG ("pad:%s, caps : %"GST_PTR_FORMAT, GST_PAD_NAME(pad), caps);
 
   s = gst_caps_get_structure (caps, 0);
 
@@ -1772,23 +1775,24 @@ static void dvb_player_control_base_class_init
   object_class->finalize = dvb_player_control_base_finalize;
 
   /*virtual APis*/
-  klass->set_target = set_target;
-  klass->request_resource = request_resource;
-  klass->release_resource = release_resource;
-  klass->setup_xwindow_target = setup_xwindow_target;
+  klass->set_target = set_target; // Differ Implement
+  klass->request_resource = request_resource; // Differ Implement
+  klass->release_resource = release_resource; // Differ Implement
+  klass->setup_xwindow_target = setup_xwindow_target; // Differ Implement
 
-  klass->set_volume = set_volume;
-  klass->get_volume = get_volume;
-  klass->set_mute = set_mute;
-  klass->is_mute = is_mute;
-  klass->set_scale_mode = set_scale_mode;
-  klass->get_scale_mode = get_scale_mode;
-  klass->set_video_size = set_video_size;
-  klass->get_video_size = get_video_size;
-  klass->bus_group = bus_group;
-  klass->link_sink = link_sink;
-  klass->pad_added_cb = pad_added_cb;
-  klass->autoplug_pad = autoplug_pad;
+  klass->set_volume = set_volume; // Differ Implement
+  klass->get_volume = get_volume; // Differ Implement
+  klass->set_mute = set_mute; // Differ Implement
+  klass->is_mute = is_mute; // Differ Implement
+  klass->set_scale_mode = set_scale_mode; // Differ Implement
+  klass->get_scale_mode = get_scale_mode; // Differ Implement
+  klass->set_video_size = set_video_size; // Differ Implement
+  klass->get_video_size = get_video_size; // Differ Implement
+  klass->bus_group = bus_group; // Common Implement
+  klass->pipeline_init = pipeline_init; // Common Implement
+  klass->link_sink = link_sink; // Common Implement
+  klass->pad_added_cb = pad_added_cb; // Common Implement
+  klass->autoplug_pad = autoplug_pad; // Common Implement
 }
 
 DvbPlayerControlBase *

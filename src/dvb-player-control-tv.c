@@ -419,7 +419,6 @@ get_video_size (DvbPlayerControlBase *self, guint *w, guint *h)
   }
 }
 
-
 static void
 player_control_tv_handle_xevents (MediaPlayerControl *control)
 {
@@ -996,38 +995,6 @@ dvb_player_control_tv_finalize (GObject *object)
 
 }
 
-static void 
-dvb_player_control_tv_class_init (DvbPlayerControlTvClass *klass)
-{
-  GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-  g_type_class_add_private (klass, sizeof (DvbPlayerControlBasePrivate));
-
-  object_class->get_property = dvb_player_control_tv_get_property;
-  object_class->set_property = dvb_player_control_tv_set_property;
-  object_class->dispose = dvb_player_control_tv_dispose;
-  object_class->finalize = dvb_player_control_tv_finalize;
-
-
-  DvbPlayerControlBaseClass *parent_class = DVB_PLAYER_CONTROL_BASE_CLASS(klass);
-  /*derived one*/
-  parent_class->set_target = set_target;
-  parent_class->release_resource = release_resource;
-  parent_class->request_resource = request_resource;
-  parent_class->unset_xwindow_target = unset_xwindow_target;
-  parent_class->setup_xwindow_target = setup_xwindow_target;
-
-  parent_class->set_volume = set_volume;
-  parent_class->get_volume = get_volume;
-  parent_class->set_mute = set_mute;
-  parent_class->is_mute = is_mute;
-  parent_class->set_scale_mode = set_scale_mode;
-  parent_class->get_scale_mode = get_scale_mode;
-  parent_class->get_video_size = get_video_size;
-  parent_class->set_video_size = set_video_size;
-  parent_class->autoplug_multiqueue = autoplug_multiqueue;
-
-}
 
 static gboolean setup_ismd_vbin(MediaPlayerControl *self, gchar *rect, gint plane)
 {
@@ -1293,11 +1260,9 @@ failed:
 
 
 static void
-slice_init (DvbPlayerControlBase *self)
+factory_init (GstElement *pipeline, DvbPlayerControlBase *self)
 {
-  DvbPlayerControlBasePrivate *priv = GET_PRIVATE (self);
-  GstBus *bus;
-  GstElement *pipeline = NULL;
+  DvbPlayerControlBasePrivate *priv;
   GstElement *source = NULL;
   GstElement *front_queue = NULL;
   GstElement *clock_provider = NULL;
@@ -1308,14 +1273,6 @@ slice_init (DvbPlayerControlBase *self)
 
   self->priv = PLAYER_PRIVATE (self);
   priv = self->priv;
-
-  priv->pipeline = pipeline = gst_pipeline_new ("dvb_player_control_tv");
-  if (!pipeline) {
-    UMMS_DEBUG ("Creating pipeline elment failed");
-    goto failed;
-  }
-  
-  kclass->bus_group(pipeline,self);
 
   /*frontend pipeline: dvbsrc --> queue --> ismd_clock_recovery_provider --> flutsdemux*/
 #ifdef DVB_SRC
@@ -1372,7 +1329,6 @@ slice_init (DvbPlayerControlBase *self)
   g_signal_connect (tsdemux, "pad-added", G_CALLBACK (kclass->pad_added_cb), self);
   g_signal_connect (tsdemux, "no-more-pads", G_CALLBACK (kclass->no_more_pads_cb), self);
 
-
   /* Add and link frontend elements*/
   gst_bin_add_many (GST_BIN (pipeline), source, front_queue, tsdemux, NULL);
 #ifdef DVB_SRC
@@ -1428,14 +1384,55 @@ failed:
   return;
 }
 
-
 static void
 dvb_player_control_tv_init (DvbPlayerControlTv *self)
 {
-  UMMS_DEBUG("dvb_player_control_tv_init derived one");
-  slice_init(self);
+  GstElement *pipeline = NULL;
+  DvbPlayerControlBaseClass *kclass = DVB_PLAYER_CONTROL_BASE_GET_CLASS((DvbPlayerControlBase *)self);
+
+
+  pipeline = kclass->pipeline_init((DvbPlayerControlBase *)self);
+
+  if(pipeline==NULL){
+    UMMS_DEBUG("dvb_player_control_tv_init pipeline error.");
+    return;
+  }
+
+  factory_init(pipeline,(DvbPlayerControlBase *)self);
 
   return;
+}
+
+static void 
+dvb_player_control_tv_class_init (DvbPlayerControlTvClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  g_type_class_add_private (klass, sizeof (DvbPlayerControlBasePrivate));
+
+  object_class->get_property = dvb_player_control_tv_get_property;
+  object_class->set_property = dvb_player_control_tv_set_property;
+  object_class->dispose = dvb_player_control_tv_dispose;
+  object_class->finalize = dvb_player_control_tv_finalize;
+
+  DvbPlayerControlBaseClass *parent_class = DVB_PLAYER_CONTROL_BASE_CLASS(klass);
+  /*derived one*/
+  parent_class->set_target = set_target;
+  parent_class->release_resource = release_resource;
+  parent_class->request_resource = request_resource;
+  parent_class->unset_xwindow_target = unset_xwindow_target;
+  parent_class->setup_xwindow_target = setup_xwindow_target;
+
+  parent_class->set_volume = set_volume;
+  parent_class->get_volume = get_volume;
+  parent_class->set_mute = set_mute;
+  parent_class->is_mute = is_mute;
+  parent_class->set_scale_mode = set_scale_mode;
+  parent_class->get_scale_mode = get_scale_mode;
+  parent_class->get_video_size = get_video_size;
+  parent_class->set_video_size = set_video_size;
+  parent_class->autoplug_multiqueue = autoplug_multiqueue;  // Differ Implement
+
 }
 
 DvbPlayerControlTv *
