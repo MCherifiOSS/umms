@@ -284,7 +284,7 @@ cutout (MediaPlayerControl *self, gint x, gint y, gint w, gint h)
     return FALSE;
   }
 
-  g_sprintf (data, "meego-tv-cutout-x=%d:meegotv-cutout-y=%d:meego-tv-cutout-width=%d:"
+  g_sprintf (data, "meego-tv-cutout-x=%d:meego-tv-cutout-y=%d:meego-tv-cutout-width=%d:"
              "meego-tv-cutout-height=%d:meego-tv-half-trans=0:meego-tv-full-window=0", x, y, w, h);
 
   UMMS_DEBUG ("Hints to mtv-mutter = \"%s\"", data);
