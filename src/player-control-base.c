@@ -162,8 +162,6 @@ static gboolean setup_xwindow_target (PlayerControlBase *self, GHashTable *param
 static gboolean
 unset_xwindow_target (PlayerControlBase *self)
 {
-  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
-
   UMMS_DEBUG("virtual APIs default Impl: NULL");
   return TRUE;
 }
@@ -172,8 +170,6 @@ static gboolean
 set_target (PlayerControlBase *self, gint type, GHashTable *params)
 {
   gboolean ret = TRUE;
-  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
-  MediaPlayerControl *self_iface = (MediaPlayerControl *)self;
 
   UMMS_DEBUG("virtual APIs default Impl: NULL");
   return ret;
