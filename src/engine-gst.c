@@ -1918,6 +1918,7 @@ engine_gst_get_buffer_depth (MediaPlayerControl *self, gint format, gint64 *buf_
   EngineGstPrivate *priv = NULL;
   GstElement *pipe = NULL;
   gint64 val;
+  gint32 val_buf;
 
   *buf_val = -1;
 
@@ -1931,9 +1932,9 @@ engine_gst_get_buffer_depth (MediaPlayerControl *self, gint format, gint64 *buf_
     UMMS_DEBUG("Get the buffer-duration: %lld", val);
     *buf_val = val;
   } else if (format == BufferFormatByBytes) {
-    g_object_get (G_OBJECT (pipe), "buffer-size", &val, NULL);
-    UMMS_DEBUG("Get the buffer-size: %lld", val);
-    *buf_val = val;
+    g_object_get (G_OBJECT (pipe), "buffer-size", &val_buf, NULL);
+    UMMS_DEBUG("Get the buffer-size: %lld", val_buf);
+    *buf_val = val_buf;
   } else {
     UMMS_DEBUG("Pass the wrong format:%d to buffer depth setting", format);
     return FALSE;
