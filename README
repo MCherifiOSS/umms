@@ -1,2 +1,62 @@
 This is the initial implementation of UMMS based on Gstreamer backend and ismd plugins of CE4100.
 This version aims at provide a demo implementation of UMMS, which use different backend engine to support different source types if needed.
+
+Class diagram:
+This diagram only presents the implementation of com.UMMS.MediaPlayer interface.
+
+           -------------------
+           |UmmsObjectManager|   
+           -------------------
+                   ^
+                   v
+                   |
+          --------------------               -------------------------
+          | MediaPlayer      |    <> ------- |   MediaPlayerControl  |
+          --------------------               -------------------------
+                   ^                            ^                 ^
+                   V                            |                 |
+                   |                            |                 |
+          ----------------------------      Implement         Implement
+          | PlayerControlFactory     |          |                 |
+          ----------------------------          |                 |
+                                                |                 |
+                                       ---------------------   ------------------------  
+                                       | PlayerControlBase |   | DvbPlayerControlBase |  <--------------
+                                       ---------------------   ------------------------                |
+                                         ^         ^                       ^                           |
+                                         |         |                       |                         ------------------------------------
+ ------------------------------          |         |                       |                         | DvbPlayerControlGeneric (NetBook)|
+ |PlayerControlGeneric(NetBook)| ---------         |                       |                         ------------------------------------
+ ------------------------------           ----------------------      -------------------------
+                                          |PlayerControlTv(TV) |      | DvbPlayerControlTv(TV)|
+                                          ----------------------      -------------------------
+
+*UmmsObjectManager
+Class to manage MediaPlayer objects, including create/destory, register/unregister MediaPlayer objects.
+
+*MediaPlayer
+Class to implement the com.UMMS.MediaPlayer interface which provide media playback service for client. 
+
+*PlayerControlFactory
+Factory class to create backend player which implemented MediaPlayerControl interface.
+
+*MediaPlayerControl
+Internal interface. MediaPlayer uses this interface to handle the service request. Backend developer need to implemente this interface.
+
+*PlayerControlBase
+Base class to handle the non-dvb playback request. It internally uses playbin2 to implement the MediaPlayerControl interface.
+
+*PlayerControlGeneric
+A backend used on generic PC platform(e.g. NetBook).
+
+*PlayerControlTv
+A backend used on TV platform (e.g. CE4100).
+
+*DvbPlayerControlBase
+Base class to handle the dvb playback request. It creates a custom gstreamer pipeline to play/recode the dvb stream.
+
+*DvbPlayerControlGeneric
+Derived class from DvbPlayerControlBase which is used on generic PC platform(e.g. NetBook).
+
+*DvbPlayerControlTv
+Derived class from DvbPlayerControlBase which is used on TV platform(e.g. CE4100). 
