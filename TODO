@@ -1,0 +1,17 @@
+
+*Add video output control API.
+ Video output control API is to provide display mode setting service.  
+
+*Improve buffering API.
+ Add signal for buffering progress report?
+
+*Proxy detect from system configure
+ Use the system proxy setting as default proxy for UMMS.
+
+*Documenting
+ Improve http://wiki.meego.com/UMMS_User_Manual and http://wiki.meego.com/UMMS_Architecture#UMMS_Architecture
+ 
+*Plugin mechanism
+ Isolate platform-specific implementation from UMMS framework, so that UMMS will be platform-independent. The backend, as a plugin,  will be loaded by UMMS framework at runtime.
+
+
