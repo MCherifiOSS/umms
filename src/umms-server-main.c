@@ -35,9 +35,11 @@
 #include "umms-object-manager.h"
 #include "umms-playing-content-metadata-viewer.h"
 #include "umms-audio-manager.h"
+#include "umms-video-output.h"
 #include "./glue/umms-object-manager-glue.h"
 #include "./glue/umms-playing-content-metadata-viewer-glue.h"
 #include "./glue/umms-audio-manager-glue.h"
+#include "./glue/umms-video-output-glue.h"
 
 static GMainLoop *loop = NULL;
 
@@ -310,6 +312,9 @@ main (int    argc,
   dbus_g_object_type_install_info (UMMS_TYPE_AUDIO_MANAGER, &dbus_glib_umms_audio_manager_object_info);
   audio_manager = umms_audio_manager_new(platform_type);
 
+  UmmsVideoOutput *video_output = NULL;
+  dbus_g_object_type_install_info (UMMS_TYPE_VIDEO_OUTPUT, &dbus_glib_umms_video_output_object_info);
+  video_output = umms_video_output_new();
 
   connection = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
   if (connection == NULL) {
@@ -322,6 +327,7 @@ main (int    argc,
   dbus_g_connection_register_g_object (connection, UMMS_OBJECT_MANAGER_OBJECT_PATH, G_OBJECT (umms_object_manager));
   dbus_g_connection_register_g_object (connection, UMMS_PLAYING_CONTENT_METADATA_VIEWER_OBJECT_PATH, G_OBJECT (metadata_viewer));
   dbus_g_connection_register_g_object (connection, UMMS_AUDIO_MANAGER_OBJECT_PATH, G_OBJECT (audio_manager));
+  dbus_g_connection_register_g_object (connection, UMMS_VIDEO_OUTPUT_OBJECT_PATH, G_OBJECT (video_output));
 
   loop = g_main_loop_new (NULL, TRUE);
 #ifdef FAKE_UMMS_SIGNAL

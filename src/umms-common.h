@@ -35,6 +35,9 @@
 #define UMMS_AUDIO_MANAGER_OBJECT_PATH "/com/UMMS/AudioManager"
 #define UMMS_AUDIO_MANAGER_INTERFACE_NAME "com.UMMS.AudioManger"
 
+#define UMMS_VIDEO_OUTPUT_OBJECT_PATH "/com/UMMS/VideoOutput"
+#define UMMS_VIDEO_OUTPUT_INTERFACE_NAME "com.UMMS.VideoOutput"
+
 
 #define RESET_STR(str) \
      if (str) {       \

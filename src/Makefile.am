@@ -3,6 +3,12 @@ libexec_PROGRAMS = umms-server
 umms_server_CFLAGS = $(UMMS_CFLAGS)
 
 umms_server_LDADD = $(UMMS_LIBS) -lgstapp-0.10
+umms_server_includedir = $(includedir)/umms
+umms_server_include_HEADERS = \
+															umms-common.h \
+															umms-error.h \
+															umms-debug.h \
+															umms-video-output.h
 
 
 GLUE = \
@@ -55,6 +61,8 @@ umms_server_SOURCES = umms-common.h \
                       audio-manager-interface.h \
                       audio-manager-engine.c \
                       audio-manager-engine.h \
+                      umms-video-output.c \
+                      umms-video-output.h \
                       $(GENERATED_SOURCE)
 
 %.c: %.list Makefile.am
@@ -69,6 +77,7 @@ umms_server_SOURCES = umms-common.h \
 	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=media_player --mode=glib-server ../spec/umms-media-player.xml > ./glue/umms-media-player-glue.h
 	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=umms_playing_content_metadata_viewer --mode=glib-server ../spec/umms-playing-content-metadata-viewer.xml > ./glue/umms-playing-content-metadata-viewer-glue.h
 	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=umms_audio_manager --mode=glib-server ../spec/umms-audio-manager.xml > ./glue/umms-audio-manager-glue.h
+	$(LIBTOOL) --mode=execute dbus-binding-tool --prefix=umms_video_output --mode=glib-server ../spec/umms-video-output.xml > ./glue/umms-video-output-glue.h
 
 
 MARSHALS_LISTS = umms-marshals.list

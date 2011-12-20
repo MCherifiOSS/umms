@@ -61,7 +61,11 @@ method_name = (
     "GetPat",
     "GetPmt",
     "Record",
-    "ChangeProgram"
+    "ChangeProgram",
+    "SetVideoOutputMode",
+    "GetVideoOutputMode",
+    "GetValidVideoOutput",
+    "GetValidMode"
 )
 
 (
@@ -115,7 +119,12 @@ method_name = (
     GetPat,
     GetPmt,
     Record,
-    ChangeProgram
+    ChangeProgram,
+    SetVideoOutputMode,
+    GetVideoOutputMode,
+    GetValidVideoOutput,
+    GetValidMode
+
 ) = range (len(method_name))
 
 (
@@ -145,6 +154,10 @@ def print_pmt (pmt):
     print "stream info:"
     for i in range (0, len(info)):
         print "     stream-type : %4u, pid: %4u" % (info[i]['stream-type'], info[i]['pid'])
+
+def print_string_array (ar):
+    for i in range (0, len(ar)):
+        print "%s" % ar[i]
 
 def print_pat (pat):
     for i in range (0, len(pat)):
@@ -455,6 +468,24 @@ class CmdHandler(threading.Thread):
             dvburi = "dvb://?program-number="+num+"&type=0&modulation=1&trans-mod=0&bandwidth=0&frequency=578000000&code-rate-lp=0&code-rate-hp=3&guard=0&hierarchy=0"
             self.player.SetUri (dvburi)
             self.player.Play ()
+        elif mid == SetVideoOutputMode:
+            output_name = raw_input("Specify output name: (hdmi/cvbs/component)")
+            modes = video_output.GetValidMode(output_name)
+            print "Valid modes:"
+            print_string_array (modes)
+            mode = raw_input("Input mode: ")
+            video_output.SetMode(output_name,mode);
+        elif mid == GetVideoOutputMode:
+            output_name = raw_input("Specify output name: (hdmi/cvbs/component)")
+            mode = video_output.GetMode(output_name);
+            print "current video output mode: '%s'" % (mode)
+        elif mid == GetValidVideoOutput:
+            outputs = video_output.GetValidVideoOutput()
+            print_string_array (outputs)
+        elif mid == GetValidMode:
+            output_name = raw_input("Input output name: (hdmi/cvbs/component)")
+            modes = video_output.GetValidMode(output_name)
+            print_string_array (modes)
         else:
             print "Unsupported method id '%d'" % (mid)
             self.print_help(self);
@@ -483,6 +514,7 @@ default_sub = "file:///root/video/subtest/text-subtitle.srt"
 player_name = ""
 metadata_viewer = None
 audio_manager = None
+video_output = None
 
 if __name__ == '__main__':
 
@@ -491,6 +523,7 @@ if __name__ == '__main__':
     metadata_viewer  = libummsclient.get_metadata_viewer()
     metadata_viewer.connect_to_signal("MetadataUpdated", metadata_updated_cb)
     audio_manager  = libummsclient.get_audio_manager()
+    video_output = libummsclient.get_video_output()
     
     #Request a unattended execution
     #(remote_proxy, name)  = libummsclient.request_player(False, 10)

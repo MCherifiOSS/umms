@@ -8,12 +8,14 @@ import dbus.glib
 obj_mngr = None
 metadata_viewer = None
 audio_manager = None
+video_output = None
 
 def init():
     print "Init libclient"
     global obj_mngr
     global metadata_viewer
     global audio_manager
+    global video_output 
     
     if (obj_mngr != None):
         print "UMMS client lib already initialized"
@@ -32,6 +34,11 @@ def init():
     bus_obj=bus.get_object('com.UMMS', '/com/UMMS/AudioManager')
     audio_manager =dbus.Interface(bus_obj, 'com.UMMS.AudioManager')
     print "New audio_manager"
+
+    bus_obj=bus.get_object('com.UMMS', '/com/UMMS/VideoOutput')
+    video_output=dbus.Interface(bus_obj, 'com.UMMS.VideoOutput')
+    print "New video_output"
+
 
 def need_reply_cb (obj_path):
     client_monitor = get_iface (obj_path, 'com.UMMS.MediaPlayer')
@@ -84,3 +91,8 @@ def get_audio_manager():
     global audio_manager;
     print "Return global audio_manager"
     return audio_manager;
+
+def get_video_output():
+    global video_output;
+    print "Return global video_output"
+    return video_output;
