@@ -1129,11 +1129,7 @@ engine_gst_set_video_size (MeegoMediaPlayerControl *self,
     g_object_set (G_OBJECT(tsink_bin), "tsub-fontsize", tsvalue, NULL);
 
     ret = TRUE;
-  } else {
-    UMMS_DEBUG ("Get ismd_subrend_bin failed");
-    ret = FALSE;
   }
-
 
 OUT:
   if (vsink_bin)
