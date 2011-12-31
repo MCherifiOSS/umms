@@ -1071,7 +1071,8 @@ engine_gst_set_video_size (MeegoMediaPlayerControl *self,
   EngineGstPrivate *priv = GET_PRIVATE (self);
   GstElement *pipe = priv->pipeline;
   gboolean ret = FALSE;
-  GstElement *vsink_bin;
+  GstElement *vsink_bin = NULL;
+  GstElement *tsink_bin = NULL;
 
   g_return_val_if_fail (pipe, FALSE);
   UMMS_DEBUG ("invoked");
@@ -1088,16 +1089,57 @@ engine_gst_set_video_size (MeegoMediaPlayerControl *self,
       g_object_set (G_OBJECT(vsink_bin), "rectangle", rectangle_des, NULL);
       g_free (rectangle_des);
       ret = TRUE;
-      goto OUT;
     } else {
       UMMS_DEBUG ("video sink: %s has no 'rectangle' property",  GST_ELEMENT_NAME(vsink_bin));
+      goto OUT;
     }
   } else {
     UMMS_DEBUG ("Get video-sink failed");
+    goto OUT;
   }
+
+  gint tsvalue;
+  g_object_get (G_OBJECT(pipe), "text-sink", &tsink_bin, NULL);
+  if (tsink_bin) {
+    //Position Setting
+    tsvalue = w;
+    g_object_set (G_OBJECT(tsink_bin), "tsub-widthpad", tsvalue, NULL);
+
+    tsvalue = h;
+    g_object_set (G_OBJECT(tsink_bin), "tsub-heightpad", tsvalue, NULL);
+
+    tsvalue = x;
+    g_object_set (G_OBJECT(tsink_bin), "pstart-x", tsvalue, NULL);
+
+    tsvalue = y;
+    g_object_set (G_OBJECT(tsink_bin), "pstart-y", tsvalue, NULL);
+
+    //Font Setting
+#define SUBTITLE_FONT_CUSTOM (0)
+    if(SUBTITLE_FONT_CUSTOM){    tsvalue = SUBTITLE_FONT_CUSTOM;}
+    else if(w<=320  && h<=240){  tsvalue = 6;}
+    else if(w<=640  && h<=480){  tsvalue = 10;}
+    else if(w<=720  && h<=576){  tsvalue = 12;}
+    else if(w<=1024 && h<=720){  tsvalue = 16;}
+    else if(w<=1280 && h<=800){  tsvalue = 20;}
+    else if(w<=1920 && h<=1280){ tsvalue = 26;}
+    else if(w<=2880 && h<=1920){ tsvalue = 36;}
+    else {tsvalue = 12;}
+
+    g_object_set (G_OBJECT(tsink_bin), "tsub-fontsize", tsvalue, NULL);
+
+    ret = TRUE;
+  } else {
+    UMMS_DEBUG ("Get ismd_subrend_bin failed");
+    ret = FALSE;
+  }
+
 
 OUT:
   if (vsink_bin)
+    gst_object_unref (vsink_bin);
+
+  if (tsink_bin)
     gst_object_unref (vsink_bin);
 
   return ret;
