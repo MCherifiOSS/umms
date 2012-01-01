@@ -45,6 +45,8 @@ umms_server_SOURCES = umms-common.h \
 											audio-manager-interface.h \
 											audio-manager-engine.c \
 											audio-manager-engine.h \
+											dvb-player.c \
+											dvb-player.h \
 		    			        $(GENERATED_SOURCE)
 
 %.c: %.list Makefile.am

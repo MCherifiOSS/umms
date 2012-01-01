@@ -35,8 +35,8 @@ G_DEFINE_TYPE (MeegoMediaPlayerGstreamer, meego_media_player_gstreamer, MEEGO_TY
 
 enum EngineType {
   MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_INVALID,
-  MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_GST,
-  MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_TV,
+  MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_NORMAL,
+  MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_DVB,
   N_MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE
 };
 
@@ -47,35 +47,57 @@ struct _MeegoMediaPlayerGstreamerPrivate {
 //implement load_engine vmethod
 #define TV_PREFIX "dvb:"
 
+MeegoMediaPlayerControl *
+create_engine (gint type)
+{
+  MeegoMediaPlayerControl *engine = NULL;
+
+  if (type == MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_DVB)
+    engine = dvb_player_new();
+  else if (type == MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_NORMAL)
+    engine = engine_gst_new();
+  else 
+    UMMS_DEBUG ("Unknown engine type (%d)", type);
+
+  return engine;
+}
+
 static gboolean meego_media_player_gstreamer_load_engine (MeegoMediaPlayer *player, const char *uri, gboolean *new_engine)
 {
-  MeegoMediaPlayerGstreamerPrivate *priv = ((MeegoMediaPlayerGstreamer *)player)->priv;
-  gboolean ret = TRUE;
+  gboolean ret;
+  gboolean updated;
+  gint type;
+  MeegoMediaPlayerGstreamerPrivate *priv;
 
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_GSTREAMER(player), FALSE);
   g_return_val_if_fail (uri, FALSE);
 
-  UMMS_DEBUG ("uri = %s", uri);
+  priv = GET_PRIVATE(player);
+  type = (g_str_has_prefix (uri, TV_PREFIX)) ? (MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_DVB): (MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_NORMAL);
 
-  if (g_str_has_prefix (uri, TV_PREFIX)) {
-    ret = FALSE; //TODO:implement TV Engine other place and create TV engine here.
-    UMMS_DEBUG ("not support dvb:// source type, tv engine not implemented");
+  if (!player->player_control) {
+    UMMS_DEBUG ("We have no engine loaded, to load one(type = %d)", type);
+    player->player_control = create_engine (type);
+      updated = TRUE;
   } else {
-    if (player->player_control) {
-      //we already loaded gstreamer engine.
-      UMMS_DEBUG ("gstreamer engine alrady loaded");
-      *new_engine = FALSE;
-      ret = TRUE;
+    if (priv->engine_type == type) {
+      UMMS_DEBUG ("Already loaded engine(type = %d), no need to load again", type);
+      updated = FALSE;
     } else {
-      UMMS_DEBUG ("load gstreamer engine");
-      player->player_control = (MeegoMediaPlayerControl*)engine_gst_new();
-      if (player->player_control) {
-        priv->engine_type = MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_GST;
-        *new_engine = TRUE;
-        ret = TRUE;
-      } else {
-        ret = FALSE;
-      }
+      UMMS_DEBUG ("Changing engine from type(%d) to type(%d)", priv->engine_type, type);
+      g_object_unref (player->player_control);
+      player->player_control = create_engine (type);
+      updated = TRUE;
     }
+  }
+
+  if (player->player_control) {
+    priv->engine_type = type;
+    *new_engine = updated;
+    ret = TRUE;
+  } else {
+    UMMS_DEBUG ("Loading engine failed");
+    ret = FALSE;
   }
 
   return ret;
@@ -145,8 +167,6 @@ meego_media_player_gstreamer_init (MeegoMediaPlayerGstreamer *self)
   priv = self->priv;
 
   priv->engine_type = MEEGO_MEDIA_PLAYER_GSTREAMER_ENGINE_TYPE_INVALID;
-
-
 }
 
 MeegoMediaPlayerGstreamer *
