@@ -53,7 +53,10 @@ method_name = (
     "SetSubtitleUri",
     "SetCurrentSubtitle",
     "GetCurrentSubtitle",#40
-    "GetVideoCodec"
+    "GetVideoCodec",
+    "GetPat",
+    "GetPmt",
+    "ChangeProgram"
 )
 
 (
@@ -99,7 +102,10 @@ method_name = (
     SetSubtitleUri,
     SetCurrentSubtitle,
     GetCurrentSubtitle,
-    GetVideoCodec
+    GetVideoCodec,
+    GetPat,
+    GetPmt,
+    ChangeProgram
 ) = range (len(method_name))
 
 (
@@ -121,6 +127,18 @@ method_name = (
 
 #define TARGET_PARAM_KEY_RECTANGLE "rectangle"
 #define TARGET_PARAM_KEY_PlANE_ID "plane-id"
+
+def print_pmt (pmt):
+    print "program-number: %4u" % pmt[0]
+    print "pcr-pid:        %4u" % pmt[1]
+    info = pmt[2]
+    print "stream info:"
+    for i in range (0, len(info)):
+        print "     stream-type : %4u, pid: %4u" % (info[i]['stream-type'], info[i]['pid'])
+
+def print_pat (pat):
+    for i in range (0, len(pat)):
+        print "program-number : %4u, pid : %4u" % (pat[i]['program-number'], pat[i]['pid'])
 
 def print_metadata_list(metadata):
     for i in range (0, len(metadata)):
@@ -390,8 +408,24 @@ class CmdHandler(threading.Thread):
             audio_manager.SetState(type, 1);
         elif mid == GetAudioOutputState:
             type = self.input_audio_type()
-            state = audio_manager.GetState(type);
+            state = audio_manager.GetState(type)
             print "audio output(%d) state = %d" % (type, state)
+        elif mid == GetPat:
+            pat = self.player.GetPat()
+            print_pat (pat)
+        elif mid == GetPmt:
+            #(program_num, pcr_pid, streams) = self.player.GetPmt()
+            pmt = self.player.GetPmt()
+            print_pmt (pmt)
+	          #print "program_num: %4u, pcr_pid: %4u" % (program_num, pcr_pid)
+	          #print "stream info:"
+	          #for i in range (0, len(streams)):
+		        #    print "pid : %4u, stream-type: %4u" % (streams[i]['pid'], streams[i]['stream-type'])
+        elif mid == ChangeProgram:
+            num = raw_input("Input program number: ")
+            dvburi = "dvb://?program-number="+num+"&type=0&modulation=1&trans-mod=0&bandwidth=0&frequency=578000000&code-rate-lp=0&code-rate-hp=3&guard=0&hierarchy=0"
+            self.player.SetUri (dvburi)
+            self.player.Play ()
         else:
             print "Unsupported method id '%d'" % (mid)
             self.print_help(self);
@@ -411,6 +445,7 @@ state_name = (
 
 
 default_uri = "file:///root/video/720p.m4v"
+#default_uri = "dvb://?program-number=-1&type=0&modulation=1&trans-mod=0&bandwidth=0&frequency=578000000&code-rate-lp=0&code-rate-hp=3&guard=0&hierarchy=0"
 #default_uri = "file:///root/p.mkv"
 default_sub = "file:///root/video/subtest/text-subtitle.srt"
 #"file://root/text-subtitle.srt"

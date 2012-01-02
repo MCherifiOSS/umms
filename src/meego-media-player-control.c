@@ -83,6 +83,9 @@ struct _MeegoMediaPlayerControlClass {
   meego_media_player_control_get_current_uri_impl get_current_uri;
   meego_media_player_control_get_title_impl get_title;
   meego_media_player_control_get_artist_impl get_artist;
+  meego_media_player_control_record_impl record;
+  meego_media_player_control_get_pat_impl get_pat;
+  meego_media_player_control_get_pmt_impl get_pmt;
 };
 
 enum {
@@ -1292,6 +1295,63 @@ void meego_media_player_control_implement_get_artist(MeegoMediaPlayerControlClas
   klass->get_artist = impl;
 }
 
+gboolean meego_media_player_control_record (MeegoMediaPlayerControl *self, gboolean to_record)
+{
+  meego_media_player_control_record_impl impl =
+    (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->record);
+
+  if (impl != NULL) {
+    (impl) (self, to_record);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_record  (MeegoMediaPlayerControlClass *klass,
+    meego_media_player_control_record_impl impl)
+{
+  klass->record = impl;
+}
+
+gboolean meego_media_player_control_get_pat (MeegoMediaPlayerControl *self, GPtrArray **pat)
+{
+  meego_media_player_control_get_pat_impl impl =
+    (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_pat);
+
+  if (impl != NULL) {
+    (impl) (self, pat);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_pat(MeegoMediaPlayerControlClass *klass,
+    meego_media_player_control_get_pat_impl impl)
+{
+  klass->get_pat = impl;
+}
+
+gboolean meego_media_player_control_get_pmt (MeegoMediaPlayerControl *self, guint *program_num, guint *pcr_pid, 
+                                             GPtrArray **stream_info)
+{
+  meego_media_player_control_get_pmt_impl impl =
+    (MEEGO_MEDIA_PLAYER_CONTROL_GET_CLASS (self)->get_pmt);
+
+  if (impl != NULL) {
+    (impl) (self, program_num, pcr_pid, stream_info);
+  } else {
+    g_warning ("Method not implemented\n");
+  }
+  return TRUE;
+}
+
+void meego_media_player_control_implement_get_pmt(MeegoMediaPlayerControlClass *klass,
+    meego_media_player_control_get_pmt_impl impl)
+{
+  klass->get_pmt = impl;
+}
 void
 meego_media_player_control_emit_initialized (gpointer instance)
 {

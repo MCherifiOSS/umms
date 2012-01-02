@@ -232,6 +232,20 @@
 			<arg name="protocol_name" type="s" direction="out"/>
 		</method>
 
+		<method name="Record">
+			<arg name="record" type="b"/>
+		</method>
+
+    <method name="GetPat">
+      <arg name="pat" type="aa{sv}" direction="out"/>
+		</method>
+
+    <method name="GetPmt">
+      <arg name="program-number" type="u" direction="out"/>
+      <arg name="pcr-pid" type="u" direction="out"/>
+      <arg name="stream-info" type="aa{sv}" direction="out"/>
+		</method>
+
 		<method name="GetCurrentUri">
 			<arg name="uri" type="s" direction="out"/>
 		</method>

@@ -150,6 +150,11 @@ gboolean meego_media_player_get_protocol_name (MeegoMediaPlayer *player, gchar *
 gboolean meego_media_player_get_current_uri (MeegoMediaPlayer *player, gchar **uri, GError **err);
 gboolean meego_media_player_get_title (MeegoMediaPlayer *player, gchar **title, GError **err);
 gboolean meego_media_player_get_artist (MeegoMediaPlayer *player, gchar **artist, GError **err);
+gboolean meego_media_player_record (MeegoMediaPlayer *player, gboolean to_record, GError **err);
+gboolean meego_media_player_get_pat (MeegoMediaPlayer *player, GPtrArray **pat, GError **err);
+gboolean meego_media_player_get_pmt (MeegoMediaPlayer *player, guint *program_num, guint *pcr_pid, GPtrArray **stream_info, 
+    GError **err);
+
 
 G_END_DECLS
 

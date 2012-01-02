@@ -1326,3 +1326,27 @@ connect_signals(MeegoMediaPlayer *player, MeegoMediaPlayerControl *control)
       0);
 }
 
+gboolean 
+meego_media_player_record (MeegoMediaPlayer *player, gboolean to_record, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_record (GET_CONTROL_IFACE (player), to_record);
+  return TRUE;
+}
+
+gboolean 
+meego_media_player_get_pat (MeegoMediaPlayer *player, GPtrArray **pat, GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_pat (GET_CONTROL_IFACE (player), pat);
+  return TRUE;
+}
+
+gboolean 
+meego_media_player_get_pmt (MeegoMediaPlayer *player, guint *program_num, guint *pcr_pid, GPtrArray **stream_info, 
+    GError **err)
+{
+  CHECK_ENGINE(GET_CONTROL_IFACE (player), FALSE, err);
+  meego_media_player_control_get_pmt (GET_CONTROL_IFACE (player), program_num, pcr_pid, stream_info);
+  return TRUE;
+}

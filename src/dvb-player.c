@@ -105,7 +105,6 @@ static gboolean _stop_pipe (MeegoMediaPlayerControl *control);
 static gboolean dvb_player_set_video_size (MeegoMediaPlayerControl *self, guint x, guint y, guint w, guint h);
 static gboolean create_xevent_handle_thread (MeegoMediaPlayerControl *self);
 static gboolean destroy_xevent_handle_thread (MeegoMediaPlayerControl *self);
-static gboolean parse_uri_async (MeegoMediaPlayerControl *self, gchar *uri);
 static void release_resource (MeegoMediaPlayerControl *self);
 static gboolean dvb_player_set_subtitle_uri(MeegoMediaPlayerControl *player, gchar *suburi);
 static void pad_added_cb (GstElement *element, GstPad *pad, gpointer data);
@@ -123,11 +122,141 @@ enum {
   CHAIN_TYPE_SUB
 };
 
-//TODO: figure out the tuner parameters and program number 
+#define DVBT_PARAMS_NUM 8
+const gchar *dvbt_param_name[] = {
+ "modulation",
+ "trans-mode",
+ "bandwidth",
+ "frequency",
+ "code-rate-lp",
+ "code-rate-hp",
+ "guard",
+ "hierarchy"
+};
+
+guint dvbt_param_val[DVBT_PARAMS_NUM] = {0, };
+
+/*
+ * URI pattern: 
+ * dvb://?program-number=x&type=x&modulation=x&trans-mod=x&bandwidth=x&frequency=x&code-rate-lp=x&
+ * code-rate-hp=x&guard=x&hierarchy=x
+ */
+enum dvb_type {
+ DVB_T,
+ DVB_C,
+ DVB_S,
+ DVB_TYPE_NUM
+};
+
+static gchar *dvb_type_name[] = {
+ "DVB-T",
+ "DVB-C",
+ "DVB-S"
+};
+
+static gboolean 
+set_properties(DvbPlayer *player, const gchar *location)
+{
+  gint i;
+  gboolean ret = FALSE;
+  gchar **part = NULL;
+  gchar **params = NULL;
+  gchar *format = NULL;
+  gint program_num;
+  gint type;
+  gboolean invalid_params = FALSE;
+  DvbPlayerPrivate *priv = GET_PRIVATE (player);
+
+  g_return_val_if_fail (location, FALSE);
+  UMMS_DEBUG ("location = '%s'", location);
+
+  if (!priv->source || !priv->tsdemux) 
+    goto out;
+
+  if (!(part = g_strsplit (location, "?", 0))) {
+    UMMS_DEBUG ("splitting location failed");
+    goto out;
+  }
+
+  if (!(params = g_strsplit (part[1], "&", 0))) {
+    UMMS_DEBUG ("splitting params failed");
+    goto out;
+  }
+
+  if ((0 == sscanf (params[1], "type=%d", &type))) {
+    UMMS_DEBUG ("Invalid dvb type string: %s", params[1]);
+    invalid_params = TRUE;
+    goto out;
+  }
+
+  if (!(type >= 0 && type < DVB_TYPE_NUM)) {
+    UMMS_DEBUG ("Invalid dvb type: %d", type);
+    invalid_params = TRUE;
+    goto out;
+  }
+
+  UMMS_DEBUG ("Setting %s properties", dvb_type_name[type]);
+
+  //setting dvbsrc properties
+  for (i = 0; i < DVBT_PARAMS_NUM; i++) {
+    UMMS_DEBUG ("dvbt_param_name[%d]=%s", i, dvbt_param_name[i]);
+    format = g_strconcat (dvbt_param_name[i], "=%u", NULL);
+    sscanf (params[i+2], format, &dvbt_param_val[i]);
+    g_free (format);
+    g_object_set (priv->source, dvbt_param_name[i],  dvbt_param_val[i], NULL);
+    UMMS_DEBUG ("Setting param: %s=%u", dvbt_param_name[i], dvbt_param_val[i]);
+  }
+
+  //setting program number
+  sscanf (params[0], "program-number=%d", &program_num);
+  g_object_set (priv->tsdemux, "program-number",  program_num, NULL);
+  UMMS_DEBUG ("Setting program-number: %d", program_num);
+
+  ret = TRUE;
+
+out:
+  if (part)
+    g_strfreev (part);
+  if (params)
+    g_strfreev (params);
+
+  if (invalid_params) {
+    UMMS_DEBUG ("Incorrect params string");
+  }
+    
+  if (!ret) {
+    UMMS_DEBUG ("failed");
+  }
+  return ret;
+}
+
 static gboolean
-parse_uri (DvbPlayer *player, const gchar *uri)
+dvb_player_parse_uri (DvbPlayer *player, const gchar *uri)
 {
   gboolean ret = TRUE;
+  gchar *protocol = NULL;
+  gchar *location = NULL;
+
+  g_return_val_if_fail (uri, FALSE);
+
+  protocol = gst_uri_get_protocol (uri);
+
+  if (strcmp (protocol, "dvb") != 0) {
+    ret = FALSE;
+  } else {
+    location = gst_uri_get_location (uri);
+
+    if (location != NULL) {
+      ret = set_properties (player, location);
+    } else
+      ret = FALSE;
+  }
+
+  if (protocol)
+    g_free (protocol);
+  if (location)
+    g_free (location);
+
   return ret;
 }
 
@@ -154,7 +283,7 @@ dvb_player_set_uri (MeegoMediaPlayerControl *self,
 
   priv->uri = g_strdup (uri);
 
-  return parse_uri (DVB_PLAYER (self), uri); 
+  return dvb_player_parse_uri (DVB_PLAYER (self), uri); 
 }
 
 static gboolean
@@ -2045,6 +2174,170 @@ dvb_player_get_artist(MeegoMediaPlayerControl *self, gchar ** artist)
   return TRUE;
 }
 
+static gboolean 
+dvb_player_record (MeegoMediaPlayerControl *self, gboolean to_record)
+{
+
+
+}
+
+static gboolean 
+dvb_player_get_pat (MeegoMediaPlayerControl *self, GPtrArray **pat)
+{
+  GValueArray *pat_info = NULL;
+  GPtrArray *pat_out = NULL;
+  DvbPlayerPrivate *priv = NULL;
+  gboolean ret = FALSE;
+  gint i;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (pat, FALSE);
+
+  priv = GET_PRIVATE (self);
+
+  if (!priv->tsdemux)
+    goto out;
+
+  pat_out = g_ptr_array_new ();
+  if (!pat_out) {
+    goto out;
+  }
+
+  g_object_get (priv->tsdemux, "pat-info", &pat_info, NULL);
+
+  if (!pat_info) {
+    UMMS_DEBUG ("no pat-info");
+    goto out;
+  }
+
+
+  for (i = 0; i < pat_info->n_values; i++) {
+    GValue *val = NULL;
+    GObject *entry = NULL;
+    GHashTable *ht = NULL;
+    GValue *val_out = NULL;
+    guint program_num = 0;
+    guint pid = 0;
+
+
+    //get program-number and pid
+    val = g_value_array_get_nth (pat_info, i);
+    entry = g_value_get_object (val);
+    g_object_get (entry, "program-number", &program_num, "pid", &pid, NULL);
+    UMMS_DEBUG ("program-number : %u, pid : %u", program_num, pid);
+
+    //fill the output 
+    ht = g_hash_table_new (NULL, NULL);
+    val_out = g_new0(GValue, 1);
+    g_value_init (val_out, G_TYPE_UINT);
+    g_value_set_uint (val_out, program_num);
+    g_hash_table_insert (ht, "program-number", val_out);
+
+    val_out = g_new0(GValue, 1);
+    g_value_init (val_out, G_TYPE_UINT);
+    g_value_set_uint (val_out, pid);
+    g_hash_table_insert (ht, "pid", val_out);
+
+    g_ptr_array_add (pat_out, ht);
+  }
+  ret = TRUE;
+  *pat = pat_out;
+
+out:
+  if (!ret && pat_out) {
+    g_ptr_array_free (pat_out, FALSE);
+  }
+
+  if (pat_info) 
+    g_value_array_free (pat_info);
+
+  return ret;
+}
+
+/*
+ * pmt() {
+ *    program-number
+ *    pcr-pid
+ *    for (i = 0; i<elementary_stream_number; i++) {
+ *      stream-info() {
+ *        pid
+ *        stream_type
+ *      }
+ *    }
+ * }
+ *
+ */ 
+static gboolean 
+dvb_player_get_pmt (MeegoMediaPlayerControl *self, guint *program_num, guint *pcr_pid, GPtrArray **stream_info)
+{
+  DvbPlayerPrivate *priv;
+  gboolean ret = FALSE;
+  GValue *val = NULL;
+  GHashTable *stream_info_out;
+  gint i;
+
+  GObject *pmt_info;
+  GValueArray *stream_info_array = NULL;
+
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
+  g_return_val_if_fail (program_num, FALSE);
+  g_return_val_if_fail (pcr_pid, FALSE);
+  g_return_val_if_fail (stream_info, FALSE);
+
+  priv = GET_PRIVATE (self);
+
+  if (!priv->tsdemux)
+    goto out;
+
+  g_object_get (priv->tsdemux, "pmt-info", &pmt_info, NULL);
+  if (!pmt_info)
+    goto out;
+
+  //get all the pmt specific info we need
+  g_object_get (pmt_info, "program-number", program_num, "pcr-pid", pcr_pid, "stream-info", &stream_info_array,  NULL);
+  if (!stream_info_array) {
+    UMMS_DEBUG ("getting stream-info failed");
+    goto out;
+  }
+
+  //elementary stream info
+  *stream_info = g_ptr_array_new ();
+  for (i = 0; i < stream_info_array->n_values; i++) {
+    guint pid;
+    guint stream_type;
+    GValue *val_tmp;
+    GObject *stream_info_tmp;
+
+    val_tmp = g_value_array_get_nth (stream_info_array, i);
+    stream_info_tmp = g_value_get_object (val_tmp);
+    g_object_get (stream_info_tmp, "pid", &pid, "stream-type", &stream_type, NULL);
+
+    stream_info_out = g_hash_table_new (NULL, NULL);
+    val_tmp = g_new0 (GValue, 1);
+    g_value_init (val_tmp, G_TYPE_UINT);
+    g_value_set_uint (val_tmp, pid);
+    g_hash_table_insert (stream_info_out, "pid", val_tmp);
+    val_tmp = g_new0 (GValue, 1);
+    g_value_init (val_tmp, G_TYPE_UINT);
+    g_value_set_uint (val_tmp, stream_type);
+    g_hash_table_insert (stream_info_out, "stream-type", val_tmp);
+
+    g_ptr_array_add (*stream_info, stream_info_out);
+  }
+
+  ret =  TRUE;
+
+out: 
+  if (pmt_info)
+    g_object_unref (pmt_info);
+  if (stream_info_array)
+    g_value_array_free (stream_info_array);
+  return ret;
+}
+
+
 static void
 meego_media_player_control_init (MeegoMediaPlayerControl *iface)
 {
@@ -2158,6 +2451,12 @@ meego_media_player_control_init (MeegoMediaPlayerControl *iface)
 //      dvb_player_get_title);
 //  meego_media_player_control_implement_get_artist (klass,
 //      dvb_player_get_artist);
+  meego_media_player_control_implement_record (klass,
+      dvb_player_record);
+  meego_media_player_control_implement_get_pat (klass,
+      dvb_player_get_pat);
+  meego_media_player_control_implement_get_pmt (klass,
+      dvb_player_get_pmt);
 }
 
 static void
@@ -2572,13 +2871,11 @@ dvb_player_init (DvbPlayer *self)
 {
   DvbPlayerPrivate *priv;
   GstBus *bus;
-  GstCaps *caps;
   GstElement *pipeline = NULL;
   GstElement *source = NULL;
   GstElement *front_queue = NULL;
   GstElement *clock_provider = NULL;
   GstElement *tsdemux = NULL;
-  GstElement *tsfilesink = NULL;
   GstElement *vsink = NULL;
   GstElement *asink = NULL;
 
@@ -2630,10 +2927,6 @@ dvb_player_init (DvbPlayer *self)
     UMMS_DEBUG ("Creating dvbsrc failed");
     goto failed;
   }
-  g_object_set (source, "modulation", 1,   "trans-mode", 0, \
-      "bandwidth", 0,    "frequency", 578000000, \
-      "code-rate-lp", 0, "code-rate-hp", 3, \
-      "guard", 0, "hierarchy", 0, NULL);
 
   clock_provider = gst_element_factory_make ("ismd_clock_recovery_provider", "ismd-clock-recovery-provider");
   if (!clock_provider) {
@@ -2666,8 +2959,6 @@ dvb_player_init (DvbPlayer *self)
   priv->asink = asink = gst_element_factory_make ("ismd_audio_sink", NULL);
 
   /*recode sink*/
-  //priv->tsfilesink = gst_element_factory_make ("filesink", "tsfilesink");
-  //g_object_set (priv->tsfilesink, "location", "/root/pvr.ts", NULL);
 
   if (!front_queue || !tsdemux || !asink) {
     UMMS_DEBUG ("front_queue(%p), tsdemux(%p), asink(%p)", \
@@ -3167,8 +3458,8 @@ static gboolean link_sink (DvbPlayer *player, GstPad *pad)
   GstCaps *caps   = NULL;
   gboolean ret = TRUE;
 
-  g_return_if_fail (DVB_IS_PLAYER (player));
-  g_return_if_fail (GST_IS_PAD (pad));
+  g_return_val_if_fail (DVB_IS_PLAYER (player), FALSE);
+  g_return_val_if_fail (GST_IS_PAD (pad), FALSE);
 
   priv = GET_PRIVATE (player);
 

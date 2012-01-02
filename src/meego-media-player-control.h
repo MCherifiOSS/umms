@@ -292,6 +292,19 @@ typedef gboolean (*meego_media_player_control_get_artist_impl) (MeegoMediaPlayer
 void meego_media_player_control_implement_get_artist(MeegoMediaPlayerControlClass *klass,
                                                         meego_media_player_control_get_artist_impl impl);
 
+typedef gboolean (*meego_media_player_control_record_impl) (MeegoMediaPlayerControl *self, gboolean to_record);
+void meego_media_player_control_implement_record (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_record_impl impl);
+typedef gboolean (*meego_media_player_control_get_pat_impl) (MeegoMediaPlayerControl *self, GPtrArray **pat);
+void meego_media_player_control_implement_get_pat (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_pat_impl impl);
+typedef gboolean (*meego_media_player_control_get_pmt_impl) (MeegoMediaPlayerControl *self, 
+                                                            guint *program_num, guint *pcr_pid, GPtrArray **stream_info);
+void meego_media_player_control_implement_get_pmt (MeegoMediaPlayerControlClass *klass,
+                                                        meego_media_player_control_get_pmt_impl impl);
+
+
+
 /*virtual function wrappers*/
 gboolean meego_media_player_control_set_uri (MeegoMediaPlayerControl *self, const gchar *in_uri);
 gboolean meego_media_player_control_set_target (MeegoMediaPlayerControl *self, gint type, GHashTable *params);
@@ -352,6 +365,11 @@ gboolean meego_media_player_control_get_protocol_name(MeegoMediaPlayerControl *s
 gboolean meego_media_player_control_get_current_uri (MeegoMediaPlayerControl *self, gchar ** uri);
 gboolean meego_media_player_control_get_title(MeegoMediaPlayerControl *self, gchar ** title);
 gboolean meego_media_player_control_get_artist(MeegoMediaPlayerControl *self, gchar ** artist);
+gboolean meego_media_player_control_record (MeegoMediaPlayerControl *self, gboolean to_record);
+gboolean meego_media_player_control_get_pat (MeegoMediaPlayerControl *self, GPtrArray **pat);
+gboolean meego_media_player_control_get_pmt (MeegoMediaPlayerControl *self, 
+                                            guint *program_num, guint *pcr_pid, GPtrArray **stream_info);
+
 
 /*signal emitter*/
 void meego_media_player_control_emit_initialized (gpointer instance);
