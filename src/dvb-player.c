@@ -17,6 +17,7 @@
 
 /* add PAT, CAT, NIT, SDT, EIT to pids filter for dvbsrc */
 #define INIT_PIDS "0:1:16:17:18"
+#define TEST_PIDS "0:257:1110:1120"
 
 
 static void meego_media_player_control_init (MeegoMediaPlayerControl* iface);
@@ -99,6 +100,9 @@ struct _DvbPlayerPrivate {
 
   GList *elements;//decodarble and audio/video sink element factory
   guint32  elements_cookie;
+
+  gboolean recording;
+  gchar *file_location;
 };
 
 static gboolean _stop_pipe (MeegoMediaPlayerControl *control);
@@ -2174,11 +2178,118 @@ dvb_player_get_artist(MeegoMediaPlayerControl *self, gchar ** artist)
   return TRUE;
 }
 
+static gboolean start_recording (MeegoMediaPlayerControl *self)
+{
+
+  gboolean ret = FALSE;
+  GstPad *srcpad = NULL;
+  GstPad *sinkpad = NULL;
+  GstElement *filesink = NULL;
+  gchar *location = NULL;
+
+  DvbPlayerPrivate *priv = GET_PRIVATE (self);
+
+  if ((priv->player_state != PlayerStatePlaying) || priv->tsfilesink || !priv->tsdemux){
+    goto out;
+  }
+
+  if (!(filesink = gst_element_factory_make ("filesink", NULL))) {
+    UMMS_DEBUG ("Creating filesink failed");
+    goto out;
+  }
+  gst_object_ref_sink (filesink);
+
+#define DEFAULT_FILE_LOCATION "/tmp/record.ts"
+  if (priv->file_location)
+    location = priv->file_location;
+  else 
+    location = DEFAULT_FILE_LOCATION;
+  g_object_set (filesink, "location", location, NULL);
+
+  gst_bin_add (priv->pipeline, filesink);
+
+  if (!(sinkpad = gst_element_get_static_pad (filesink, "sink"))){
+    UMMS_DEBUG ("Getting program pad failed");
+    goto failed;
+  }
+
+  //TODO: remove this code, just for testing
+  g_object_set (priv->tsdemux, "pids", TEST_PIDS, NULL);
+
+  if (!(srcpad = gst_element_get_request_pad (priv->tsdemux, "rawts"))){
+    UMMS_DEBUG ("Getting program pad failed");
+    goto failed;
+  }
+
+  if (GST_PAD_LINK_OK != gst_pad_link (srcpad, sinkpad)) {
+    UMMS_DEBUG ("Linking filesink failed");
+    goto failed;
+  }
+
+  if (GST_STATE_CHANGE_FAILURE == gst_element_set_state (filesink, GST_STATE_PLAYING)) {
+    UMMS_DEBUG ("Setting filesink to playing failed");
+    goto failed;
+  }
+
+
+  ret = TRUE;
+  priv->recording = TRUE;
+  priv->tsfilesink = filesink;
+
+out:
+    if (sinkpad)
+      gst_object_unref (sinkpad);
+    if (srcpad)
+      gst_object_unref (srcpad);
+
+    if (!ret) {
+      UMMS_DEBUG ("failed!!!");
+    }
+
+    return ret;
+
+failed:
+    gst_bin_remove (priv->pipeline, filesink);
+    TEARDOWN_ELEMENT (filesink);
+    goto out;
+}
+
+static gboolean stop_recording (MeegoMediaPlayerControl *self) 
+{
+  DvbPlayerPrivate *priv = GET_PRIVATE (self);
+
+  UMMS_DEBUG ("Begin");
+  if (!priv->tsfilesink) {
+    UMMS_DEBUG ("We don't have filesink, can't remove it");
+    return FALSE;
+  }
+
+  gst_bin_remove (priv->pipeline, priv->tsfilesink);
+  TEARDOWN_ELEMENT (priv->tsfilesink);
+  priv->recording = FALSE;
+
+  UMMS_DEBUG ("End");
+  return TRUE;
+}
+
 static gboolean 
 dvb_player_record (MeegoMediaPlayerControl *self, gboolean to_record)
 {
+  DvbPlayerPrivate *priv = NULL;
+  
+  g_return_val_if_fail (self != NULL, FALSE);
+  g_return_val_if_fail (MEEGO_IS_MEDIA_PLAYER_CONTROL(self), FALSE);
 
+  priv = GET_PRIVATE (self);
 
+  if (to_record == priv->recording) {
+    return TRUE;
+  }
+  
+  if (to_record) 
+    return start_recording (self);
+  else 
+    return stop_recording (self);
 }
 
 static gboolean 
@@ -3088,16 +3199,9 @@ pad_added_cb (GstElement *element,
 
   UMMS_DEBUG ("flutsdemux pad: %s added", name);
   if (!g_strcmp0 (name, "rawts")) {
-    gst_bin_add (GST_BIN (priv->pipeline), priv->tsfilesink);
-    sinkpad = gst_element_get_static_pad (priv->tsfilesink, "sink");
-    gst_pad_link (pad, sinkpad);
-    g_print ("pad(%s) linked\n", GST_PAD_NAME(pad));
-    gst_element_set_state (priv->tsfilesink, GST_STATE_PLAYING);
+    g_print ("pad(%s) added\n", GST_PAD_NAME(pad));
   } else if (!g_strcmp0 (name, "program")) {
-    gst_bin_add (GST_BIN (priv->pipeline), priv->tsfilesink);
-    sinkpad = gst_element_get_static_pad (priv->tsfilesink, "sink");
-    gst_pad_link (pad, sinkpad);
-    g_print ("pad(%s) linked\n", GST_PAD_NAME(pad));
+    g_print ("pad(%s) added\n", GST_PAD_NAME(pad));
   }else {
     UMMS_DEBUG ("autoplug elementary stream pad: %s", name);
     if (!priv->mq) {
