@@ -60,6 +60,14 @@ def connect_to_need_reply_sig(player):
     player.connect_to_signal("NeedReply", need_reply_cb, path_keyword="obj_path")
     print "connect_to_signal NeedReply"
 
+def request_scheduled_recorder(start_time, duration, uri, location):
+    print "Request scheduled recorder, start_time = %f, duration=%f, uri=%s, location=%s" % (start_time, duration, uri, location) 
+    global obj_mngr
+
+    (token, player_name) = obj_mngr.RequestScheduledRecorder(start_time, duration, uri, location)
+    player = get_iface (player_name, 'com.UMMS.MediaPlayer') 
+    return (player, player_name)
+
 def request_player(attended, time_to_execution):
     print "Request media player, attended = %d, time_to_execution = %f" % (attended, time_to_execution) 
     global obj_mngr

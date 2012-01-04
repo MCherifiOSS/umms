@@ -310,6 +310,11 @@
 		<signal name="TextTagChanged">
 			<arg type="i"/>
 		</signal>
-	</interface>
 
+		<signal name="RecordStart">
+		</signal>
+
+		<signal name="RecordStop">
+		</signal>
+	</interface>
 </node>

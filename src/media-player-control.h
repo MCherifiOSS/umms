@@ -393,6 +393,8 @@ void media_player_control_emit_text_tag_changed (gpointer instance, gint channel
 void media_player_control_emit_metadata_changed(gpointer instance);
 void media_player_control_emit_suspended (gpointer instance);
 void media_player_control_emit_restored (gpointer instance);
+void media_player_control_emit_record_start(gpointer instance);
+void media_player_control_emit_record_stop(gpointer instance);
 
 G_END_DECLS
 #endif

@@ -72,6 +72,8 @@ UmmsObjectManager *umms_object_manager_new (gint platform);
 gboolean umms_object_manager_request_media_player(UmmsObjectManager *self, gchar **object_path, GError **error);
 gboolean umms_object_manager_request_media_player_unattended(UmmsObjectManager *self, gdouble time_to_execution, 
         gchar **token, gchar **object_path, GError **error);
+gboolean umms_object_manager_request_scheduled_recorder(UmmsObjectManager *self, gdouble start_time, gdouble duration,
+        gchar *uri, gchar *location, gchar **token, gchar **object_path, GError **error);
 gboolean umms_object_manager_remove_media_player(UmmsObjectManager *self, gchar *object_path, GError **error);
 GList *umms_object_manager_get_player_list (UmmsObjectManager *self);
 

@@ -106,6 +106,8 @@ enum {
   SIGNAL_MEDIA_PLAYER_CONTROL_AudioTagChanged,
   SIGNAL_MEDIA_PLAYER_CONTROL_TextTagChanged,
   SIGNAL_MEDIA_PLAYER_CONTROL_MetadataChanged,
+  SIGNAL_MEDIA_PLAYER_CONTROL_RecordStart,
+  SIGNAL_MEDIA_PLAYER_CONTROL_RecordStop,
   N_MEDIA_PLAYER_CONTROL_SIGNALS
 };
 static guint media_player_control_signals[N_MEDIA_PLAYER_CONTROL_SIGNALS] = {0};
@@ -1536,6 +1538,26 @@ media_player_control_emit_metadata_changed (gpointer instance)
                  0);
 }
 
+void
+media_player_control_emit_record_start (gpointer instance)
+{
+  g_assert (instance != NULL);
+  g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, TYPE_MEDIA_PLAYER_CONTROL));
+  g_signal_emit (instance,
+                 media_player_control_signals[SIGNAL_MEDIA_PLAYER_CONTROL_RecordStart],
+                 0);
+}
+
+void
+media_player_control_emit_record_stop (gpointer instance)
+{
+  g_assert (instance != NULL);
+  g_assert (G_TYPE_CHECK_INSTANCE_TYPE (instance, TYPE_MEDIA_PLAYER_CONTROL));
+  g_signal_emit (instance,
+                 media_player_control_signals[SIGNAL_MEDIA_PLAYER_CONTROL_RecordStop],
+                 0);
+}
+
 static inline void
 media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
 {
@@ -1706,7 +1728,26 @@ media_player_control_base_init_once (gpointer klass G_GNUC_UNUSED)
                   g_cclosure_marshal_VOID__VOID,
                   G_TYPE_NONE,
                   0);
+  
+  media_player_control_signals[SIGNAL_MEDIA_PLAYER_CONTROL_RecordStart] =
+    g_signal_new ("record-start",
+                  G_OBJECT_CLASS_TYPE (klass),
+                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+                  0,
+                  NULL, NULL,
+                  g_cclosure_marshal_VOID__VOID,
+                  G_TYPE_NONE,
+                  0);
 
+  media_player_control_signals[SIGNAL_MEDIA_PLAYER_CONTROL_RecordStop] =
+    g_signal_new ("record-stop",
+                  G_OBJECT_CLASS_TYPE (klass),
+                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+                  0,
+                  NULL, NULL,
+                  g_cclosure_marshal_VOID__VOID,
+                  G_TYPE_NONE,
+                  0);
 }
 
 static void

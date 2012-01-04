@@ -161,6 +161,7 @@ gboolean media_player_get_pmt (MediaPlayer *player, guint *program_num, guint *p
     GError **err);
 gboolean media_player_get_associated_data_channel (MediaPlayer *player, gchar **ip, gint *port, GError **err);
 
+gboolean media_player_activate (MediaPlayer *player, PlayerState state);
 G_END_DECLS
 
 #endif /* _MEDIA_PLAYER_H */

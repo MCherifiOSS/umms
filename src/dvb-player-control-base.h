@@ -248,6 +248,8 @@ struct _DvbPlayerControlBasePrivate {
   GThread *listen_thread;
   gint serv_fds[SOCK_MAX_SERV_CONNECTS];
   gint sock_exit_flag;
+
+  gboolean record_only;// If true, don't autoplug decode chain
 };
 
 G_END_DECLS

@@ -83,6 +83,9 @@ static guint dvb_player_control_base_param_val[DVB_PLAYER_CONTROL_BASE_PARAMS_NU
  * dvb://?program-number=x&type=x&modulation=x&trans-mod=x&bandwidth=x&frequency=x&code-rate-lp=x&
  * code-rate-hp=x&guard=x&hierarchy=x
  */
+#define TUNER_PARAMETERS_OFFSET 2
+#define PROGRAM_NUM_POS   0
+#define FRONTEND_TYPE_POS 1
 
 static gchar *dvb_player_control_base_type_name[] = {
   "DVB-T",
@@ -119,7 +122,7 @@ set_properties(DvbPlayerControlBase *player, const gchar *location)
     goto out;
   }
 
-  if ((0 == sscanf (params[1], "type=%d", &type))) {
+  if ((0 == sscanf (params[FRONTEND_TYPE_POS], "type=%d", &type))) {
     UMMS_DEBUG ("Invalid dvb type string: %s", params[1]);
     invalid_params = TRUE;
     goto out;
@@ -137,14 +140,14 @@ set_properties(DvbPlayerControlBase *player, const gchar *location)
   for (i = 0; i < DVB_PLAYER_CONTROL_BASE_PARAMS_NUM; i++) {
     UMMS_DEBUG ("dvb_player_control_param_name[%d]=%s", i, dvb_player_control_base_param_name[i]);
     format = g_strconcat (dvb_player_control_base_param_name[i], "=%u", NULL);
-    sscanf (params[i+2], format, &dvb_player_control_base_param_val[i]);
+    sscanf (params[i+TUNER_PARAMETERS_OFFSET], format, &dvb_player_control_base_param_val[i]);
     g_free (format);
     g_object_set (priv->source, dvb_player_control_base_param_name[i], dvb_player_control_base_param_val[i], NULL);
     UMMS_DEBUG ("Setting param: %s=%u", dvb_player_control_base_param_name[i], dvb_player_control_base_param_val[i]);
   }
 
   //setting program number
-  sscanf (params[0], "program-number=%d", &program_num);
+  sscanf (params[PROGRAM_NUM_POS], "program-number=%d", &program_num);
   g_object_set (priv->tsdemux, "program-number",  program_num, NULL);
   UMMS_DEBUG ("Setting program-number: %d", program_num);
 
@@ -354,11 +357,14 @@ dvb_player_control_base_play (MediaPlayerControl *self)
 
 static gboolean stop_recording (DvbPlayerControlBase *self)
 {
+  gboolean ret = FALSE;
   DvbPlayerControlBasePrivate *priv = GET_PRIVATE (self);
+
+  priv->record_only = FALSE;
 
   if (!priv->tsfilesink) {
     UMMS_DEBUG ("We don't have filesink, can't remove it");
-    return FALSE;
+    goto out;
   }
 
   gst_bin_remove (GST_BIN(priv->pipeline), priv->tsfilesink);
@@ -369,8 +375,11 @@ static gboolean stop_recording (DvbPlayerControlBase *self)
   priv->request_pad = NULL;
 
   priv->recording = FALSE;
+  ret = TRUE;
 
-  return TRUE;
+out:
+  media_player_control_emit_record_stop (self);
+  return ret;
 }
 
 static gboolean
@@ -655,8 +664,15 @@ static gboolean start_recording (DvbPlayerControlBase *self, gchar *location)
 
   DvbPlayerControlBasePrivate *priv = GET_PRIVATE (self);
 
-  if ((priv->player_state != PlayerStatePlaying) || priv->tsfilesink || !priv->tsdemux) {
+  if (priv->tsfilesink || !priv->tsdemux) {
     goto out;
+  }
+
+  if ((priv->player_state != PlayerStatePlaying)) {
+    priv->record_only = TRUE;
+    if (!dvb_player_control_base_play (self)) {
+      goto out;
+    }
   }
 
   if (!(filesink = gst_element_factory_make ("filesink", NULL))) {
@@ -722,6 +738,10 @@ out:
   if (!ret) {
     TEARDOWN_ELEMENT (filesink);
     UMMS_DEBUG ("failed!!!");
+    media_player_control_emit_error (self, UMMS_ENGINE_ERROR_FAILED, "Start recording failed");
+  } else {
+    UMMS_DEBUG ("record start!!!");
+    media_player_control_emit_record_start (self);
   }
 
   return ret;
@@ -1737,6 +1757,8 @@ pad_added_cb (GstElement *element,
     g_print ("pad(%s) added\n", GST_PAD_NAME(pad));
   } else if (!g_strcmp0 (name, "program")) {
     g_print ("pad(%s) added\n", GST_PAD_NAME(pad));
+  } else if (priv->record_only){
+    UMMS_DEBUG ("recode only, don't autoplug decode chain");
   } else {
     UMMS_DEBUG ("autoplug elementary stream pad: %s", name);
     if (!priv->mq) {

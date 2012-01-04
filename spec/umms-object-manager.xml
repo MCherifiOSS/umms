@@ -9,6 +9,14 @@
 			<arg name="token" type="s" direction="out"/>
 			<arg name="object_path" type="s" direction="out"/>
 		</method>
+		<method name="RequestScheduledRecorder">
+			<arg name="start_time" type="d"/>
+			<arg name="duration" type="d"/>
+			<arg name="uri" type="s"/>
+			<arg name="location" type="s"/>
+			<arg name="token" type="s" direction="out"/>
+			<arg name="object_path" type="s" direction="out"/>
+		</method>
 		<method name="RemoveMediaPlayer">
 			<arg name="object_path" type="s"/>
 		</method>

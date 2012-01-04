@@ -89,6 +89,8 @@ enum {
   SIGNAL_MEDIA_PLAYER_AudioTagChanged,
   SIGNAL_MEDIA_PLAYER_TextTagChanged,
   SIGNAL_MEDIA_PLAYER_MetadataChanged,
+  SIGNAL_MEDIA_PLAYER_RecordStart,
+  SIGNAL_MEDIA_PLAYER_RecordStop,
   N_MEDIA_PLAYER_SIGNALS
 };
 
@@ -215,6 +217,18 @@ static void
 metadata_changed_cb (MediaPlayerControl *iface, MediaPlayer *player)
 {
   g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_MetadataChanged], 0);
+}
+
+static void
+record_start_cb (MediaPlayerControl *iface, MediaPlayer *player)
+{
+  g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_RecordStart], 0);
+}
+
+static void
+record_stop_cb (MediaPlayerControl *iface, MediaPlayer *player)
+{
+  g_signal_emit (player, media_player_signals[SIGNAL_MEDIA_PLAYER_RecordStop], 0);
 }
 
 static gboolean
@@ -1287,6 +1301,26 @@ media_player_class_init (MediaPlayerClass *klass)
                   g_cclosure_marshal_VOID__VOID,
                   G_TYPE_NONE,
                   0);
+
+  media_player_signals[SIGNAL_MEDIA_PLAYER_RecordStart] =
+    g_signal_new ("record-start",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
+
+  media_player_signals[SIGNAL_MEDIA_PLAYER_RecordStart] =
+    g_signal_new ("record-stop",
+        G_OBJECT_CLASS_TYPE (klass),
+        G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 }
 
 static void
@@ -1387,6 +1421,14 @@ connect_signals(MediaPlayer *player, MediaPlayerControl *control)
       0);
   g_signal_connect_object (control, "metadata-changed",
       G_CALLBACK (metadata_changed_cb),
+      player,
+      0);
+  g_signal_connect_object (control, "record-start",
+      G_CALLBACK (record_start_cb),
+      player,
+      0);
+  g_signal_connect_object (control, "record-stop",
+      G_CALLBACK (record_stop_cb),
       player,
       0);
 }

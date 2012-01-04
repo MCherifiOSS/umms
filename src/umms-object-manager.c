@@ -47,6 +47,8 @@ static void _dump_player (gpointer a, gpointer b);
 static void _dump_player_list (GList *players);
 static MediaPlayer *_gen_media_player (UmmsObjectManager *mngr, gboolean attended);
 static gboolean _remove_media_player (MediaPlayer *player);
+static gboolean _start_record (gpointer data);
+static gboolean _stop_record (gpointer data);
 
 enum {
   SIGNAL_PLAYER_ADDED,
@@ -67,6 +69,20 @@ struct _UmmsObjectManagerPrivate {
   gint  cur_player_id;
   PlatformType platform_type;
 };
+
+typedef struct _RecordItem{
+  MediaPlayer *recorder;
+  gchar       *location;
+  gdouble     duration;
+  guint       delay_timer_id;
+  guint       duration_timer_id;
+}RecordItem;
+
+typedef struct _PlayerCtx{
+  
+  void (*free_func) (void *);
+  void * data;
+}PlayerCtx;
 
 static void
 umms_object_manager_get_property (GObject    *object,
@@ -198,7 +214,16 @@ umms_object_manager_request_media_player(UmmsObjectManager *self, gchar **object
   return TRUE;
 }
 
+static void
+timer_source_free (void *data)
+{
+  guint source_id = (guint) data;
 
+  if (source_id)
+    g_source_remove(source_id);
+
+  return;
+}
 
 gboolean
 umms_object_manager_request_media_player_unattended(UmmsObjectManager *self,
@@ -220,8 +245,66 @@ umms_object_manager_request_media_player_unattended(UmmsObjectManager *self,
 
   UMMS_DEBUG("object_path returned to client = '%s', token = '%s'", *object_path, *token);
 
-  g_timeout_add ((time_to_execution * 1000), _stop_execution, player);
+  PlayerCtx *ctx;
+  ctx = (PlayerCtx *)g_malloc0(sizeof (PlayerCtx));
+  
+  ctx->free_func = timer_source_free;
+  ctx->data = g_timeout_add ((time_to_execution * 1000), _stop_execution, player);
+  g_object_set_data (G_OBJECT (player), "ctx", ctx);
 
+  return TRUE;
+}
+
+static void
+record_item_free (void *data)
+{
+  RecordItem *item = (RecordItem *)data;
+
+  if (item->delay_timer_id)
+    g_source_remove(item->delay_timer_id);
+  if (item->duration_timer_id)
+    g_source_remove(item->duration_timer_id);
+
+  g_free (item->location);
+  g_free (item);
+
+  return;
+}
+
+gboolean 
+umms_object_manager_request_scheduled_recorder(UmmsObjectManager *self, 
+    gdouble start_time, 
+    gdouble duration,
+    gchar *uri,
+    gchar *location, 
+    gchar **token, 
+    gchar **object_path, 
+    GError **error)
+{
+  MediaPlayer *player;
+  RecordItem *record_item;
+  PlayerCtx *ctx;
+
+  player = _gen_media_player (self, FALSE);
+  g_object_get(G_OBJECT(player), "name", object_path, NULL);
+
+  *token = g_strdup ("Dummy ID token");
+
+  media_player_set_uri (player, uri, NULL);
+
+  record_item = g_malloc0 (sizeof (RecordItem));
+  record_item->recorder = player;
+  record_item->location = g_strdup (location);
+  record_item->duration = duration;
+
+  ctx = g_malloc0 (sizeof (PlayerCtx));
+  ctx->data = record_item;
+  ctx->free_func = record_item_free;
+  g_object_set_data (G_OBJECT(player), "cxt", ctx);
+
+  //FIXME: start_time is relative to current time, is a absolute time more appropriate?
+  record_item->delay_timer_id = g_timeout_add ((start_time* 1000), _start_record, record_item);
+  
   return TRUE;
 }
 
@@ -283,6 +366,40 @@ static gboolean _stop_execution(gpointer data)
   UMMS_DEBUG ("Stop unattended execution!");
 
   _remove_media_player (player);
+
+  return FALSE;
+}
+
+static gboolean _stop_record (gpointer data)
+{
+  RecordItem *record_item = (RecordItem *)data;
+  MediaPlayer *player = record_item->recorder;
+
+  UMMS_DEBUG ("Stop record!");
+  record_item->duration_timer_id = 0;
+  media_player_record (player, FALSE, NULL, NULL);
+  _remove_media_player (player);
+
+  return FALSE;
+}
+
+static gboolean _start_record (gpointer data)
+{
+  GError *err = NULL;
+  RecordItem *record_item = (RecordItem *)data;
+  MediaPlayer *player = record_item->recorder;
+  gboolean ret;
+
+  UMMS_DEBUG ("Start record!");
+  /*
+   * Before invoking media_player_record(), we should load internal player engine.
+   * Setting the target state to PlayerStateNull means we just load the engine and do nothing to construct the pipeline.
+   */
+  media_player_activate (player, PlayerStateNull);
+  media_player_record (player, TRUE, record_item->location, NULL);
+  
+  record_item->delay_timer_id = 0;
+  record_item->duration_timer_id = g_timeout_add ((record_item->duration * 1000), _stop_record, record_item);
 
   return FALSE;
 }
@@ -375,6 +492,7 @@ _remove_media_player (MediaPlayer *player)
 {
   DBusGConnection *connection;
   UmmsObjectManagerPrivate *priv;
+  PlayerCtx *ctx;
   GError *err = NULL;
 
   UMMS_DEBUG ("Removing player(%p)", player);
@@ -399,6 +517,13 @@ _remove_media_player (MediaPlayer *player)
   if(player->factory){
     g_object_unref (player->factory);
     player->factory = NULL;
+  }
+
+  //destory extra ctx
+  ctx = g_object_get_data (G_OBJECT(player), "ctx");
+  if (ctx){
+    ctx->free_func (ctx->data);
+    g_free (ctx);
   }
 
   //distory player
