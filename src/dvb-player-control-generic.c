@@ -314,8 +314,9 @@ element_link (GstElement *pipeline, DvbPlayerControlBase *self)
     UMMS_DEBUG ("Creating filesrc failed");
     goto failed;
   }
-  g_object_set (priv->source, "location", "/home/zhiwen/tvb.ts", NULL); // Qing
-  UMMS_DEBUG ("\n Need to load /home/zhiwen/tvb.ts ");
+#define SAMPLE_TS_FILE_PATH "/tmp/sample.ts"
+  g_object_set (priv->source, "location", SAMPLE_TS_FILE_PATH, NULL);
+  UMMS_DEBUG ("Need to load" SAMPLE_TS_FILE_PATH);
 
 #endif
   front_queue   = gst_element_factory_make ("queue", "front-queue");
