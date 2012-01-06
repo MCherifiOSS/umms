@@ -1212,7 +1212,7 @@ bus_sync_handler (GstBus *bus,
     return( GST_BUS_PASS );
 
   g_return_val_if_fail (engine, GST_BUS_PASS);
-  g_return_val_if_fail (DVB_PLAYER_CONTROL_IS_COMMON (engine), GST_BUS_PASS);
+  g_return_val_if_fail (DVB_PLAYER_CONTROL_IS_BASE(engine), GST_BUS_PASS);
   priv = GET_PRIVATE (engine);
 
   vsink =  GST_ELEMENT(GST_MESSAGE_SRC (message));
@@ -1367,7 +1367,7 @@ static gboolean link_sink (DvbPlayerControlBase *player, GstPad *pad)
   GstCaps *caps   = NULL;
   gboolean ret = TRUE;
 
-  g_return_val_if_fail (DVB_PLAYER_CONTROL_IS_COMMON(player), FALSE);
+  g_return_val_if_fail (DVB_PLAYER_CONTROL_IS_BASE(player), FALSE);
   g_return_val_if_fail (GST_IS_PAD (pad), FALSE);
 
   priv = GET_PRIVATE (player);
