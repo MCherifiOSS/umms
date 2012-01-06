@@ -1652,6 +1652,7 @@ static gboolean autoplug_pad(DvbPlayerControlBase *player, GstPad *pad, gint cha
     UMMS_DEBUG ("linked on pad %s:%s", GST_DEBUG_PAD_NAME (pad));
 
     if (!autoplug_dec_element (player, element)) {
+      gst_element_set_state (element, GST_STATE_NULL);
       gst_bin_remove (GST_BIN (priv->pipeline), element);
       continue;
     }
