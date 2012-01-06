@@ -580,21 +580,6 @@ dvb_player_control_base_get_scale_mode (MediaPlayerControl *self, gint *scale_mo
   return kclass->get_scale_mode((DvbPlayerControlBase *)self, scale_mode);
 }
 
-static void
-no_more_pads_cb (GstElement *element, gpointer data)
-{
-  DvbPlayerControlBase *player = (DvbPlayerControlBase *)data;
-  DvbPlayerControlBasePrivate *priv = GET_PRIVATE (player);
-  GstStateChangeReturn ret;
-
-  /*set pipeline to playing, so that sinks start to render data*/
-  UMMS_DEBUG ("Set pipe to playing");
-  if ((ret = gst_element_set_state (priv->pipeline, GST_STATE_PLAYING)) == GST_STATE_CHANGE_FAILURE) {
-    UMMS_DEBUG ("Settint pipeline to playing failed");
-  }
-  return;
-}
-
 static gboolean
 set_video_size (DvbPlayerControlBase *self,
     guint x, guint y, guint w, guint h)

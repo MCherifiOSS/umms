@@ -341,8 +341,6 @@ element_link (GstElement *pipeline, DvbPlayerControlBase *self)
   gst_object_ref_sink (vsink);
 
   g_signal_connect (tsdemux, "pad-added", G_CALLBACK (kclass->pad_added_cb), self);
-  g_signal_connect (tsdemux, "no-more-pads", G_CALLBACK (kclass->no_more_pads_cb), self);
-
 
   /* Add and link frontend elements*/
   gst_bin_add_many (GST_BIN (pipeline),source, front_queue, tsdemux, NULL);
