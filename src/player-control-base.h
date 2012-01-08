@@ -76,6 +76,7 @@ struct _PlayerControlBaseClass
   /*platform specified*/
   gboolean (*activate_player_control) (PlayerControlBase *self, GstState target_state);
   gboolean (*set_target) (PlayerControlBase *self, gint type, GHashTable *params);
+  gboolean (*unset_target) (PlayerControlBase *self);
 
   void     (*release_resource) (PlayerControlBase *self);
   gboolean (*request_resource) (PlayerControlBase *self);

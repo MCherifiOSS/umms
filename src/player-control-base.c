@@ -173,7 +173,15 @@ set_target (PlayerControlBase *self, gint type, GHashTable *params)
 
   UMMS_DEBUG("virtual APIs default Impl: NULL");
   return ret;
+}
 
+static gboolean
+unset_target (PlayerControlBase *self)
+{
+  gboolean ret = TRUE;
+
+  UMMS_DEBUG("Default implementation, do nothing");
+  return ret;
 }
 
 static gboolean
@@ -344,7 +352,12 @@ player_control_base_set_video_size (MediaPlayerControl *self,
   if (!validate_rect (x, y, w, h))
     goto OUT;
 
-  //We use ismd_vidrend_bin as video-sink, so we can set rectangle property.
+  if (priv->target_type == ReservedType0 && priv->disp && priv->video_win_id) {
+    XMoveResizeWindow (priv->disp, priv->video_win_id, x, y, w, h);
+    XSync (priv->disp, 0);
+    goto OUT;
+  }
+
   g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
   if (vsink_bin) {
     gchar *rectangle_des = NULL;
@@ -425,11 +438,25 @@ player_control_base_get_video_size (MediaPlayerControl *self,
   PlayerControlBasePrivate *priv = GET_PRIVATE (self);
   GstElement *pipe = priv->pipeline;
   guint x[1], y[1];
-  gboolean ret;
+  Status status;
+  gboolean ret = TRUE;
   GstElement *vsink_bin = NULL;
 
   g_return_val_if_fail (pipe, FALSE);
   UMMS_DEBUG ("invoked");
+
+  //FIXME: Put this platform specific code into derived player_control
+  //For generic platform
+  if (priv->target_type == ReservedType0 && priv->disp && priv->video_win_id) {
+    status = XGetGeometry(priv->disp, priv->video_win_id, NULL, NULL, NULL, w, h, NULL, NULL);
+    if (!status) {
+      UMMS_DEBUG ("Get video window geometry failed");
+      ret = FALSE;
+    }
+    goto OUT;
+  }
+
+  //For tv platform
   g_object_get (G_OBJECT(pipe), "video-sink", &vsink_bin, NULL);
   if (vsink_bin) {
     gchar *rectangle_des = NULL;
@@ -437,7 +464,8 @@ player_control_base_get_video_size (MediaPlayerControl *self,
     g_object_get (G_OBJECT(vsink_bin), "rectangle", &rectangle_des, NULL);
     if(rectangle_des == NULL){
       UMMS_DEBUG("Not support get video size");
-      return FALSE;
+      ret = FALSE;
+      goto OUT;
     }
     sscanf (rectangle_des, "%u,%u,%u,%u", x, y, w, h);
     UMMS_DEBUG ("got rectangle damension :'%u,%u,%u,%u'", *x, *y, *w, *h);
@@ -447,6 +475,7 @@ player_control_base_get_video_size (MediaPlayerControl *self,
     ret = FALSE;
   }
 
+OUT:
   if (vsink_bin)
     gst_object_unref (vsink_bin);
   return ret;
@@ -2166,13 +2195,8 @@ player_control_base_dispose (GObject *object)
   TEARDOWN_ELEMENT (priv->uri_parse_pipe);
   TEARDOWN_ELEMENT (priv->pipeline);
 
-  if (priv->target_type == XWindow) {
-    kclass->unset_xwindow_target (PLAYER_CONTROL_BASE(object));
-  }
-
-  if (priv->disp) {
-    XCloseDisplay (priv->disp);
-    priv->disp = NULL;
+  if (priv->target_initialized) {
+    kclass->unset_target (PLAYER_CONTROL_BASE(object));
   }
 
   if (priv->tag_list)
@@ -2234,6 +2258,7 @@ player_control_base_class_init (PlayerControlBaseClass *klass)
   /*virtual APis*/
   klass->activate_player_control = activate_player_control;
   klass->set_target = set_target;
+  klass->unset_target = unset_target;
   klass->set_proxy = _set_proxy;
   klass->release_resource = release_resource;
   klass->request_resource = request_resource;
@@ -2448,29 +2473,44 @@ bus_sync_handler (GstBus *bus,
   GError *err = NULL;
   GstMessage *msg = NULL;
 
+  priv = GET_PRIVATE (player_control);
   if ( GST_MESSAGE_TYPE( message ) != GST_MESSAGE_ELEMENT )
     return( GST_BUS_PASS );
 
-  if ( ! gst_structure_has_name( message->structure, "prepare-gdl-plane" ) )
+  if (gst_structure_has_name( message->structure, "prepare-gdl-plane" ) ) {
+
+    g_return_val_if_fail (player_control, GST_BUS_PASS);
+    g_return_val_if_fail (PLAYER_CONTROL_IS_BASE (player_control), GST_BUS_PASS);
+
+    vsink =  GST_ELEMENT(GST_MESSAGE_SRC (message));
+    UMMS_DEBUG ("sync-handler received on bus: prepare-gdl-plane, source: %s", GST_ELEMENT_NAME(vsink));
+
+    if (!prepare_plane ((MediaPlayerControl *)player_control)) {
+      //Since we are in streame thread, let the vsink to post the error message. Handle it in bus_message_error_cb().
+      err = g_error_new_literal (UMMS_RESOURCE_ERROR, UMMS_RESOURCE_ERROR_NO_RESOURCE, "Plane unavailable");
+      msg = gst_message_new_error (GST_OBJECT_CAST(priv->pipeline), err, "No resource");
+      gst_element_post_message (priv->pipeline, msg);
+      g_error_free (err);
+    }
+  } else if (gst_structure_has_name( message->structure, "prepare-xwindow-id")) {
+    GstXOverlay *xoverlay = NULL;
+    GstObject *sender = GST_MESSAGE_SRC (message);
+    if (sender && GST_IS_X_OVERLAY (sender))
+      xoverlay = GST_X_OVERLAY (sender);
+
+    if (xoverlay && priv->video_win_id) {
+      gst_x_overlay_set_xwindow_id (xoverlay, priv->video_win_id);
+      XMapRaised (priv->disp, priv->video_win_id);
+      XSync(priv->disp, 0);
+    } else {
+      UMMS_DEBUG ("no video window set");
+      goto drop;
+    }
+  } else {
     return( GST_BUS_PASS );
-
-  g_return_val_if_fail (player_control, GST_BUS_PASS);
-  g_return_val_if_fail (PLAYER_CONTROL_IS_BASE (player_control), GST_BUS_PASS);
-  priv = GET_PRIVATE (player_control);
-
-  vsink =  GST_ELEMENT(GST_MESSAGE_SRC (message));
-  UMMS_DEBUG ("sync-handler received on bus: prepare-gdl-plane, source: %s", GST_ELEMENT_NAME(vsink));
-
-  if (!prepare_plane ((MediaPlayerControl *)player_control)) {
-    //Since we are in streame thread, let the vsink to post the error message. Handle it in bus_message_error_cb().
-    err = g_error_new_literal (UMMS_RESOURCE_ERROR, UMMS_RESOURCE_ERROR_NO_RESOURCE, "Plane unavailable");
-    msg = gst_message_new_error (GST_OBJECT_CAST(priv->pipeline), err, "No resource");
-    gst_element_post_message (priv->pipeline, msg);
-    g_error_free (err);
   }
 
-//  media_player_control_emit_request_window (player_control);
-
+drop:
   if (message)
     gst_message_unref (message);
   return( GST_BUS_DROP );
