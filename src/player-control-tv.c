@@ -1170,10 +1170,14 @@ player_control_tv_init (PlayerControlTv *self)
   GstBus *bus;
 
   UMMS_DEBUG("Called");
+  priv = GET_PRIVATE (self);
 
+  /*Setup default target*/
 #define FULL_SCREEN_RECT "0,0,0,0"
-  setup_ismd_vbin (self, FULL_SCREEN_RECT, UPP_A);
-
+  if (setup_ismd_vbin (self, FULL_SCREEN_RECT, UPP_A)) {
+    priv->target_type = ReservedType0;
+    priv->target_initialized = TRUE;
+  }
 }
 
 PlayerControlTv *

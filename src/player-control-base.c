@@ -2687,13 +2687,6 @@ player_control_base_init (PlayerControlBase *self)
   priv->audio_stream_id = 0;
   priv->audio_tags_change_id = 0;
   priv->audio_tags_change_lock = g_mutex_new ();
-  //Setup default target.
-  /*
-#define FULL_SCREEN_RECT "0,0,0,0"
-  kclass->setup_ismd_vbin (self, FULL_SCREEN_RECT, UPP_A);
-*/
-  priv->target_type = ReservedType0;
-  priv->target_initialized = TRUE;
 }
 
 PlayerControlBase *

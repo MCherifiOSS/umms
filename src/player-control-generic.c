@@ -173,10 +173,8 @@ static int xerror_handler (
 }
 
 static gboolean 
-setup_xwindow_plane (PlayerControlBase *self, GHashTable *params)
+_setup_xwindow_plane (PlayerControlBase *self, gchar *rect)
 {
-  GValue *val;
-  gchar *rect;
   gint x, y, w, h, rx, ry;
   Window root;
   Window win;
@@ -191,15 +189,11 @@ setup_xwindow_plane (PlayerControlBase *self, GHashTable *params)
     unset_xwindow_plane (self);
   }
 
-  val = g_hash_table_lookup (params, TARGET_PARAM_KEY_RECTANGLE);
-  if (val) {
-    rect = (gchar *)g_value_get_string (val);
 #define FULL_SCREEN_RECT "0,0,0,0"
-    if (g_strcmp0 (rect, FULL_SCREEN_RECT)) {
-      UMMS_DEBUG ("rectangle = '%s'", rect);
-      sscanf (rect , "%u,%u,%u,%u", &x, &y, &w, &h);
-      fullscreen = FALSE;
-    }
+  if (g_strcmp0 (rect, FULL_SCREEN_RECT)) {
+    UMMS_DEBUG ("rectangle = '%s'", rect);
+    sscanf (rect , "%u,%u,%u,%u", &x, &y, &w, &h);
+    fullscreen = FALSE;
   }
 
   if (!priv->disp)
@@ -231,6 +225,23 @@ setup_xwindow_plane (PlayerControlBase *self, GHashTable *params)
   XSync (priv->disp, 0);
 
   return TRUE;
+}
+
+static gboolean 
+setup_xwindow_plane (PlayerControlBase *self, GHashTable *params)
+{
+  GValue *val;
+  gchar *rect = NULL;
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
+  PlayerControlBaseClass *kclass = PLAYER_CONTROL_BASE_GET_CLASS(self);
+  MediaPlayerControl *control = MEDIA_PLAYER_CONTROL(self);
+
+  val = g_hash_table_lookup (params, TARGET_PARAM_KEY_RECTANGLE);
+  if (val) {
+    rect = (gchar *)g_value_get_string (val);
+  }
+
+  return _setup_xwindow_plane (self, rect);
 }
 
 /*virtual Apis: */
@@ -382,6 +393,12 @@ player_control_generic_init (PlayerControlGeneric *self)
   PlayerControlBasePrivate *priv;
   GstBus *bus;
 
+  priv = GET_PRIVATE (self);
+  /*Setup default target*/
+  if (_setup_xwindow_plane (PLAYER_CONTROL_BASE(self), FULL_SCREEN_RECT)) {
+    priv->target_type = ReservedType0;
+    priv->target_initialized = TRUE;
+  }
   UMMS_DEBUG("Called");
 }
 
