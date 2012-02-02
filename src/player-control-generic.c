@@ -222,6 +222,7 @@ _setup_xwindow_plane (PlayerControlBase *self, gchar *rect)
   priv->video_win_id = win = XCreateWindow (priv->disp, root, x, y, w, h, 
       0, CopyFromParent, CopyFromParent, CopyFromParent,
       xattributes_mask, &xattributes);
+  XLowerWindow (priv->disp, priv->video_win_id);
   XSync (priv->disp, 0);
 
   return TRUE;

@@ -2500,7 +2500,7 @@ bus_sync_handler (GstBus *bus,
 
     if (xoverlay && priv->video_win_id) {
       gst_x_overlay_set_xwindow_id (xoverlay, priv->video_win_id);
-      XMapRaised (priv->disp, priv->video_win_id);
+      XMapWindow (priv->disp, priv->video_win_id);
       XSync(priv->disp, 0);
     } else {
       UMMS_DEBUG ("no video window set");
