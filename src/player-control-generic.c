@@ -184,6 +184,7 @@ _setup_xwindow_plane (PlayerControlBase *self, gchar *rect)
   PlayerControlBasePrivate *priv = GET_PRIVATE (self);
   PlayerControlBaseClass *kclass = PLAYER_CONTROL_BASE_GET_CLASS(self);
   MediaPlayerControl *control = MEDIA_PLAYER_CONTROL(self);
+  gchar *disp_env = NULL;
 
   if (priv->xwin_initialized) {
     unset_xwindow_plane (self);
@@ -196,8 +197,19 @@ _setup_xwindow_plane (PlayerControlBase *self, gchar *rect)
     fullscreen = FALSE;
   }
 
-  if (!priv->disp)
+  if (!priv->disp) {
+    disp_env = g_getenv ("DISPLAY");
+    /*
+     * If umms is automatically activated by dbus-daemon, DISPLAY environment variable may not be provided.
+     * FIXME: Provide a configure file which give the DISPLAY info?
+     */
+    if (!disp_env) {
+#define DISPLAY_NAME ":0.0"
+      if (!g_setenv ("DISPLAY", DISPLAY_NAME, 1))
+        return FALSE;
+    }
     priv->disp = XOpenDisplay (NULL);
+  }
 
   if (!priv->disp) {
     UMMS_DEBUG ("Could not open display");
