@@ -300,7 +300,7 @@ umms_object_manager_request_scheduled_recorder(UmmsObjectManager *self,
   ctx = g_malloc0 (sizeof (PlayerCtx));
   ctx->data = record_item;
   ctx->free_func = record_item_free;
-  g_object_set_data (G_OBJECT(player), "cxt", ctx);
+  g_object_set_data (G_OBJECT(player), "ctx", ctx);
 
   //FIXME: start_time is relative to current time, is a absolute time more appropriate?
   record_item->delay_timer_id = g_timeout_add ((start_time* 1000), _start_record, record_item);
@@ -521,6 +521,7 @@ _remove_media_player (MediaPlayer *player)
 
   //destory extra ctx
   ctx = g_object_get_data (G_OBJECT(player), "ctx");
+
   if (ctx){
     ctx->free_func (ctx->data);
     g_free (ctx);
