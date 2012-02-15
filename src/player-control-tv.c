@@ -55,26 +55,6 @@ G_DEFINE_TYPE (PlayerControlTv, player_control_tv, PLAYER_CONTROL_TYPE_BASE);
 
 #define INVALID_PLANE_ID -1
 
-/* list of URIs that we consider to be live source. */
-static gchar *live_src_uri[] = {"mms://", "mmsh://", "rtsp://",
-    "mmsu://", "mmst://", "fd://", "myth://", "ssh://", "ftp://", "sftp://",
-    NULL
-                               };
-
-#define IS_LIVE_URI(uri)                                                           \
-({                                                                                 \
-  gboolean ret = FALSE;                                                            \
-  gchar ** src = live_src_uri;                                                     \
-  while (*src) {                                                                   \
-    if (!g_ascii_strncasecmp (uri, *src, strlen(*src))) {                          \
-      ret = TRUE;                                                                  \
-      break;                                                                       \
-    }                                                                              \
-    src++;                                                                         \
-  }                                                                                \
-  ret;                                                                             \
-})
-
 static void uri_parser_bus_message_error_cb (GstBus *bus, GstMessage *message, PlayerControlBase  *self);
 static gboolean setup_ismd_vbin(PlayerControlBase *self, gchar *rect, gint plane);
 
@@ -499,7 +479,7 @@ activate_player_control (PlayerControlBase *self, GstState target_state)
 
   if ((ret = kclass->request_resource(PLAYER_CONTROL_BASE(self)))) {
     if (target_state == GST_STATE_PLAYING) {
-      if (IS_LIVE_URI(priv->uri)) {
+      if (priv->is_live) {
         /* For the special case of live source.
           Becasue our hardware decoder and sink need the special clock type and if the clock type is wrong,
           the hardware can not work well.  In file case, the provide_clock will be called after all the elements
