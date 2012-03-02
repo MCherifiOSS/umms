@@ -181,9 +181,6 @@ get_hw_clock(void)
 
   clock = gst_element_provide_clock (vsink);
 
-  if (clock)
-    g_object_ref (clock);
-
   g_object_unref (vsink);
   UMMS_DEBUG ("End");
 
