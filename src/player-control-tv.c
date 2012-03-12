@@ -476,6 +476,12 @@ activate_player_control (PlayerControlBase *self, GstState target_state)
 
   if ((ret = kclass->request_resource(PLAYER_CONTROL_BASE(self)))) {
     if (target_state == GST_STATE_PLAYING) {
+      if (priv->buffering) {
+        UMMS_DEBUG ("In buffering, pends playing");
+        ret = TRUE;
+        goto OUT;
+      }
+
       if (priv->is_live) {
         /* For the special case of live source.
           Becasue our hardware decoder and sink need the special clock type and if the clock type is wrong,
