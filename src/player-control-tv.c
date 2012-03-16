@@ -211,9 +211,15 @@ uri_parsing_finished_cb (MediaPlayerControl * self)
   return FALSE;
 }
 
-static void no_more_pads_cb (GstElement * uridecodebin, MediaPlayerControl * self)
+static void 
+no_more_pads_cb (GstElement * uridecodebin, MediaPlayerControl * self)
 {
+  GstBus *bus;
+  PlayerControlBasePrivate *priv = GET_PRIVATE (self);
+
   UMMS_DEBUG("Begin");
+  bus = GST_ELEMENT_BUS (priv->uri_parse_pipe);
+  gst_bus_set_flushing (bus, TRUE);
   g_idle_add ((GSourceFunc)uri_parsing_finished_cb, self);
   UMMS_DEBUG("End");
 }

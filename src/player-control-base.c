@@ -1246,7 +1246,7 @@ player_control_base_get_buffer_depth (MediaPlayerControl *self, gint format, gin
     *buf_val = val;
   } else if (format == BufferFormatByBytes) {
     g_object_get (G_OBJECT (pipe), "buffer-size", &val_buf, NULL);
-    UMMS_DEBUG("Get the buffer-size: %lld", val_buf);
+    UMMS_DEBUG("Get the buffer-size: %d", val_buf);
     *buf_val = val_buf;
   } else {
     UMMS_DEBUG("Pass the wrong format:%d to buffer depth setting", format);
@@ -1971,7 +1971,7 @@ player_control_base_get_protocol_name(MediaPlayerControl *self, gchar ** prot_na
     return FALSE;
   }
 
-  UMMS_DEBUG("Pipe %"GST_PTR_FORMAT" has no uri is %s", pipe, uri);
+  UMMS_DEBUG("Pipe %"GST_PTR_FORMAT" has uri %s", pipe, uri);
 
   *prot_name = gst_uri_get_protocol(uri);
   UMMS_DEBUG("Get the protocol name is %s", *prot_name);

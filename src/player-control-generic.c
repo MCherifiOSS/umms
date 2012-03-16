@@ -184,7 +184,7 @@ _setup_xwindow_plane (PlayerControlBase *self, gchar *rect)
   PlayerControlBasePrivate *priv = GET_PRIVATE (self);
   PlayerControlBaseClass *kclass = PLAYER_CONTROL_BASE_GET_CLASS(self);
   MediaPlayerControl *control = MEDIA_PLAYER_CONTROL(self);
-  gchar *disp_env = NULL;
+  const gchar *disp_env = NULL;
 
   if (priv->xwin_initialized) {
     unset_xwindow_plane (self);

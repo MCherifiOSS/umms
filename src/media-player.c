@@ -1024,7 +1024,7 @@ media_player_set_property (GObject      *object,
       break;
     case PROP_PLATFORM:
       priv->platform_type = g_value_get_int(value);
-      UMMS_DEBUG("platform type: %d", tmp);
+      UMMS_DEBUG("platform type: %d", priv->platform_type);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
