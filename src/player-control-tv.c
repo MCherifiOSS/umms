@@ -1162,8 +1162,7 @@ player_control_tv_init (PlayerControlTv *self)
   priv = GET_PRIVATE (self);
 
   /*Setup default target*/
-#define FULL_SCREEN_RECT "0,0,0,0"
-  if (setup_ismd_vbin (self, FULL_SCREEN_RECT, UPP_A)) {
+  if (setup_ismd_vbin (self, NULL, INVALID_PLANE_ID)) {
     priv->target_type = ReservedType0;
     priv->target_initialized = TRUE;
   }
