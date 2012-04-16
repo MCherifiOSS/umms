@@ -1,21 +1,21 @@
-/* 
+/*
  * UMMS (Unified Multi Media Service) provides a set of DBus APIs to support
  * playing Audio and Video as well as DVB playback.
  *
  * Authored by Zhiwen Wu <zhiwen.wu@intel.com>
  *             Junyan He <junyan.he@intel.com>
  * Copyright (c) 2011 Intel Corp.
- * 
+ *
  * UMMS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * UMMS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with UMMS; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -25,7 +25,6 @@
 #define _UMMS_AUDIO_MANAGER_H
 
 #include <glib-object.h>
-#include "audio-manager-interface.h"
 
 G_BEGIN_DECLS
 
@@ -56,21 +55,19 @@ typedef struct _UmmsAudioManagerClass UmmsAudioManagerClass;
 typedef struct _UmmsAudioManagerPrivate UmmsAudioManagerPrivate;
 
 
-struct _UmmsAudioManager
-{
+struct _UmmsAudioManager {
   GObject parent;
   UmmsAudioManagerPrivate *priv;
 };
 
 
-struct _UmmsAudioManagerClass
-{
-    GObjectClass parent_class;
+struct _UmmsAudioManagerClass {
+  GObjectClass parent_class;
 };
 
 GType umms_audio_manager_get_type (void) G_GNUC_CONST;
 
-UmmsAudioManager *umms_audio_manager_new (gint platform);
+UmmsAudioManager *umms_audio_manager_new (void);
 gboolean umms_audio_manager_set_volume(UmmsAudioManager *self, gint type, gint vol, GError **error);
 gboolean umms_audio_manager_get_volume(UmmsAudioManager *self, gint type, gint *vol, GError **error);
 gboolean umms_audio_manager_set_state(UmmsAudioManager *self, gint type, gint state, GError **error);

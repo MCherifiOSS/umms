@@ -1,21 +1,21 @@
-/* 
+/*
  * UMMS (Unified Multi Media Service) provides a set of DBus APIs to support
  * playing Audio and Video as well as DVB playback.
  *
  * Authored by Zhiwen Wu <zhiwen.wu@intel.com>
  *             Junyan He <junyan.he@intel.com>
  * Copyright (c) 2011 Intel Corp.
- * 
+ *
  * UMMS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * UMMS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with UMMS; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -25,20 +25,19 @@
 #define UI_H_
 #include <gtk/gtk.h>
 
-typedef enum _UI_CALLBACK_REASONS 
-{
-    UI_CALLBACK_STATE_CHANGE,
-    UI_CALLBACK_EOF,
-    UI_CALLBACK_SEEKED,
-    UI_CALLBACK_BUFFERING,
-    UI_CALLBACK_BUFFERED,
-    UI_CALLBACK_VIDEO_TAG_CHANGED,
-    UI_CALLBACK_AUDIO_TAG_CHANGED,
-    UI_CALLBACK_TEXT_TAG_CHANGED,
-    UI_CALLBACK_STOPPED,
-    UI_CALLBACK_ERROR,
+typedef enum _UI_CALLBACK_REASONS {
+  UI_CALLBACK_STATE_CHANGE,
+  UI_CALLBACK_EOF,
+  UI_CALLBACK_SEEKED,
+  UI_CALLBACK_BUFFERING,
+  UI_CALLBACK_BUFFERED,
+  UI_CALLBACK_VIDEO_TAG_CHANGED,
+  UI_CALLBACK_AUDIO_TAG_CHANGED,
+  UI_CALLBACK_TEXT_TAG_CHANGED,
+  UI_CALLBACK_STOPPED,
+  UI_CALLBACK_ERROR,
 
-}UI_CALLBACK_REASONS;
+} UI_CALLBACK_REASONS;
 
 
 extern GtkWidget *video_window;

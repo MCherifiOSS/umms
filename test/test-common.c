@@ -1,21 +1,21 @@
-/* 
+/*
  * UMMS (Unified Multi Media Service) provides a set of DBus APIs to support
  * playing Audio and Video as well as DVB playback.
  *
  * Authored by Zhiwen Wu <zhiwen.wu@intel.com>
  *             Junyan He <junyan.he@intel.com>
  * Copyright (c) 2011 Intel Corp.
- * 
+ *
  * UMMS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * UMMS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with UMMS; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -52,7 +52,6 @@ static char *method_name[N_METHOD] = {
   "GetPlaybackRate",
   "SetVolume",
   "GetVolume",
-  "SetWindowId",
   "SetVideoSize",
   "GetVideoSize",
   "GetBufferedTime",
@@ -89,24 +88,24 @@ void get_param (gchar *method_str, gchar *param)
 
   method_id = atoi(method_str);
   switch (method_id) {
-    case SetUri:
-      g_print("Input uri:\n");
-      break;
-    case SetPosition:
-      g_print("Input pos to seek: (seconds)\n");
-      break;
-    case SetPlaybackRate:
-      g_print("Input playback rate: \n");
-      break;
-    case SetVolume:
-      g_print("Input volume to set: [0,100]\n");
-      break;
-    case SetVideoSize:
-      g_print("Input dest reactangle, Example: 0,0,352,288\n");
-      break;
-    default:
-      need_input = FALSE;
-      break;
+  case SetUri:
+    g_print("Input uri:\n");
+    break;
+  case SetPosition:
+    g_print("Input pos to seek: (seconds)\n");
+    break;
+  case SetPlaybackRate:
+    g_print("Input playback rate: \n");
+    break;
+  case SetVolume:
+    g_print("Input volume to set: [0,100]\n");
+    break;
+  case SetVideoSize:
+    g_print("Input dest reactangle, Example: 0,0,352,288\n");
+    break;
+  default:
+    need_input = FALSE;
+    break;
   }
   if (need_input) {
     fscanf (stdin, "%s", param);

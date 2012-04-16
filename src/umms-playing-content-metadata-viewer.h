@@ -1,21 +1,21 @@
-/* 
+/*
  * UMMS (Unified Multi Media Service) provides a set of DBus APIs to support
  * playing Audio and Video as well as DVB playback.
  *
  * Authored by Zhiwen Wu <zhiwen.wu@intel.com>
  *             Junyan He <junyan.he@intel.com>
  * Copyright (c) 2011 Intel Corp.
- * 
+ *
  * UMMS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * UMMS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with UMMS; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -55,16 +55,14 @@ typedef struct _UmmsPlayingContentMetadataViewer UmmsPlayingContentMetadataViewe
 typedef struct _UmmsPlayingContentMetadataViewerClass UmmsPlayingContentMetadataViewerClass;
 typedef struct _UmmsPlayingContentMetadataViewerPrivate UmmsPlayingContentMetadataViewerPrivate;
 
-struct _UmmsPlayingContentMetadataViewer
-{
+struct _UmmsPlayingContentMetadataViewer {
   GObject parent;
 
   UmmsPlayingContentMetadataViewerPrivate *priv;
 };
 
 
-struct _UmmsPlayingContentMetadataViewerClass
-{
+struct _UmmsPlayingContentMetadataViewerClass {
   GObjectClass parent_class;
 
 };
@@ -73,7 +71,7 @@ GType umms_playing_content_metadata_viewer_get_type (void) G_GNUC_CONST;
 
 UmmsPlayingContentMetadataViewer *umms_playing_content_metadata_viewer_new (UmmsObjectManager *obj_mngr);
 
-gboolean 
+gboolean
 umms_playing_content_metadata_viewer_get_playing_content_metadata (UmmsPlayingContentMetadataViewer *self, GPtrArray **metadata, GError **err);
 
 G_END_DECLS

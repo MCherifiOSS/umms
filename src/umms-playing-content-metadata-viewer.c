@@ -1,33 +1,34 @@
-/* 
+/*
  * UMMS (Unified Multi Media Service) provides a set of DBus APIs to support
  * playing Audio and Video as well as DVB playback.
  *
  * Authored by Zhiwen Wu <zhiwen.wu@intel.com>
  *             Junyan He <junyan.he@intel.com>
  * Copyright (c) 2011 Intel Corp.
- * 
+ *
  * UMMS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * UMMS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with UMMS; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include <dbus/dbus-glib.h>
+#include "umms-server.h"
 #include "umms-debug.h"
-#include "umms-common.h"
+#include "umms-types.h"
 #include "umms-error.h"
 #include "umms-playing-content-metadata-viewer.h"
 #include "umms-object-manager.h"
-#include "media-player.h"
+#include "umms-media-player.h"
 
 
 G_DEFINE_TYPE (UmmsPlayingContentMetadataViewer, umms_playing_content_metadata_viewer, G_TYPE_OBJECT)
@@ -59,17 +60,16 @@ umms_playing_content_metadata_viewer_get_property (GObject    *object,
     GParamSpec *pspec)
 {
   switch (property_id) {
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
   }
 }
 
 static void
-player_state_changed_cb(MediaPlayer *player, gint old_state, gint new_state, UmmsPlayingContentMetadataViewer *viewer)
+player_state_changed_cb(UmmsMediaPlayer *player, gint old_state, gint new_state, UmmsPlayingContentMetadataViewer *viewer)
 {
   GPtrArray *metadata;
 
-  UMMS_DEBUG ("Begin");
   if (((old_state <= PlayerStateStopped) && (new_state >= PlayerStateStopped)) || (old_state >= PlayerStatePaused && new_state <= PlayerStateStopped)) {
     if (umms_playing_content_metadata_viewer_get_playing_content_metadata (viewer, &metadata, NULL)) {
       g_signal_emit (viewer, signals[SIGNAL_METADATA_UPDATED], 0, metadata);
@@ -77,25 +77,22 @@ player_state_changed_cb(MediaPlayer *player, gint old_state, gint new_state, Umm
       UMMS_DEBUG ("getting playing content matadata failed");
     }
   }
-  UMMS_DEBUG ("End");
 }
 
 static void
-player_metadata_changed_cb(MediaPlayer *player, UmmsPlayingContentMetadataViewer *viewer)
+player_metadata_changed_cb(UmmsMediaPlayer *player, UmmsPlayingContentMetadataViewer *viewer)
 {
   GPtrArray *metadata;
 
-  UMMS_DEBUG ("Begin");
   if (umms_playing_content_metadata_viewer_get_playing_content_metadata (viewer, &metadata, NULL)) {
     g_signal_emit (viewer, signals[SIGNAL_METADATA_UPDATED], 0, metadata);
   } else {
     UMMS_DEBUG ("getting playing content matadata failed");
   }
-  UMMS_DEBUG ("End");
 }
 
 static void
-player_added_cb(UmmsObjectManager *obj_mngr, MediaPlayer *player, UmmsPlayingContentMetadataViewer *viewer)
+player_added_cb(UmmsObjectManager *obj_mngr, UmmsMediaPlayer *player, UmmsPlayingContentMetadataViewer *viewer)
 {
   g_signal_connect (player, "player-state-changed", G_CALLBACK(player_state_changed_cb), viewer);
   g_signal_connect (player, "metadata-changed", G_CALLBACK(player_metadata_changed_cb), viewer);
@@ -110,14 +107,14 @@ umms_playing_content_metadata_viewer_set_property (GObject      *object,
   UmmsPlayingContentMetadataViewerPrivate *priv = GET_PRIVATE(object);
 
   switch (property_id) {
-    case PROP_OBJECT_MANAGER: {
-      priv->obj_mngr = g_value_get_object (value);
-      g_object_ref (priv->obj_mngr);
-      g_signal_connect (priv->obj_mngr, "player-added", G_CALLBACK(player_added_cb), object);
-      break;
-    }
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+  case PROP_OBJECT_MANAGER: {
+    priv->obj_mngr = g_value_get_object (value);
+    g_object_ref (priv->obj_mngr);
+    g_signal_connect (priv->obj_mngr, "player-added", G_CALLBACK(player_added_cb), object);
+    break;
+  }
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
   }
 }
 
@@ -157,9 +154,9 @@ umms_playing_content_metadata_viewer_class_init (UmmsPlayingContentMetadataViewe
   object_class->finalize = umms_playing_content_metadata_viewer_finalize;
 
   g_object_class_install_property (object_class, PROP_OBJECT_MANAGER,
-      g_param_spec_object ("umms-object-manager", "UMMS object manager",
-          "UMMS object manager provides access to all MediaPlayer object",
-          UMMS_TYPE_OBJECT_MANAGER, G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
+                                   g_param_spec_object ("umms-object-manager", "UMMS object manager",
+                                       "UMMS object manager provides access to all UmmsMediaPlayer object",
+                                       UMMS_TYPE_OBJECT_MANAGER, G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
   signals[SIGNAL_METADATA_UPDATED] =
     g_signal_new ("metadata-updated",
@@ -194,7 +191,7 @@ umms_playing_content_metadata_viewer_get_playing_content_metadata (UmmsPlayingCo
   GValue *val;
   gint i, state;
   GList *players, *item;
-  MediaPlayer *player;
+  UmmsMediaPlayer *player;
   gchar *uri = NULL;
   gchar *title = NULL;
   gchar *artist = NULL;
@@ -202,7 +199,7 @@ umms_playing_content_metadata_viewer_get_playing_content_metadata (UmmsPlayingCo
 
   *metadata = g_ptr_array_new ();
   if (!*metadata) {
-    g_assert (err == NULL || *err == NULL);
+    g_return_val_if_fail (err == NULL || *err == NULL, FALSE);
     if (err != NULL)
       g_set_error (err, UMMS_GENERIC_ERROR, UMMS_GENERIC_ERROR_CREATING_OBJ_FAILED, "Creating GPtrArray metadata failed");
     return FALSE;
@@ -212,17 +209,17 @@ umms_playing_content_metadata_viewer_get_playing_content_metadata (UmmsPlayingCo
   for (i = 0; i < g_list_length(players); i++) {
 
     item = g_list_nth (players, i);
-    player = MEDIA_PLAYER (item->data);
-    media_player_get_player_state (player,  &state, NULL);
+    player = UMMS_MEDIA_PLAYER (item->data);
+    umms_media_player_get_player_state (player,  &state, NULL);
 
     if (state == PlayerStatePlaying || state == PlayerStatePaused) {
       /*
        * 1. get tags of URI, Title, Artist.
        * 2. Fill the metadata.
        */
-      media_player_get_current_uri (player, &uri, NULL);
-      media_player_get_title (player, &title, NULL);
-      media_player_get_artist (player, &artist, NULL);
+      umms_media_player_get_current_uri (player, &uri, NULL);
+      umms_media_player_get_title (player, &title, NULL);
+      umms_media_player_get_artist (player, &artist, NULL);
 
       ht = g_hash_table_new (NULL, NULL);
 

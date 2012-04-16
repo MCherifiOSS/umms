@@ -1,0 +1,27 @@
+#ifndef __UMMS_VERSION_H__
+#define __UMMS_VERSION_H__
+
+G_BEGIN_DECLS
+
+/**
+ * UMMS_VERSION_MAJOR:
+ *
+ * The major version of UMMS at compile time:
+ */
+#define UMMS_MAJOR_VERSION (@UMMS_MAJOR_VERSION@)
+/**
+ * UMMS_VERSION_MINOR:
+ *
+ * The minor version of UMMS at compile time:
+ */
+#define UMMS_MINOR_VERSION (@UMMS_MINOR_VERSION@)
+/**
+ * UMMS_VERSION_MICRO:
+ *
+ * The micro version of UMMS at compile time:
+ */
+#define UMMS_MICRO_VERSION (@UMMS_MICRO_VERSION@)
+
+G_END_DECLS
+
+#endif /* __UMMS_VERSION_H__ */

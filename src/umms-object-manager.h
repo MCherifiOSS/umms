@@ -1,21 +1,21 @@
-/* 
+/*
  * UMMS (Unified Multi Media Service) provides a set of DBus APIs to support
  * playing Audio and Video as well as DVB playback.
  *
  * Authored by Zhiwen Wu <zhiwen.wu@intel.com>
  *             Junyan He <junyan.he@intel.com>
  * Copyright (c) 2011 Intel Corp.
- * 
+ *
  * UMMS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * UMMS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with UMMS; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -54,26 +54,24 @@ typedef struct _UmmsObjectManager UmmsObjectManager;
 typedef struct _UmmsObjectManagerClass UmmsObjectManagerClass;
 typedef struct _UmmsObjectManagerPrivate UmmsObjectManagerPrivate;
 
-struct _UmmsObjectManager
-{
+struct _UmmsObjectManager {
   GObject parent;
   UmmsObjectManagerPrivate *priv;
 };
 
 
-struct _UmmsObjectManagerClass
-{
+struct _UmmsObjectManagerClass {
   GObjectClass parent_class;
 };
 
 
 GType umms_object_manager_get_type (void) G_GNUC_CONST;
-UmmsObjectManager *umms_object_manager_new (gint platform);
+UmmsObjectManager *umms_object_manager_new (void);
 gboolean umms_object_manager_request_media_player(UmmsObjectManager *self, gchar **object_path, GError **error);
-gboolean umms_object_manager_request_media_player_unattended(UmmsObjectManager *self, gdouble time_to_execution, 
-        gchar **token, gchar **object_path, GError **error);
+gboolean umms_object_manager_request_media_player_unattended(UmmsObjectManager *self, gdouble time_to_execution,
+    gchar **token, gchar **object_path, GError **error);
 gboolean umms_object_manager_request_scheduled_recorder(UmmsObjectManager *self, gdouble start_time, gdouble duration,
-        gchar *uri, gchar *location, gchar **token, gchar **object_path, GError **error);
+    gchar *uri, gchar *location, gchar **token, gchar **object_path, GError **error);
 gboolean umms_object_manager_remove_media_player(UmmsObjectManager *self, gchar *object_path, GError **error);
 GList *umms_object_manager_get_player_list (UmmsObjectManager *self);
 

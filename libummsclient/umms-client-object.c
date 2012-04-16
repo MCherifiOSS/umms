@@ -1,21 +1,21 @@
-/* 
+/*
  * UMMS (Unified Multi Media Service) provides a set of DBus APIs to support
  * playing Audio and Video as well as DVB playback.
  *
  * Authored by Zhiwen Wu <zhiwen.wu@intel.com>
  *             Junyan He <junyan.he@intel.com>
  * Copyright (c) 2011 Intel Corp.
- * 
+ *
  * UMMS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * UMMS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with UMMS; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -25,7 +25,7 @@
 #include <glib-object.h>
 #include <stdio.h>
 
-#include "../src/umms-common.h"
+#include "../src/umms-server.h"
 #include "../src/umms-debug.h"
 #include "umms-client-object.h"
 
@@ -48,25 +48,25 @@ static DBusGProxy *get_iface(const gchar *obj_path, const gchar *iface_name);
 
 static void
 umms_client_object_get_property (GObject    *object,
-    guint       property_id,
-    GValue     *value,
-    GParamSpec *pspec)
+                                 guint       property_id,
+                                 GValue     *value,
+                                 GParamSpec *pspec)
 {
   switch (property_id) {
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
   }
 }
 
 static void
 umms_client_object_set_property (GObject      *object,
-    guint         property_id,
-    const GValue *value,
-    GParamSpec   *pspec)
+                                 guint         property_id,
+                                 const GValue *value,
+                                 GParamSpec   *pspec)
 {
   switch (property_id) {
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
   }
 }
 
@@ -133,23 +133,23 @@ DBusGProxy *umms_client_object_request_player (UmmsClientObject *self, gboolean 
 {
   UmmsClientObjectPrivate *priv = GET_PRIVATE (self);
   GError *error = NULL;
-  gchar  *obj_path;
-  gchar  *token;
+  gchar  *obj_path = NULL;
+  gchar  *token = NULL;
   DBusGProxy  *player = NULL;
 
   if (attended) {
     if (!dbus_g_proxy_call (priv->obj_mngr, "RequestMediaPlayer", &error,
-         G_TYPE_INVALID,
-         G_TYPE_STRING, &obj_path, G_TYPE_INVALID)) {
+                            G_TYPE_INVALID,
+                            G_TYPE_STRING, &obj_path, G_TYPE_INVALID)) {
       UMMS_GERROR ("RequestMediaPlayer failed", error);
     }
     UMMS_DEBUG ("obj_path='%s'", obj_path);
 
   } else {
     if (!dbus_g_proxy_call (priv->obj_mngr, "RequestMediaPlayerUnattended", &error,
-         G_TYPE_DOUBLE, time_to_execution, G_TYPE_INVALID,
-         G_TYPE_STRING, &token,
-         G_TYPE_STRING, &obj_path, G_TYPE_INVALID)) {
+                            G_TYPE_DOUBLE, time_to_execution, G_TYPE_INVALID,
+                            G_TYPE_STRING, &token,
+                            G_TYPE_STRING, &obj_path, G_TYPE_INVALID)) {
       UMMS_GERROR ("RequestMediaPlayerUnattended failed", error);
     }
     UMMS_DEBUG ("unattended execution, timeout=%f, obj_path='%s'", time_to_execution, obj_path);
@@ -160,14 +160,16 @@ DBusGProxy *umms_client_object_request_player (UmmsClientObject *self, gboolean 
   if (attended) {
     dbus_g_proxy_add_signal (player, "NeedReply", G_TYPE_INVALID);
     dbus_g_proxy_connect_signal (player,
-        "NeedReply",
-        G_CALLBACK(need_reply_cb),
-        NULL, NULL);
+                                 "NeedReply",
+                                 G_CALLBACK(need_reply_cb),
+                                 NULL, NULL);
   }
 
   *name = g_strdup(obj_path);
-  g_free(obj_path);
-  g_free(token);
+  if (obj_path)
+    g_free(obj_path);
+  if (token)
+    g_free(token);
 
   return player;
 }
@@ -184,9 +186,9 @@ static DBusGProxy *get_iface(const gchar *obj_path, const gchar *iface_name)
   }
 
   proxy = dbus_g_proxy_new_for_name (bus,
-          UMMS_SERVICE_NAME,
-          obj_path,
-          iface_name);
+                                     UMMS_SERVICE_NAME,
+                                     obj_path,
+                                     iface_name);
 
   return proxy;
 }
@@ -197,7 +199,7 @@ need_reply_cb(DBusGProxy *player)
   GError *error = NULL;
 
   if (!dbus_g_proxy_call (player, "Reply", &error,
-       G_TYPE_INVALID, G_TYPE_INVALID)) {
+                          G_TYPE_INVALID, G_TYPE_INVALID)) {
     UMMS_GERROR ("Reply failed", error);
   }
   return;
@@ -214,8 +216,8 @@ void umms_client_object_remove_player (UmmsClientObject *self, DBusGProxy *playe
   obj_path = dbus_g_proxy_get_path (player);
 
   if (!dbus_g_proxy_call (priv->obj_mngr, "RemoveMediaPlayer", &error,
-       G_TYPE_STRING, obj_path, G_TYPE_INVALID,
-       G_TYPE_INVALID)) {
+                          G_TYPE_STRING, obj_path, G_TYPE_INVALID,
+                          G_TYPE_INVALID)) {
     UMMS_GERROR ("RemoveMediaPlayer failed", error);
   }
   return;

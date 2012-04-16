@@ -17,26 +17,25 @@ method_name = (
     "Pause",
     "Stop",
     "SetPosition",
-    "GetPosition",#5
+    "GetPosition",
     "SetPlaybackRate",
     "GetPlaybackRate",
     "SetVolume",
     "GetVolume",
     "SetMute",
     "IsMute",
-    "SetWindowId",#10
     "SetVideoSize",
     "GetVideoSize",
     "SetScaleMode",
     "GetScaleMode",
     "GetBufferedTime",
     "GetBufferedBytes",
-    "GetMediaSizeTime",#15
+    "GetMediaSizeTime",
     "GetMediaSizeBytes",
     "HasVideo",
     "HasAudio",
     "IsStreaming",
-    "IsSeekable",#20
+    "IsSeekable",
     "SupportFullscreen",
     "GetPlayerState",
     "SetProxy",
@@ -47,7 +46,7 @@ method_name = (
     "GetGlobalVolume",
     "DisableAudioOuput",
     "EnableAudioOuput",
-    "GetAudioOutputState",#31
+    "GetAudioOutputState",
     "GetCurrentVideo",
     "GetCurrentAudio",
     "SetCurrentVideo",
@@ -82,7 +81,6 @@ method_name = (
     GetVolume,
     SetMute,
     IsMute,
-    SetWindowId,
     SetVideoSize,
     GetVideoSize,
     SetScaleMode,
@@ -183,8 +181,9 @@ def player_state_changed_cb(old_state, new_state):
 def eof_cb ():
 	print "EOF...."
 
-def begin_buffering_cb():
-    print "Begin buffering"
+def buffering_cb(percent):
+    if (percent % 10) == 0:
+	print "buffered '%d%%'" % percent
 
 def buffered_cb():
     print "Buffering completed"
@@ -215,14 +214,11 @@ def connect_sigs (proxy):
      print "connect signals"
      proxy.connect_to_signal("Initialized", initialized_cb)
      proxy.connect_to_signal("Eof", eof_cb)
-     proxy.connect_to_signal("Buffering", begin_buffering_cb)
-     proxy.connect_to_signal("Buffered", buffered_cb)
-     proxy.connect_to_signal("RequestWindow", request_window_cb)
+     proxy.connect_to_signal("Buffering", buffering_cb)
      proxy.connect_to_signal("Seeked", seeked_cb)
      proxy.connect_to_signal("Stopped", stopped_cb)
      proxy.connect_to_signal("Error", error_cb)
      proxy.connect_to_signal("PlayerStateChanged", player_state_changed_cb)
-     proxy.connect_to_signal("TargetReady", target_ready_cb)
      proxy.connect_to_signal("Suspended", suspended_cb)
      proxy.connect_to_signal("Restored", restored_cb)
      return
@@ -332,8 +328,6 @@ class CmdHandler(threading.Thread):
         elif mid == IsMute:
             mute = self.player.IsMute()
             print "mute : %d" % mute
-        elif mid == SetWindowId:
-        	print "TODO:"
         elif mid == SetVideoSize:
             rectangle = raw_input ("Input dest reactangle, Example: 0,0,352,288\n")
             rectangle = rectangle.split(',')

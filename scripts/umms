@@ -1,6 +1,6 @@
 #!/bin/sh
 # chkconfig: 35 99 1
-# description: meego-tv-IRinterface daemon
+# description: UMMS daemon
 
 # Script name can be the called name, or something more meaningful.
 SCRIPTNAME=$0

@@ -21,27 +21,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#ifndef _UMMS_H
+#define _UMMS_H
 
-#ifndef AV_DECODER_H_
-#define AV_DECODER_H_
+#include "umms-version.h"
+#include "umms-debug.h"
+#include "umms-error.h"
+#include "umms-utils.h"
+#include "umms-types.h"
+#include "umms-marshals.h"
+#include "umms-plugin.h"
+#include "umms-resource-manager.h"
+#include "umms-player-backend.h"
+#include "umms-video-output-backend.h"
+#include "umms-audio-manager-backend.h"
 
+#endif /* _UMMS_H */
 
-typedef struct UMMS_Pat_Item {
-  guint program_num;
-  guint pid;
-} UMMS_Pat_Item;
-
-typedef struct UMMS_Pmt_Item {
-  guint pid;
-  guint stream_type;
-} UMMS_Pmt_Item;
-
-gint avdec_init(void);
-gint avdec_set_source(gchar *filename);
-gint avdec_start(void);
-gint avdec_stop(void);
-gint avdec_pause(void);
-gint avdec_resume(void);
-gint avdec_seek_from_beginning(gint64 nanosecond);
-
-#endif /* AV_DECODER_H_ */

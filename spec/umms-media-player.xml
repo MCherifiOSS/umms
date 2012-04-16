@@ -46,10 +46,6 @@
 			<arg name="volume" type="i" direction="out"/>
 		</method>
 
-		<method name="SetWindowId">
-			<arg name="win_id" type="d"/>
-		</method>
-
 		<method name="SetVideoSize">
 			<arg name="x" type="u"/>
 			<arg name="y" type="u"/>
@@ -264,12 +260,7 @@
 		</signal>
 
 		<signal name="Buffering">
-		</signal>
-
-		<signal name="Buffered">
-		</signal>
-
-		<signal name="RequestWindow">
+			<arg  type="i"/>
 		</signal>
 
 		<signal name="Seeked">
@@ -284,10 +275,6 @@
 		</signal>
 
 		<signal name="NeedReply">
-		</signal>
-
-		<signal name="TargetReady">
-			<arg name="info" type="a{sv}"/>
 		</signal>
 
 		<signal name="Suspended">

@@ -29,12 +29,12 @@
 
 int main(int argc, char *argv[])
 {
-    gtk_init(&argc, &argv);
+  gtk_init(&argc, &argv);
 
-    ui_create();
-    ply_init();
+  ui_create();
+  ply_init();
 
-    ui_main_loop();
+  ui_main_loop();
 
-    return 0;
+  return 0;
 }

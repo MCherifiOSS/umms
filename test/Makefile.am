@@ -1,20 +1,12 @@
-noinst_PROGRAMS = client-test-gobject engine-test
-client_test_gobject_CFLAGS = $(UMMSCLIENT_CFLAGS)
-client_test_gobject_LDFLAGS = $(UMMSCLIENT_LIBS)
-client_test_gobject_LDADD = ../libummsclient/libummsclient.a
-client_test_gobject_SOURCES = test-common.c test-common.h client-test-gobject.c \
-                              ../src/umms-marshals.c \
-                              ../src/umms-marshals.h
+INCLUDES = \
+	-I$(top_srcdir)/libummsclient \
+	$(UMMS_SAMPLE_CFLAGS)
 
-engine_test_CFLAGS = $(UMMS_CFLAGS)
-engine_test_LDADD = $(UMMS_LIBS)
-engine_test_SOURCES = test-common.c test-common.h ../src/media-player-control.c ../src/media-player-control.h \
-                      ../src/player-control-tv.c ../src/player-contorl-tv.h \
-                      ../src/player-control-base.c ../src/player-control-base.h \
-                      ../src/param-table.c ../src/param-table.h \
-                      ../src/umms-marshals.c ../src/umms-marshals.h \
-                      ../src/umms-resource-manager.c ../src/umms-resource-manager.h \
-                      ../src/umms-error.c ../src/umms-error.h \
-                      engine-test.c
+LDADD = \
+	$(top_builddir)/libummsclient/libummsclient-@UMMS_MAJORMINOR@.la \
+	$(UMMS_SAMPLE_LIBS)
+
+noinst_PROGRAMS = client-test-gobject
+client_test_gobject_SOURCES = test-common.c test-common.h client-test-gobject.c
 
 EXTRA_DIST = client-test.py
