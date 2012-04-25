@@ -174,6 +174,8 @@ static void
 player_state_changed_cb (UmmsPlayerBackend *iface, gint old_state, gint new_state, UmmsMediaPlayer *player)
 {
   g_signal_emit (player, umms_media_player_signals[SIGNAL_MEDIA_PLAYER_PlayerStateChanged], 0, old_state, new_state);
+  if (new_state == PlayerStatePaused && old_state < PlayerStatePaused)
+    g_signal_emit (player, umms_media_player_signals[SIGNAL_MEDIA_PLAYER_Initialized], 0);
 }
 
 static void
@@ -377,8 +379,6 @@ umms_media_player_load_backend (UmmsMediaPlayer *player, const gchar *uri)
     umms_player_backend_set_target (priv->backend, priv->target_type, priv->target_params, NULL);
   if (priv->sub_uri)
     umms_player_backend_set_subtitle_uri (priv->backend, priv->sub_uri, NULL);
-
-  g_signal_emit (player, umms_media_player_signals[SIGNAL_MEDIA_PLAYER_Initialized], 0);
 
   return TRUE;
 }
