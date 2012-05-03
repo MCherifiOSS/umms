@@ -363,7 +363,7 @@ umms_media_player_load_backend (UmmsMediaPlayer *player, const gchar *uri)
     umms_player_backend_set_video_size (priv->backend, priv->x, priv->y, priv->w, priv->h, NULL);
   priv->video_size_cached = FALSE;
 
-  if (umms_ctx->proxy_uri) {
+  if (umms_ctx->proxy_uri && umms_ctx->proxy_uri[0] != '\0') {
     if (priv->http_proxy_params)
       g_hash_table_unref (priv->http_proxy_params);
     priv->http_proxy_params = param_table_create ("proxy-uri", G_TYPE_STRING, umms_ctx->proxy_uri,
