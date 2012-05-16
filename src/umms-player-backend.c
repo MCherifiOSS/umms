@@ -51,6 +51,8 @@ umms_player_backend_dispose (GObject *object)
 {
   UmmsPlayerBackend *self = UMMS_PLAYER_BACKEND (object);
 
+  umms_player_backend_stop (self, NULL);
+
   G_OBJECT_CLASS (umms_player_backend_parent_class)->dispose (object);
 }
 
