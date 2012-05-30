@@ -182,7 +182,9 @@ static void
 get_proxy_from_conf (UmmsCtx *ctx, GKeyFile *conf)
 {
   gchar **keys = NULL;
+  gchar **value_holder = NULL;
   gsize len;
+  gint i;
   GError *err = NULL;
 
   if (!conf)
@@ -200,9 +202,21 @@ get_proxy_from_conf (UmmsCtx *ctx, GKeyFile *conf)
     return;
   }
 
-  ctx->proxy_uri = g_key_file_get_string (conf, PROXY_GROUP, keys[0], NULL);
-  ctx->proxy_id = g_key_file_get_string (conf, PROXY_GROUP, keys[1], NULL);
-  ctx->proxy_pw = g_key_file_get_string (conf, PROXY_GROUP, keys[2], NULL);
+  for (i = 0; i < len; i++) {
+     if (g_strcmp0(keys[i], "uri") == 0)
+        value_holder = &ctx->proxy_uri;
+     else if (g_strcmp0(keys[i], "user") == 0)
+        value_holder = &ctx->proxy_id;
+     else if (g_strcmp0(keys[i], "password") == 0)
+        value_holder = &ctx->proxy_pw;
+     else {
+        value_holder = NULL;
+        UMMS_WARNING ("Invalid key %s", keys[i]);
+     }
+
+     if (value_holder)
+        *value_holder = g_key_file_get_string (conf, PROXY_GROUP, keys[i], NULL);
+  }
 
   g_strfreev (keys);
   return;
