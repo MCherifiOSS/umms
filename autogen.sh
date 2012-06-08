@@ -58,7 +58,7 @@ run "aclocal --force -I config/m4"
 run "autoheader"
 run "autoconf"
 run "automake --add-missing --copy --gnu"
-./configure --prefix=/usr
+./configure --prefix=/usr CFLAGS=-g3
 			    
 # ending 
 rm -f $AUTOGEN_LOG

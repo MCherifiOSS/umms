@@ -272,7 +272,7 @@ umms_player_backend_class_init (UmmsPlayerBackendClass *klass)
                   G_TYPE_NONE,
                   0);
 
-  umms_player_backend_signals[SIGNAL_UMMS_PLAYER_BACKEND_RecordStart] =
+  umms_player_backend_signals[SIGNAL_UMMS_PLAYER_BACKEND_RecordStop] =
     g_signal_new ("record-stop",
                   G_OBJECT_CLASS_TYPE (klass),
                   G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,

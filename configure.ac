@@ -32,6 +32,7 @@ AM_PROG_CC_C_O
 
 PKG_CHECK_MODULES(UMMS_SERVER,       \
                   glib-2.0 >= 2.24   \
+                  gthread-2.0 \
                   gmodule-2.0 >= 2.24\
                   dbus-glib-1)
 
