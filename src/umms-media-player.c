@@ -1280,7 +1280,7 @@ umms_media_player_class_init (UmmsMediaPlayerClass *klass)
                   G_TYPE_NONE,
                   0);
 
-  umms_media_player_signals[SIGNAL_MEDIA_PLAYER_RecordStart] =
+  umms_media_player_signals[SIGNAL_MEDIA_PLAYER_RecordStop] =
     g_signal_new ("record-stop",
                   G_OBJECT_CLASS_TYPE (klass),
                   G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
