@@ -235,6 +235,7 @@ class CmdHandler(threading.Thread):
             cmd = raw_input ("Input cmd:\n")
             quit = (self.handle_cmd(cmd) == False)
         else :
+            self.player.Stop()
             loop.quit()
 	
     def handle_cmd(self, cmd):
